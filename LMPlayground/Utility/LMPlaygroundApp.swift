@@ -34,7 +34,7 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             "active": active,
             "app_id" : "WalletSync",
             "frequency": frequencyHour,
-            "key" : "2db298626156b95ce19b45cec605e061"
+            "key": Configuration.shared.pushServiceKey
         ] as [String : Any]
         
         do {

@@ -1,0 +1,8 @@
+// Configuration settings for LunchSync
+// Copy this file to Config.xcconfig and replace the values with your actual keys
+
+// Push notification service key
+PUSH_SERVICE_KEY = your_push_service_key_here
+
+// Make the key available to the Info.plist
+INFOPLIST_KEY_PUSH_SERVICE_KEY = $(PUSH_SERVICE_KEY)

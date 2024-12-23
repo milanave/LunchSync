@@ -7,10 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C4475ACC2D19A7E900ED73DF /* Config.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = C4475ACB2D19A7E900ED73DF /* Config.xcconfig */; };
 		C4D328642CCD1DA900B638AB /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = C4D328632CCD1DA900B638AB /* README.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		C4475ACB2D19A7E900ED73DF /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 		C4D328412CCD137200B638AB /* LMPlayground.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LMPlayground.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C4D328632CCD1DA900B638AB /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -50,6 +52,7 @@
 		C4D328382CCD137200B638AB = {
 			isa = PBXGroup;
 			children = (
+				C4475ACB2D19A7E900ED73DF /* Config.xcconfig */,
 				C4D328632CCD1DA900B638AB /* README.md */,
 				C4D328432CCD137200B638AB /* LMPlayground */,
 				C4D328422CCD137200B638AB /* Products */,
@@ -128,6 +131,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C4475ACC2D19A7E900ED73DF /* Config.xcconfig in Resources */,
 				C4D328642CCD1DA900B638AB /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -292,6 +296,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.littlebluebug.AppleCardSync;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PUSH_SERVICE_KEY = "$(PUSH_SERVICE_KEY)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -326,6 +331,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.littlebluebug.AppleCardSync;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PUSH_SERVICE_KEY = "$(PUSH_SERVICE_KEY)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

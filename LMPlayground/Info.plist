@@ -16,5 +16,7 @@
 		<string>processing</string>
 		<string>remote-notification</string>
 	</array>
+    <key>PUSH_SERVICE_KEY</key>
+    <string>$(PUSH_SERVICE_KEY)</string>
 </dict>
 </plist>
