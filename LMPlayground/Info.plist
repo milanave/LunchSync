@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.littlebluebug.AppleCardSync.refresh</string>
+	</array>
+	<key>NSFinancialDataDescription</key>
+	<string>Loading ApplePay transactions to Lunch Money</string>
+	<key>NSFinancialDataUsageDescription</key>
+	<string>Loading ApplePay transactions to Lunch Money</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>processing</string>
+		<string>remote-notification</string>
+	</array>
+</dict>
+</plist>

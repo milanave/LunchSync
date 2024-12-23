@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>top-level-items</key>
+	<array>
+		<dict>
+			<key>destination</key>
+			<dict>
+				<key>location-parameters</key>
+				<dict>
+					<key>EndingColumnNumber</key>
+					<string>0</string>
+					<key>EndingLineNumber</key>
+					<string>207</string>
+					<key>StartingColumnNumber</key>
+					<string>0</string>
+					<key>StartingLineNumber</key>
+					<string>206</string>
+					<key>Timestamp</key>
+					<string>753492656.744501</string>
+				</dict>
+				<key>rebasable-url</key>
+				<dict>
+					<key>base</key>
+					<string>workspace</string>
+					<key>payload</key>
+					<dict>
+						<key>relative-path</key>
+						<string>LMPlayground/Wallet/AppleWallet.swift</string>
+					</dict>
+				</dict>
+			</dict>
+			<key>text-context</key>
+			<dict>
+				<key>focused</key>
+				<string>        var transactionsFound: [Transaction] = []
+</string>
+				<key>leading</key>
+				<string>     */
+    func fetchhWalletTransactionsForAccounts(accounts:[Account]) async throws -&gt; [Transaction]{
+</string>
+				<key>trailing</key>
+				<string>        let sortDescriptor = SortDescriptor(\FinanceKit.Transaction.transactionDate, order: .reverse)
+        
+        
+</string>
+			</dict>
+			<key>type</key>
+			<string>bookmark</string>
+		</dict>
+		<dict>
+			<key>destination</key>
+			<dict>
+				<key>location-parameters</key>
+				<dict>
+					<key>EndingColumnNumber</key>
+					<string>0</string>
+					<key>EndingLineNumber</key>
+					<string>185</string>
+					<key>StartingColumnNumber</key>
+					<string>0</string>
+					<key>StartingLineNumber</key>
+					<string>184</string>
+					<key>Timestamp</key>
+					<string>753542000.382381</string>
+				</dict>
+				<key>rebasable-url</key>
+				<dict>
+					<key>base</key>
+					<string>workspace</string>
+					<key>payload</key>
+					<dict>
+						<key>relative-path</key>
+						<string>LMPlayground/Wallet/Wallet.swift</string>
+					</dict>
+				</dict>
+			</dict>
+			<key>text-context</key>
+			<dict>
+				<key>focused</key>
+				<string>                            print("Unknown property: \(property)")
+</string>
+				<key>leading</key>
+				<string>                            account.lastUpdated = newAccount.lastUpdated
+                        default:
+</string>
+				<key>trailing</key>
+				<string>                        }
+                    }
+                    print("Update \(account.id) -&gt;  \(account.lm_id) to \(newAccount.lm_id)")
+</string>
+			</dict>
+			<key>type</key>
+			<string>bookmark</string>
+		</dict>
+		<dict>
+			<key>destination</key>
+			<dict>
+				<key>location-parameters</key>
+				<dict>
+					<key>EndingColumnNumber</key>
+					<string>25</string>
+					<key>EndingLineNumber</key>
+					<string>32</string>
+					<key>StartingColumnNumber</key>
+					<string>9</string>
+					<key>StartingLineNumber</key>
+					<string>32</string>
+					<key>Timestamp</key>
+					<string>753458553.662135</string>
+				</dict>
+				<key>rebasable-url</key>
+				<dict>
+					<key>base</key>
+					<string>workspace</string>
+					<key>payload</key>
+					<dict>
+						<key>relative-path</key>
+						<string>LMPlayground/Wallet/Wallet.swift</string>
+					</dict>
+				</dict>
+			</dict>
+			<key>text-context</key>
+			<dict>
+				<key>focused</key>
+				<string>t SyncProgress {</string>
+				<key>leading</key>
+				<string>    
+    // Add this type to handle progress updates
+    struc</string>
+				<key>trailing</key>
+				<string>
+        let current: Int
+        let total: Int
+</string>
+			</dict>
+			<key>type</key>
+			<string>bookmark</string>
+		</dict>
+		<dict>
+			<key>destination</key>
+			<dict>
+				<key>location-parameters</key>
+				<dict>
+					<key>EndingColumnNumber</key>
+					<string>0</string>
+					<key>EndingLineNumber</key>
+					<string>470</string>
+					<key>StartingColumnNumber</key>
+					<string>0</string>
+					<key>StartingLineNumber</key>
+					<string>470</string>
+					<key>Timestamp</key>
+					<string>755276008.364205</string>
+				</dict>
+				<key>rebasable-url</key>
+				<dict>
+					<key>base</key>
+					<string>workspace</string>
+					<key>payload</key>
+					<dict>
+						<key>relative-path</key>
+						<string>LMPlayground/Api/LunchMoneyAPI.swift</string>
+					</dict>
+				</dict>
+			</dict>
+			<key>text-context</key>
+			<dict>
+				<key>focused</key>
+				<string></string>
+				<key>leading</key>
+				<string>        return try await call(path: "/transactions/\(id)", responseType: UpdateTransactionResponse.self, requestBody: request, method: "PUT")
+    }
+</string>
+				<key>trailing</key>
+				<string>
+    func updateAsset(id: Int, request: UpdateAssetRequest) async throws -&gt; UpdateAssetResponse {
+        return try await call(path: "/assets/\(id)", responseType: UpdateAssetResponse.self, requestBody: request, method: "PUT")
+</string>
+			</dict>
+			<key>type</key>
+			<string>bookmark</string>
+		</dict>
+		<dict>
+			<key>destination</key>
+			<dict>
+				<key>location-parameters</key>
+				<dict>
+					<key>EndingColumnNumber</key>
+					<string>0</string>
+					<key>EndingLineNumber</key>
+					<string>257</string>
+					<key>StartingColumnNumber</key>
+					<string>0</string>
+					<key>StartingLineNumber</key>
+					<string>256</string>
+					<key>Timestamp</key>
+					<string>753492656.74453</string>
+				</dict>
+				<key>rebasable-url</key>
+				<dict>
+					<key>base</key>
+					<string>workspace</string>
+					<key>payload</key>
+					<dict>
+						<key>relative-path</key>
+						<string>LMPlayground/Wallet/AppleWallet.swift</string>
+					</dict>
+				</dict>
+			</dict>
+			<key>text-context</key>
+			<dict>
+				<key>focused</key>
+				<string>    func refreshWalletTransactionsForAccounts(accounts:[Account]) async -&gt; [Transaction]{
+</string>
+				<key>leading</key>
+				<string>     this is meant to fetch the latest transactions
+     */
+</string>
+				<key>trailing</key>
+				<string>        var transactionsFound: [Transaction] = []
+        
+        Task {
+</string>
+			</dict>
+			<key>type</key>
+			<string>bookmark</string>
+		</dict>
+		<dict>
+			<key>destination</key>
+			<dict>
+				<key>location-parameters</key>
+				<dict>
+					<key>EndingColumnNumber</key>
+					<string>5</string>
+					<key>EndingLineNumber</key>
+					<string>118</string>
+					<key>StartingColumnNumber</key>
+					<string>4</string>
+					<key>StartingLineNumber</key>
+					<string>118</string>
+					<key>Timestamp</key>
+					<string>756073939.933087</string>
+				</dict>
+				<key>rebasable-url</key>
+				<dict>
+					<key>base</key>
+					<string>workspace</string>
+					<key>payload</key>
+					<dict>
+						<key>relative-path</key>
+						<string>LMPlayground/Utility/LMPlaygroundApp.swift</string>
+					</dict>
+				</dict>
+			</dict>
+			<key>text-context</key>
+			<dict>
+				<key>focused</key>
+				<string>@</string>
+				<key>leading</key>
+				<string>    static var openAppWhenRun: Bool = false
+    
+    </string>
+				<key>trailing</key>
+				<string>MainActor
+    func perform() async throws -&gt; some IntentResult &amp; ReturnsValue&lt;String&gt; {
+        let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
+</string>
+			</dict>
+			<key>type</key>
+			<string>bookmark</string>
+		</dict>
+		<dict>
+			<key>destination</key>
+			<dict>
+				<key>location-parameters</key>
+				<dict>
+					<key>EndingColumnNumber</key>
+					<string>19</string>
+					<key>EndingLineNumber</key>
+					<string>152</string>
+					<key>StartingColumnNumber</key>
+					<string>16</string>
+					<key>StartingLineNumber</key>
+					<string>152</string>
+					<key>Timestamp</key>
+					<string>756073967.241701</string>
+				</dict>
+				<key>rebasable-url</key>
+				<dict>
+					<key>base</key>
+					<string>workspace</string>
+					<key>payload</key>
+					<dict>
+						<key>relative-path</key>
+						<string>LMPlayground/Utility/LMPlaygroundApp.swift</string>
+					</dict>
+				</dict>
+			</dict>
+			<key>text-context</key>
+			<dict>
+				<key>focused</key>
+				<string>let</string>
+				<key>leading</key>
+				<string>                let syncBroker = SyncBroker(context: context)
+                
+                </string>
+				<key>trailing</key>
+				<string> pendingCount = try await syncBroker.fetchTransactions(
+                    prefix: "BN",
+                    andSync: autoImportTransactions
+</string>
+			</dict>
+			<key>type</key>
+			<string>bookmark</string>
+		</dict>
+	</array>
+</dict>
+</plist>
