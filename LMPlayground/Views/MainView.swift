@@ -43,6 +43,8 @@ struct MainView: View {
 
     @State private var isVerifyingToken = false
 
+    @State private var isSimulator = false
+
     private var backgroundJobFrequencyText: String {
         switch backgroundJobFrequency {
         case 1: return "hour"
@@ -86,6 +88,10 @@ struct MainView: View {
         _transactions = State(initialValue: [])
         
         print("MainView init with enable=\(enableBackgroundJob) and freq=\(backgroundJobFrequency)")
+        
+        #if targetEnvironment(simulator)
+        _isSimulator = State(initialValue: true)
+        #endif
     }
     
     // MARK: main view body
@@ -207,7 +213,6 @@ struct MainView: View {
         }.navigationTitle("Lunch Sync")
         .onAppear {
             checkApiToken()
-            //refreshView()
             timeUpdateTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
                 timeUpdateTrigger = Date()
             }
@@ -277,6 +282,19 @@ struct MainView: View {
                             }
                             Spacer()
                         }
+                    }
+                }
+            }
+            if isSimulator {
+                NavigationLink {
+                    APITestView()
+                } label: {
+                    HStack {
+                        Image(systemName: "terminal.fill")
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(.blue)
+                        Text("API Test")
+                        Spacer()
                     }
                 }
             }
@@ -603,6 +621,9 @@ struct MainView: View {
     }
     
     private func checkApiToken() {
+        if apiConnected {
+            return
+        }
         Task {
             await MainActor.run {
                 isVerifyingToken = true

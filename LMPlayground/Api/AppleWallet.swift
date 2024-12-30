@@ -229,10 +229,16 @@ class AppleWallet{
                 amount = amount * -1
             }
             
+            // Add "*" to description for pending transactions
+            let payeeDescription = transaction.status == .booked ? 
+                transaction.transactionDescription :
+                transaction.transactionDescription + "*"
+            let isPending = transaction.status == .booked ? false : true
+            print("fetchhWalletTransactionsForAccounts \(payeeDescription) \(transaction.status)=\(isPending)")
             let t = Transaction(
                 id: transaction.id.uuidString,
                 account: accountName,
-                payee: transaction.transactionDescription,
+                payee: payeeDescription,
                 amount: amount,
                 date: transaction.transactionDate,
                 lm_id: "",
@@ -242,7 +248,7 @@ class AppleWallet{
                 type: String(describing: transaction.transactionType),
                 accountID: transaction.accountID.uuidString,
                 status: "",
-                isPending: transaction.status == .booked ? true : false,
+                isPending: isPending,
                 sync: .pending
             )
             transactionsFound.append(t)
@@ -282,10 +288,18 @@ class AppleWallet{
                 amount = amount * -1
             }
             //print(" -- \(transaction.transactionDescription) \(amount) \(accountName) \(transaction.id.uuidString)")
+            
+            // Add "*" to description for pending transactions
+            let payeeDescription = transaction.status == .booked ?
+                transaction.transactionDescription :
+                transaction.transactionDescription + "*"
+            let isPending = transaction.status == .booked ? false : true
+            print("refreshWalletTransactionsForAccounts \(payeeDescription) \(transaction.status)=\(isPending)")
+            
             let t = Transaction(
                 id: transaction.id.uuidString,
                 account: accountName,
-                payee: transaction.transactionDescription,
+                payee: payeeDescription,
                 amount: amount,
                 date: transaction.transactionDate,
                 lm_id: "",
@@ -295,7 +309,7 @@ class AppleWallet{
                 type: String(describing: transaction.transactionType),
                 accountID: transaction.accountID.uuidString,
                 status: "",
-                isPending: transaction.status == .booked ? true : false,
+                isPending: transaction.status == .booked ? false : true,
                 sync: .pending
             )
             transactionsFound.append(t)                    

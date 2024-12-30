@@ -503,7 +503,7 @@ class LunchMoneyAPI {
         for asset in assets {
             do {
                 let transactions = try await getLastTransactionForAsset(assetId: asset.id)
-                if let lastTransaction = transactions.first {
+                if transactions.first != nil {
                     //print("Asset: \(asset.name) - Last transaction: \(lastTransaction.date) \(lastTransaction.payee) \(lastTransaction.amount) \(lastTransaction.currency)")
                     assetsWithTransactions.append(asset)
                 }

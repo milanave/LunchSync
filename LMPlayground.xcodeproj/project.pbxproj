@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C4475ACC2D19A7E900ED73DF /* Config.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = C4475ACB2D19A7E900ED73DF /* Config.xcconfig */; };
 		C4D328642CCD1DA900B638AB /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = C4D328632CCD1DA900B638AB /* README.md */; };
 /* End PBXBuildFile section */
 
@@ -100,7 +99,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1600;
-				LastUpgradeCheck = 1600;
+				LastUpgradeCheck = 1610;
 				TargetAttributes = {
 					C4D328402CCD137200B638AB = {
 						CreatedOnToolsVersion = 16.0;
@@ -131,7 +130,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C4475ACC2D19A7E900ED73DF /* Config.xcconfig in Resources */,
 				C4D328642CCD1DA900B638AB /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -266,18 +266,20 @@ class Wallet :ObservableObject {
                 if(
                     newTrans.payee != transaction.payee ||
                     newTrans.amount != transaction.amount ||
-                    newTrans.date != transaction.date 
+                    newTrans.date != transaction.date ||
+                    newTrans.isPending != transaction.isPending
                 ){
-                    //print(" -- \(transaction.lm_id) has changes in payee, amount or date")
-                    //print(" -- -- \(newTrans.payee) != \(transaction.payee) \(newTrans.payee != transaction.payee)")
-                    //print(" -- -- \(newTrans.amount) != \(transaction.amount) \(newTrans.amount != transaction.amount)")
-                    //print(" -- -- \(newTrans.date) != \(transaction.date) \(newTrans.date != transaction.date)")
+                    print(" -- \(transaction.lm_id) has changes in payee, amount or date")
+                    print(" -- -- \(newTrans.payee) != \(transaction.payee) \(newTrans.payee != transaction.payee)")
+                    print(" -- -- \(newTrans.amount) != \(transaction.amount) \(newTrans.amount != transaction.amount)")
+                    print(" -- -- \(newTrans.date) != \(transaction.date) \(newTrans.date != transaction.date)")
                     transaction.payee = newTrans.payee
                     transaction.amount = newTrans.amount
                     transaction.date = newTrans.date
                     transaction.lm_id = newTrans.lm_id
                     transaction.lm_account = newTrans.lm_account
                     transaction.sync = .pending
+                    transaction.isPending = newTrans.isPending
                 }
                 //else{
                     //print(" -- \(transaction.payee) \(transaction.amount) has no changes: \(transaction.id)")

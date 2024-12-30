@@ -30,6 +30,7 @@ struct TransactionDetailView: View {
                 DetailRow(label: "Category", value: transaction.category.isEmpty ? "Uncategorized" : transaction.category)
                 DetailRow(label: "Type", value: transaction.type.isEmpty ? "Not specified" : transaction.type)
                 DetailRow(label: "Status", value: transaction.status.isEmpty ? "Not specified" : transaction.status)
+                DetailRow(label: "Pending", value: transaction.isPending ? "Pending" : "Booked")
                 DetailRow(label: "Sync Status", value: transaction.sync.rawValue)
                 Button(action: {
                     showingConfirmationDialog = true
