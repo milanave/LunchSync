@@ -116,7 +116,7 @@ Represents a financial account with properties:
 
 ## Setup
 
-1. Download and install LunchSync from the App Store
+1. Download and install LunchSync from the Test Flight link: https://testflight.apple.com/join/mF8JEHqk
 2. Get your Lunch Money API token from [my.lunchmoney.app/developers](https://my.lunchmoney.app/developers)
 3. Launch LunchSync and enter your API token
 4. Grant access to Apple Wallet when prompted
