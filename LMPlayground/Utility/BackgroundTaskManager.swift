@@ -61,7 +61,7 @@ class BackgroundTaskManager {
          Text("24 hours").tag(4)
          */
         addLog(message: "BG scheduleBackgroundTask for \(String(describing: backgroundJobFrequency)) (2/6)")
-        print("BG scheduleBackgroundTask for \(String(describing: backgroundJobFrequency))")
+        //print("BG scheduleBackgroundTask for \(String(describing: backgroundJobFrequency))")
         switch backgroundJobFrequency {
             case 0: request.earliestBeginDate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())
             case 1: request.earliestBeginDate = Calendar.current.date(byAdding: .hour, value: 1, to: Date())
@@ -84,7 +84,7 @@ class BackgroundTaskManager {
 
         do {
             try BGTaskScheduler.shared.submit(request)
-            print("BG Next background task scheduled")
+            //print("BG Next background task scheduled")
             updateStatus("Scheduled")
             addLog(message: "BG Next background task scheduled")
         } catch {
@@ -124,10 +124,10 @@ class BackgroundTaskManager {
                 return
             }
             
-            let pendingCount = try await syncBroker.fetchTransactions(prefix: "Background", andSync: true) { progressMessage in
+            _ = try await syncBroker.fetchTransactions(prefix: "Background", andSync: true) { progressMessage in
                 self.addLog(message: "BG fetchTransactions \(progressMessage) (4/6)")
             }
-            print("BG refreshWalletTransactions Completed with \(pendingCount) pending transactions")
+            //print("BG refreshWalletTransactions Completed with \(pendingCount) pending transactions")
             //UserDefaults.setLastUpdated(Date())
             task.setTaskCompleted(success: true)
             updateStatus("Completed")

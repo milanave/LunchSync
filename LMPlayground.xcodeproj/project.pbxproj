@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C44590CD2D25D4BF00B95246 /* Config.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = C4475ACB2D19A7E900ED73DF /* Config.xcconfig */; };
 		C4D328642CCD1DA900B638AB /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = C4D328632CCD1DA900B638AB /* README.md */; };
 /* End PBXBuildFile section */
 
@@ -130,6 +131,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C44590CD2D25D4BF00B95246 /* Config.xcconfig in Resources */,
 				C4D328642CCD1DA900B638AB /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -268,6 +270,7 @@
 		};
 		C4D328522CCD137400B638AB /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C4475ACB2D19A7E900ED73DF /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -303,6 +306,7 @@
 		};
 		C4D328532CCD137400B638AB /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = C4475ACB2D19A7E900ED73DF /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

@@ -234,7 +234,7 @@ class AppleWallet{
                 transaction.transactionDescription :
                 transaction.transactionDescription + "*"
             let isPending = transaction.status == .booked ? false : true
-            print("fetchhWalletTransactionsForAccounts \(payeeDescription) \(transaction.status)=\(isPending)")
+            //print("fetchhWalletTransactionsForAccounts \(payeeDescription) \(transaction.status)=\(isPending)")
             let t = Transaction(
                 id: transaction.id.uuidString,
                 account: accountName,
@@ -293,8 +293,8 @@ class AppleWallet{
             let payeeDescription = transaction.status == .booked ?
                 transaction.transactionDescription :
                 transaction.transactionDescription + "*"
-            let isPending = transaction.status == .booked ? false : true
-            print("refreshWalletTransactionsForAccounts \(payeeDescription) \(transaction.status)=\(isPending)")
+            _ = transaction.status == .booked ? false : true
+            //print("refreshWalletTransactionsForAccounts \(payeeDescription) \(transaction.status)=\(isPending)")
             
             let t = Transaction(
                 id: transaction.id.uuidString,
@@ -348,8 +348,8 @@ class AppleWallet{
                     transaction.transactionDate <= endDate
                 }, limit: 1000, offset: 0)
                 
-                let transactions = try await FinanceStore.shared.transactions(query: query)
-                print("Fetched \(transactions.count) from \(startDate.formatted()) to \(endDate.formatted()):")
+                _ = try await FinanceStore.shared.transactions(query: query)
+                //print("Fetched \(transactions.count) from \(startDate.formatted()) to \(endDate.formatted()):")
                 //for transaction in transactions {
                     //print("- \(transaction.id) / \(transaction.accountID) \(String(describing: transaction.merchantName)): \(transaction.transactionAmount.amount)")
                     //print(transaction)

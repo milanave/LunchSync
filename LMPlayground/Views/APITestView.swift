@@ -9,11 +9,10 @@ struct APITestView: View {
         let keychain = Keychain()
         var initialToken = ""
         do{
+            //print("API Testview: retrieveTokenFromKeychain")
             initialToken = try keychain.retrieveTokenFromKeychain()
-            print(initialToken)
         } catch {
             initialToken = ""
-            print(initialToken)
         }
         api = LunchMoneyAPI(apiToken: initialToken, debug: true)
     }
@@ -87,9 +86,8 @@ struct APITestView: View {
     
     func getTransaction(id: Int) async{
         do {
-
-            let transaction = try await api.getTransaction(id: id)
-            print(transaction)
+            _ = try await api.getTransaction(id: id)
+            //print(transaction)
         } catch {
             print("Error fetching assets: \(error)")
         }

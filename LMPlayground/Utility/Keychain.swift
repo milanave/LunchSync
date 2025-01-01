@@ -92,7 +92,7 @@ class Keychain {
         case errSecSuccess:
             // Convert data to a string
             if let data = item as? Data, let token = String(data: data, encoding: .utf8) {
-                print("retrieveTokenFromKeychain returning \(token)")
+                //print("retrieveTokenFromKeychain returning \(token)")
                 return token
             } else {
                 throw KeychainError.unableToConvertData

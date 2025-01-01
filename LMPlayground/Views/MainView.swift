@@ -45,6 +45,8 @@ struct MainView: View {
 
     @State private var isSimulator = false
 
+    @State private var registrationMessage: PushRegistrationResponse?
+
     private var backgroundJobFrequencyText: String {
         switch backgroundJobFrequency {
         case 1: return "hour"
@@ -78,7 +80,6 @@ struct MainView: View {
             _appleWallet = State(initialValue: MockAppleWallet())
         }
         #else
-        print("init for real")
         let wallet = Wallet(context: context, apiToken: initialToken)
         _wallet = StateObject(wrappedValue: wallet)
         _appleWallet = State(initialValue: AppleWallet())
@@ -87,7 +88,7 @@ struct MainView: View {
         _apiToken = State(initialValue: initialToken)
         _transactions = State(initialValue: [])
         
-        print("MainView init with enable=\(enableBackgroundJob) and freq=\(backgroundJobFrequency)")
+        //print("MainView init with enable=\(enableBackgroundJob) and freq=\(backgroundJobFrequency)")
         
         #if targetEnvironment(simulator)
         _isSimulator = State(initialValue: true)
@@ -140,75 +141,7 @@ struct MainView: View {
                 .presentationDragIndicator(.hidden)
             }
             .sheet(isPresented: $showingJobSheet) {
-                NavigationStack {
-                    List {
-                        Section {
-                            Toggle("Enable background sync", isOn: $enableBackgroundJob.animation())
-                                .disabled(walletsConnected < 1)
-                                .onChange(of: enableBackgroundJob) { _, newValue in
-                                    if !newValue {
-                                        autoImportTransactions = false
-                                        if let token = appDelegate.notificationDelegate.currentDeviceToken {
-                                            Task {
-                                                await appDelegate.notificationDelegate.registerForPushNotifications(deviceToken: token, active: false, frequency: backgroundJobFrequency)
-                                            }
-                                        } else {
-                                            print("Device token not yet available")
-                                            DispatchQueue.main.async {
-                                                UIApplication.shared.registerForRemoteNotifications()
-                                            }
-                                        }
-                                    } else {
-                                        if let token = appDelegate.notificationDelegate.currentDeviceToken {
-                                            Task {
-                                                await appDelegate.notificationDelegate.registerForPushNotifications(deviceToken: token, active: true, frequency: backgroundJobFrequency)
-                                            }
-                                        }else{
-                                            print("couldn't get token")
-                                        }
-                                    }
-                                    
-                                }
-                            
-                            if enableBackgroundJob {
-                                Toggle("Import Transactions Automatically", isOn: $autoImportTransactions)
-                                    .disabled(walletsConnected < 1)
-                                
-                                Picker("Check for transactions every", selection: $backgroundJobFrequency) {
-                                    Text("Hour").tag(1)
-                                    Text("2 hours").tag(5)
-                                    Text("3 hours").tag(6)
-                                    Text("6 hours").tag(2)
-                                    Text("12 hours").tag(3)
-                                    Text("24 hours").tag(4)
-                                }
-                                .onChange(of: backgroundJobFrequency) { _, newValue in
-
-                                    if let token = appDelegate.notificationDelegate.currentDeviceToken {
-                                        Task {
-                                            await appDelegate.notificationDelegate.registerForPushNotifications(deviceToken: token, active: true, frequency: backgroundJobFrequency)
-                                        }
-                                    } else {
-                                        print("Device token not yet available")
-                                        DispatchQueue.main.async {
-                                            UIApplication.shared.registerForRemoteNotifications()
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .navigationTitle("Background Sync")
-                    
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") {
-                                showingJobSheet = false
-                            }
-                        }
-                    }
-                }
-                .presentationDetents([.medium])
+                backgroundSyncSheet()
             }
         }.navigationTitle("Lunch Sync")
         .onAppear {
@@ -249,6 +182,96 @@ struct MainView: View {
 
     }
     
+    // MARK: background sync sheet
+    private func backgroundSyncSheet() -> some View {
+        NavigationStack {
+            List {
+                Section {
+                    Toggle("Enable background sync", isOn: $enableBackgroundJob.animation())
+                        .disabled(walletsConnected < 1)
+                        .onChange(of: enableBackgroundJob) { _, newValue in
+                            if !newValue {
+                                autoImportTransactions = false
+                                if let token = appDelegate.notificationDelegate.currentDeviceToken {
+                                    Task {
+                                        let response = await appDelegate.notificationDelegate.registerForPushNotifications(deviceToken: token, active: false, frequency: backgroundJobFrequency)
+                                        await MainActor.run {
+                                            registrationMessage = response
+                                        }
+                                    }
+                                } else {
+                                    print("Device token not yet available")
+                                    DispatchQueue.main.async {
+                                        UIApplication.shared.registerForRemoteNotifications()
+                                    }
+                                }
+                            } else {
+                                if let token = appDelegate.notificationDelegate.currentDeviceToken {
+                                    Task {
+                                        let response = await appDelegate.notificationDelegate.registerForPushNotifications(deviceToken: token, active: true, frequency: backgroundJobFrequency)
+                                        await MainActor.run {
+                                            registrationMessage = response
+                                        }
+                                    }
+                                }else{
+                                    print("couldn't get token")
+                                }
+                            }
+                            
+                        }
+                    
+                    if enableBackgroundJob {
+                        Toggle("Import Transactions Automatically", isOn: $autoImportTransactions)
+                            .disabled(walletsConnected < 1)
+                        
+                        Picker("Check for transactions every", selection: $backgroundJobFrequency) {
+                            Text("Hour").tag(1)
+                            Text("2 hours").tag(5)
+                            Text("3 hours").tag(6)
+                            Text("6 hours").tag(2)
+                            Text("12 hours").tag(3)
+                            Text("24 hours").tag(4)
+                        }
+                        .onChange(of: backgroundJobFrequency) { _, newValue in
+
+                            if let token = appDelegate.notificationDelegate.currentDeviceToken {
+                                Task {
+                                    let response = await appDelegate.notificationDelegate.registerForPushNotifications(deviceToken: token, active: true, frequency: backgroundJobFrequency)
+                                    await MainActor.run {
+                                        registrationMessage = response
+                                    }
+                                }
+                            } else {
+                                print("Device token not yet available")
+                                DispatchQueue.main.async {
+                                    UIApplication.shared.registerForRemoteNotifications()
+                                }
+                            }
+                        }
+                    }
+                } footer: {
+                    if let message = registrationMessage {
+                        Text(message.status ?
+                             "Registered successfully with frequency of ^[\(message.frequency ?? 1) hour](inflect:true)" :
+                            "Registered failed with \(message.message)").foregroundStyle(.secondary)
+                        //Text("^[\(message.frequency) hour](inflect:true) Connected"):
+                    }
+                }
+                
+            }
+            .navigationTitle("Background Sync")
+            
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        showingJobSheet = false
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+    
     // MARK: lunchMoneyApiSection
     private func lunchMoneyApiSection() -> some View {
         Section {
@@ -285,6 +308,7 @@ struct MainView: View {
                     }
                 }
             }
+            /*
             if isSimulator {
                 NavigationLink {
                     APITestView()
@@ -298,6 +322,7 @@ struct MainView: View {
                     }
                 }
             }
+            */
         } header: {
             Text("Lunch Money API")
         } footer: {
@@ -499,6 +524,7 @@ struct MainView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+        
         } header: {
             Text("Background Import")
         }
@@ -548,7 +574,7 @@ struct MainView: View {
     
     // MARK: refreshView
     private func refreshView(){
-        print("refreshView")
+        //print("refreshView")
         completedCount = wallet.getTransactionsWithStatus([.complete]).count
         pendingCount = wallet.getTransactionsWithStatus(.pending).count
         errorCount = wallet.getTransactionsWithStatus(.never).count
@@ -596,10 +622,10 @@ struct MainView: View {
         let syncBroker = SyncBroker(context: modelContext)
         Task {
             do {
-                let pendingCount = try await syncBroker.fetchTransactions(prefix: "MV", andSync: false, showAlert: true) { progressMessage in
-                    print("refreshWalletTransactions Progress: \(progressMessage)")
+                _ = try await syncBroker.fetchTransactions(prefix: "MV", andSync: false, showAlert: true) { progressMessage in
+                    //print("refreshWalletTransactions Progress: \(progressMessage)")
                 }
-                print("refreshWalletTransactions Completed with \(pendingCount) pending transactions")
+                //print("refreshWalletTransactions Completed with \(pendingCount) pending transactions")
             } catch {
                 print("Error: \(error)")
             }
@@ -615,12 +641,14 @@ struct MainView: View {
     }
         
     private func checkForStoredToken() {
+        //print("checkForStoredToken")
         if let storedToken = try? keychain.retrieveTokenFromKeychain() {
             apiToken = storedToken
         }
     }
     
     private func checkApiToken() {
+        //print("checkApiToken")
         if apiConnected {
             return
         }
@@ -644,7 +672,7 @@ struct MainView: View {
     }
     
     private func updateLastUpdated() {
-        print("updateLastUpdated()")
+        //print("updateLastUpdated()")
         var descriptor = FetchDescriptor<Log>(
             predicate: #Predicate<Log> { log in
                 log.level == 1
@@ -655,10 +683,10 @@ struct MainView: View {
         
         if let mostRecentLog = try? modelContext.fetch(descriptor).first {
             lastUpdated = mostRecentLog.date
-            print("updateLastUpdated() got \(lastUpdated)")
+            //print("updateLastUpdated() got \(lastUpdated)")
         } else {
             lastUpdated = Date()
-            print("updateLastUpdated() failed")
+            //print("updateLastUpdated() failed")
         }
     }
     

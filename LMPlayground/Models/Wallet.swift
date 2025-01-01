@@ -209,7 +209,7 @@ class Wallet :ObservableObject {
     }
     
     func addNotification(time: Double, title: String, subtitle: String, body: String) async {
-        print("addNotification \(title), \(body)")
+        //print("addNotification \(title), \(body)")
         let center = UNUserNotificationCenter.current()
         
         // First check current authorization status
@@ -241,12 +241,12 @@ class Wallet :ObservableObject {
             //print("Notification scheduled successfully for \(Date().addingTimeInterval(time))")
             
             // Debug: List pending notifications
-            let pending = await center.pendingNotificationRequests()
-            print("Pending notifications: \(pending.count)")
+            _ = await center.pendingNotificationRequests()
+            //print("Pending notifications: \(pending.count)")
             
             // Debug: List delivered notifications
-            let delivered = await center.deliveredNotifications()
-            print("Delivered notifications: \(delivered.count)")
+            _ = await center.deliveredNotifications()
+            //print("Delivered notifications: \(delivered.count)")
         } catch {
             print("Error scheduling notification: \(error)")
         }
@@ -269,10 +269,12 @@ class Wallet :ObservableObject {
                     newTrans.date != transaction.date ||
                     newTrans.isPending != transaction.isPending
                 ){
+                    /*
                     print(" -- \(transaction.lm_id) has changes in payee, amount or date")
                     print(" -- -- \(newTrans.payee) != \(transaction.payee) \(newTrans.payee != transaction.payee)")
                     print(" -- -- \(newTrans.amount) != \(transaction.amount) \(newTrans.amount != transaction.amount)")
                     print(" -- -- \(newTrans.date) != \(transaction.date) \(newTrans.date != transaction.date)")
+                     */
                     transaction.payee = newTrans.payee
                     transaction.amount = newTrans.amount
                     transaction.date = newTrans.date
@@ -414,8 +416,8 @@ class Wallet :ObservableObject {
         )
 
         do {
-            let assetResponse = try await API.createAsset(requestBody: assetRequest)
-            print("Asset created with ID: \(assetResponse.assetId)")
+            _ = try await API.createAsset(requestBody: assetRequest)
+            //print("Asset created with ID: \(assetResponse.assetId)")
             return true
         } catch {
             print("Error creating asset: \(error)")

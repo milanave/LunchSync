@@ -21,6 +21,7 @@ class SyncBroker {
         self.lastLogTime = Date()
         let keychain = Keychain()
         do{
+            print("SyncBroker init retrieveTokenFromKeychain")
             self.apiToken = try keychain.retrieveTokenFromKeychain()
         } catch {
             self.apiToken = ""

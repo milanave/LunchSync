@@ -233,15 +233,15 @@
 				<key>location-parameters</key>
 				<dict>
 					<key>EndingColumnNumber</key>
-					<string>5</string>
+					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>118</string>
+					<string>119</string>
 					<key>StartingColumnNumber</key>
-					<string>4</string>
+					<string>0</string>
 					<key>StartingLineNumber</key>
 					<string>118</string>
 					<key>Timestamp</key>
-					<string>756073939.933087</string>
+					<string>757456246.552099</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -257,15 +257,16 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>@</string>
+				<string>}
+</string>
 				<key>leading</key>
-				<string>    static var openAppWhenRun: Bool = false
-    
-    </string>
+				<string>        return .result(value: "Found \(pendingCount) new transactions")
+    }
+</string>
 				<key>trailing</key>
-				<string>MainActor
-    func perform() async throws -&gt; some IntentResult &amp; ReturnsValue&lt;String&gt; {
-        let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
+				<string>
+// MARK: SyncTransactionsIntent: AppIntent
+struct SyncTransactionsIntent: AppIntent {
 </string>
 			</dict>
 			<key>type</key>
@@ -277,15 +278,15 @@
 				<key>location-parameters</key>
 				<dict>
 					<key>EndingColumnNumber</key>
-					<string>19</string>
+					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>152</string>
+					<string>153</string>
 					<key>StartingColumnNumber</key>
-					<string>16</string>
+					<string>0</string>
 					<key>StartingLineNumber</key>
 					<string>152</string>
 					<key>Timestamp</key>
-					<string>756073967.241701</string>
+					<string>757456246.552111</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -301,15 +302,16 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>let</string>
+				<string>        // Get autoImportTransactions from UserDefaults
+</string>
 				<key>leading</key>
-				<string>                let syncBroker = SyncBroker(context: context)
-                
-                </string>
+				<string>        print("Received silent notification in background: \(userInfo)")
+        
+</string>
 				<key>trailing</key>
-				<string> pendingCount = try await syncBroker.fetchTransactions(
-                    prefix: "BN",
-                    andSync: autoImportTransactions
+				<string>        let autoImportTransactions = UserDefaults.standard.bool(forKey: "autoImportTransactions")
+        
+        Task {
 </string>
 			</dict>
 			<key>type</key>

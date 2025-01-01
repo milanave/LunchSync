@@ -8,13 +8,21 @@ extension Notification.Name {
     static let pendingTransactionsChanged = Notification.Name("pendingTransactionsChanged")
 }
 
+// Add this struct at the top level
+struct PushRegistrationResponse: Codable {
+    let status: Bool
+    let message: String
+    let frequency: Int?
+}
+
 // MARK: UNUserNotificationCenterDelegate
 class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     public var currentDeviceToken: String?
     
-    func registerForPushNotifications(deviceToken: String, active: Bool = true, frequency: Int = 1) async {
-        print("registerForPushNotifications \(deviceToken) freq=\(frequency)")
-        guard let url = URL(string: "https://push.littlebluebug.com/register.php") else { return }
+    func registerForPushNotifications(deviceToken: String, active: Bool = true, frequency: Int = 1) async -> PushRegistrationResponse {
+        guard let url = URL(string: "https://push.littlebluebug.com/register.php") else {
+            return PushRegistrationResponse(status: false, message: "Invalid URL", frequency: nil)
+        }
         
         var frequencyHour = 1
         switch frequency {
@@ -43,12 +51,13 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try JSONSerialization.data(withJSONObject: payload)
             
-            let (_, response) = try await URLSession.shared.data(for: request)
-            if let httpResponse = response as? HTTPURLResponse {
-                print("Push registration status: \(httpResponse.statusCode) hour=\(frequencyHour)")
-            }
+            let (data, _) = try await URLSession.shared.data(for: request)
+            let response = try JSONDecoder().decode(PushRegistrationResponse.self, from: data)
+            //print("Push registration status: \(response.status) hour=\(frequencyHour)")
+            
+            return response
         } catch {
-            print("Failed to register device token: \(error)")
+            return PushRegistrationResponse(status: false, message: "Error: \(error.localizedDescription)", frequency: nil)
         }
     }
     
