@@ -257,16 +257,16 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>}
+				<string>        
 </string>
 				<key>leading</key>
-				<string>        return .result(value: "Found \(pendingCount) new transactions")
-    }
+				<string>        let context = container.mainContext
+        let syncBroker = SyncBroker(context: context)
 </string>
 				<key>trailing</key>
-				<string>
-// MARK: SyncTransactionsIntent: AppIntent
-struct SyncTransactionsIntent: AppIntent {
+				<string>        let pendingCount = try await syncBroker.fetchTransactions(prefix: "Shortcut", andSync: false) { progressMessage in
+            print("Check Transactions Progress: \(progressMessage)")
+        }
 </string>
 			</dict>
 			<key>type</key>
@@ -302,16 +302,16 @@ struct SyncTransactionsIntent: AppIntent {
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>        // Get autoImportTransactions from UserDefaults
+				<string>    func application(
 </string>
 				<key>leading</key>
-				<string>        print("Received silent notification in background: \(userInfo)")
-        
+				<string>    let notificationDelegate = NotificationDelegate()
+    
 </string>
 				<key>trailing</key>
-				<string>        let autoImportTransactions = UserDefaults.standard.bool(forKey: "autoImportTransactions")
-        
-        Task {
+				<string>        _ application: UIApplication,
+        didReceiveRemoteNotification userInfo: [AnyHashable : Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -&gt; Void
 </string>
 			</dict>
 			<key>type</key>

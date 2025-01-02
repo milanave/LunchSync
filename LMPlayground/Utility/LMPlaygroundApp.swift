@@ -37,12 +37,19 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             frequencyHour = 1
         }
         
+        #if DEBUG
+        let environment = "Test"
+        #else
+        let environment = "Production"
+        #endif
+        
         let payload = [
             "device_token": deviceToken,
             "active": active,
             "app_id" : "WalletSync",
             "frequency": frequencyHour,
-            "key": Configuration.shared.pushServiceKey
+            "key": Configuration.shared.pushServiceKey,
+            "environment": environment
         ] as [String : Any]
         
         do {

@@ -251,10 +251,18 @@ struct MainView: View {
                     }
                 } footer: {
                     if let message = registrationMessage {
+                        let fullToken = appDelegate.notificationDelegate.currentDeviceToken ?? "Not found"
+                        let shortToken: String = String(fullToken.suffix(4))
+                        #if DEBUG
+                        let environment = "Test"
+                        #else
+                        let environment = "Production"
+                        #endif
+
+                        let postText = "Device *\(shortToken), env \(environment)"
                         Text(message.status ?
-                             "Registered successfully with frequency of ^[\(message.frequency ?? 1) hour](inflect:true)" :
-                            "Registered failed with \(message.message)").foregroundStyle(.secondary)
-                        //Text("^[\(message.frequency) hour](inflect:true) Connected"):
+                             "Registered successfully with frequency of ^[\(message.frequency ?? 1) hour](inflect:true). \(postText)" :
+                            "Registered failed with \(message.message). \(postText)").foregroundStyle(.secondary)
                     }
                 }
                 
