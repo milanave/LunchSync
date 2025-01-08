@@ -50,6 +50,11 @@ struct TransactionRowView: View {
                 HStack {
                     Text(transaction.account).font(.footnote)
                     Spacer()
+                    if transaction.isPending {
+                        Text("Pending")
+                            .font(.footnote)
+                            .italic()
+                    }
                 }
             }
         }

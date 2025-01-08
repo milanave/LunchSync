@@ -267,6 +267,7 @@ class Wallet :ObservableObject {
                     newTrans.payee != transaction.payee ||
                     newTrans.amount != transaction.amount ||
                     newTrans.date != transaction.date ||
+                    newTrans.notes != transaction.notes ||
                     newTrans.isPending != transaction.isPending
                 ){
                     /*
@@ -278,6 +279,7 @@ class Wallet :ObservableObject {
                     transaction.payee = newTrans.payee
                     transaction.amount = newTrans.amount
                     transaction.date = newTrans.date
+                    transaction.notes = newTrans.notes
                     transaction.lm_id = newTrans.lm_id
                     transaction.lm_account = newTrans.lm_account
                     transaction.sync = .pending
