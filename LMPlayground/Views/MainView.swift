@@ -115,6 +115,30 @@ struct MainView: View {
                     refreshView()
                     //refreshWalletTransactions()
                 }
+                
+                // Add this new button at the bottom
+                if walletsConnected > 0 {
+                    Button(action: {
+                        Task {
+                            let transactions = wallet.getTransactionsWithStatus(.complete)
+                            // Take the 3 most recent transactions
+                            let recentTransactions = Array(transactions.prefix(3))
+                            recentTransactions.forEach { transaction in
+                                print("Resync \(transaction.id)")
+                                wallet.setSyncStatus(newTrans: transaction, newStatus: .pending)
+                            }
+                            refreshView()
+                        }
+                    }) {
+                        Text("Mark 3 Recent Transactions as Pending")
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                    }
+                    .padding()
+                }
             }
             .onAppear {
                 refreshView()

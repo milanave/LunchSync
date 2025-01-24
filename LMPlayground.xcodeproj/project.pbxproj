@@ -294,7 +294,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.littlebluebug.AppleCardSync;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PUSH_SERVICE_KEY = "$(PUSH_SERVICE_KEY)";
@@ -330,7 +330,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.littlebluebug.AppleCardSync;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PUSH_SERVICE_KEY = "$(PUSH_SERVICE_KEY)";
