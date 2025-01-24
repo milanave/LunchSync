@@ -116,6 +116,9 @@ struct MainView: View {
                     //refreshWalletTransactions()
                 }
             }
+            .onAppear {
+                refreshView()
+            }
             .navigationTitle("Lunch Sync")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {

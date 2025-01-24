@@ -458,6 +458,7 @@ class Wallet :ObservableObject {
             guard let thirtyDaysBefore = calendar.date(byAdding: .day, value: -30, to: transactionDate),
                   let thirtyDaysAfter = calendar.date(byAdding: .day, value: 30, to: transactionDate) else {
                 print("Error calculating date range")
+                addLog(message: "syncTransaction, Error calculating date range for \(transaction.id)", level: 2)
                 transaction.sync = .never // TODO, pass this as an error instead?
                 return transaction
             }
@@ -500,6 +501,7 @@ class Wallet :ObservableObject {
                         
                         if let errors = result.errors {
                             print("Failed to send transaction to LM: \(errors.joined(separator: ", "))")
+                            addLog(message: "syncTransaction, Failed to send transaction to LM for \(transaction.id), \(errors.joined(separator: ", "))", level: 2)
                             transaction.sync = .never
                             return transaction
                         } else {
@@ -539,12 +541,14 @@ class Wallet :ObservableObject {
                     //print("Inserted \(transaction.lm_id) -> \(transaction.sync)")
                 } else {
                     //print("No transaction ID received in response")
+                    addLog(message: "syncTransaction, No transaction ID received in response for \(transaction.id)", level: 2)
                     transaction.sync = .never
                 }
                 
                 return transaction
             } catch {
                 print("Error in syncTransaction: \(error)")
+                addLog(message: "syncTransaction, error \(error) for \(transaction.id)", level: 2)
                 transaction.sync = .never
                 throw error
             }

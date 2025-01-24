@@ -3,6 +3,7 @@ import SwiftUI
 import SwiftData
 
 struct TransactionListView: View {
+    @Environment(\.dismiss) private var dismiss
     let wallet: Wallet
     let syncStatus: Transaction.SyncStatus
     @State private var transactions: [Transaction] = []
@@ -10,6 +11,19 @@ struct TransactionListView: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 0) {
+                if syncStatus == .never {
+                    Button(action: {
+                        transactions.forEach { transaction in
+                            wallet.setSyncStatus(newTrans: transaction, newStatus: .pending)
+                        }
+                        refreshTransactions()
+                        dismiss()
+                    }) {
+                        Text("Re-sync \(transactions.count) transactions")
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                    }
+                }
                 List {
                     ForEach(transactions.sorted(by: { $0.date > $1.date }), id: \.id) { account in
                         TransactionRowView(transaction: account, wallet: wallet)
