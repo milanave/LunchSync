@@ -126,8 +126,15 @@ class SyncBroker {
         }
     }
     
-    public func syncTransactions(prefix: String, progressCallback: @escaping (Wallet.SyncProgress) -> Void) async throws {
+    public func syncTransactions(
+        prefix: String,
+        shouldContinue: @escaping () -> Bool = { true },
+        progressCallback: @escaping (Wallet.SyncProgress) -> Void
+    ) async throws {
         try await wallet.syncTransactions { progress in
+            guard shouldContinue() else {
+                return
+            }
             progressCallback(progress)
         }
     }

@@ -117,6 +117,7 @@ struct MainView: View {
                 }
                 
                 // Add this new button at the bottom
+                /*
                 if walletsConnected > 0 {
                     Button(action: {
                         Task {
@@ -139,6 +140,7 @@ struct MainView: View {
                     }
                     .padding()
                 }
+                 */
             }
             .onAppear {
                 refreshView()
@@ -201,6 +203,15 @@ struct MainView: View {
                     ProgressView(value: Double(progress.current), total: Double(progress.total))
                         .padding(.horizontal)
                 }
+                
+                Button(role: .cancel) {
+                    isSyncing = false
+                    showingSyncProgress = false
+                } label: {
+                    Text("Cancel")
+                        .foregroundColor(.red)
+                }
+                .padding()
             }
             .padding()
             .presentationDetents([.medium])
@@ -629,9 +640,11 @@ struct MainView: View {
             syncProgress = Wallet.SyncProgress(current: 0, total: pendingCount, status: "Starting sync...")
         }
         
-        do{
+        do {
             let syncBroker = SyncBroker(context: modelContext)
-            try await syncBroker.syncTransactions(prefix: "MV") { @MainActor progress in
+            try await syncBroker.syncTransactions(prefix: "MV", shouldContinue: { @MainActor in 
+                isSyncing 
+            }) { @MainActor progress in
                 syncProgress = progress
             }
             await MainActor.run {
@@ -639,7 +652,6 @@ struct MainView: View {
                 updateBadgeCount()
                 isSyncing = false
                 showingSyncProgress = false
-                //print("syncTransactions done")
             }
         } catch {
             await MainActor.run {
@@ -648,8 +660,6 @@ struct MainView: View {
                 showingSyncProgress = false
             }
         }
-
-        
     }
     
     // MARK: refreshWalletTransactions
