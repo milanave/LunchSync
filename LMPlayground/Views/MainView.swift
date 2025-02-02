@@ -32,6 +32,7 @@ struct MainView: View {
     @AppStorage("enableBackgroundJob") private var enableBackgroundJob = false
     @AppStorage("autoImportTransactions") private var autoImportTransactions = false
     @AppStorage("backgroundJobFrequency") private var backgroundJobFrequency: Int = 1
+    @AppStorage("importTransactionsCleared") private var importTransactionsCleared = true
 
     @State private var showingAboutSheet = false
     @State private var showingJobSheet = false
@@ -519,6 +520,15 @@ struct MainView: View {
                 }
             }
             .disabled(pendingCount < 1)
+
+            Toggle(isOn: $importTransactionsCleared) {
+                HStack {
+                    Image(systemName: importTransactionsCleared ? "checkmark.circle.fill" : "circle")
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(importTransactionsCleared ? .green : .gray)
+                    Text("Import as \(importTransactionsCleared ? "Reviewed" : "Unreviewed")")
+                }
+            }
             
             Button {
                 showingJobSheet = true

@@ -502,6 +502,8 @@ class Wallet :ObservableObject {
         let endDate = dateFormatter.string(from: thirtyDaysAfter)
         let dateString = dateFormatter.string(from: transaction.date)
         
+        let importAsCleared = UserDefaults.standard.bool(forKey: "importTransactionsCleared")
+        
         do {
             // First check for existing transactions
             let existingTransactions = try await API.getTransactions(
@@ -525,7 +527,7 @@ class Wallet :ObservableObject {
                             categoryId: nil,
                             assetId: Int(transaction.lm_account),
                             notes: transaction.notes.isEmpty ? nil : transaction.notes,
-                            status: "cleared", //transaction.status.isEmpty ? "cleared" : transaction.status, TODO what should this be?
+                            status: importAsCleared ? "cleared" : "uncleared",
                             externalId: transaction.id,
                             isPending: false //transaction.isPending
                         )
@@ -563,7 +565,7 @@ class Wallet :ObservableObject {
                 categoryId: nil,
                 assetId: Int(transaction.lm_account),
                 notes: transaction.notes.isEmpty ? nil : transaction.notes,
-                status: "cleared", //transaction.status.isEmpty ? "cleared" : transaction.status, TODO what should this be?
+                status: importAsCleared ? "cleared" : "uncleared",
                 externalId: transaction.id,
                 isPending: false //transaction.isPending
             )
