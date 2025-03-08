@@ -33,6 +33,7 @@ struct MainView: View {
     @AppStorage("autoImportTransactions") private var autoImportTransactions = false
     @AppStorage("backgroundJobFrequency") private var backgroundJobFrequency: Int = 1
     @AppStorage("importTransactionsCleared") private var importTransactionsCleared = true
+    @AppStorage("putTransStatusInNotes") private var putTransStatusInNotes = true
 
     @State private var showingAboutSheet = false
     @State private var showingJobSheet = false
@@ -527,6 +528,15 @@ struct MainView: View {
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(importTransactionsCleared ? .green : .gray)
                     Text("Import as \(importTransactionsCleared ? "Reviewed" : "Unreviewed")")
+                }
+            }
+            
+            Toggle(isOn: $putTransStatusInNotes) {
+                HStack {
+                    Image(systemName: putTransStatusInNotes ? "checkmark.circle.fill" : "circle")
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(putTransStatusInNotes ? .green : .gray)
+                    Text("Transaction status in notes")
                 }
             }
             

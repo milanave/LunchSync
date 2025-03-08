@@ -43,9 +43,11 @@ class SyncBroker {
     
     public func fetchTransactions(prefix: String, andSync: Bool, showAlert: Bool = false, progress: @escaping (String) -> Void) async throws -> Int {
         // Check if API token is empty and try to retrieve it
-        
+        let importAsCleared = UserDefaults.standard.bool(forKey: "importTransactionsCleared")
+        let putTransStatusInNotes = UserDefaults.standard.bool(forKey: "putTransStatusInNotes")
+
         do {
-            addLog(prefix: prefix, message: "Starting transaction fetch", level: 2)
+            addLog(prefix: prefix, message: "Starting transaction fetch (importAsCleared: \(importAsCleared), transStatusInNotes: \(putTransStatusInNotes))", level: 2)
             
             if apiToken.isEmpty {
                 let keychain = Keychain()
@@ -83,13 +85,7 @@ class SyncBroker {
                 wallet.replaceTransaction(newTrans: transaction)
             }
             
-            // Get and sync account balances
-            addLog(prefix: prefix, message: "Getting account balances", level: 2)
-            let accountsToUpdate = try await appleWallet.getWalletAccounts()
-            try await wallet.syncAccountBalances(accounts: accountsToUpdate)
-            /*for acct in accountsToUpdate {
-                addLog(prefix: prefix, message: "sync account: \(acct.name) \(acct.id) \(acct.balance)")
-            }*/
+
             let pendingCount = wallet.getTransactionsWithStatus(.pending).count
 
             let body = "\(pendingCount) transaction\(pendingCount == 1 ? "" : "s") synced"
@@ -108,6 +104,14 @@ class SyncBroker {
                 addLog(prefix: prefix, message: "auto import done, updating badge count", level: 2)
             } else {
                 addLog(prefix: prefix, message: "skipping auto import", level: 2)
+            }
+                        
+            // Get and sync account balances
+            addLog(prefix: prefix, message: "Getting account balances", level: 2)
+            let accountsToUpdate = try await appleWallet.getWalletAccounts()
+            try await wallet.syncAccountBalances(accounts: accountsToUpdate)
+            for acct in accountsToUpdate {
+                addLog(prefix: prefix, message: "sync account: \(acct.name) \(acct.id) \(acct.balance)", level: 2)
             }
             
             // update the badge count

@@ -503,6 +503,7 @@ class Wallet :ObservableObject {
         let dateString = dateFormatter.string(from: transaction.date)
         
         let importAsCleared = UserDefaults.standard.bool(forKey: "importTransactionsCleared")
+        let putTransStatusInNotes = UserDefaults.standard.bool(forKey: "putTransStatusInNotes")
         
         do {
             // First check for existing transactions
@@ -526,7 +527,7 @@ class Wallet :ObservableObject {
                             currency: "usd",
                             categoryId: nil,
                             assetId: Int(transaction.lm_account),
-                            notes: transaction.notes.isEmpty ? nil : transaction.notes,
+                            notes: putTransStatusInNotes ? (transaction.notes.isEmpty ? nil : transaction.notes) : nil,
                             status: importAsCleared ? "cleared" : "uncleared",
                             externalId: transaction.id,
                             isPending: false //transaction.isPending
@@ -543,6 +544,7 @@ class Wallet :ObservableObject {
                         //transaction.sync = .never
                         return transaction
                     } else {
+                        addLog(message: "syncTransaction, synced to LM for \(transaction.id), status=\(importAsCleared ? "cleared" : "uncleared")", level: 2)
                         //print("Transaction sent to LM: updated=\(result.updated ?? false)")
                         transaction.lm_id = String(trn.id)
                         if let assetId = trn.assetId {
@@ -564,7 +566,7 @@ class Wallet :ObservableObject {
                 currency: "usd",
                 categoryId: nil,
                 assetId: Int(transaction.lm_account),
-                notes: transaction.notes.isEmpty ? nil : transaction.notes,
+                notes: putTransStatusInNotes ? (transaction.notes.isEmpty ? nil : transaction.notes) : nil,
                 status: importAsCleared ? "cleared" : "uncleared",
                 externalId: transaction.id,
                 isPending: false //transaction.isPending
@@ -577,6 +579,7 @@ class Wallet :ObservableObject {
                 transaction.lm_id = String(transactionIds[0])
                 transaction.sync = .complete
                 //print("Inserted \(transaction.lm_id) -> \(transaction.sync)")
+                addLog(message: "syncTransaction, synced to LM for \(transaction.id), status=\(importAsCleared ? "cleared" : "uncleared")", level: 2)
             } else {
                 //print("No transaction ID received in response")
                 addLog(message: "syncTransaction, No transaction ID received in response for \(transaction.id)", level: 2)

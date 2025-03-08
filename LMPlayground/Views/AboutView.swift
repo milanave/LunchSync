@@ -68,7 +68,7 @@ struct AboutView: View {
                 .frame(maxWidth: .infinity)
                 Spacer()
                 VStack(spacing: 8) {
-                    Text("Version 1.1")
+                    Text("Version 1.5")
                         .font(.body)
                     Button {
                         if let url = URL(string: "https://www.littlebluebug.com") {
