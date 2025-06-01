@@ -1,6 +1,12 @@
 import SwiftUI
 
 struct AboutView: View {
+    private var appVersion: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+        return "\(version) (\(build))"
+    }
+    
     var body: some View {
         NavigationStack {
             VStack(spacing: 5) {
@@ -68,7 +74,7 @@ struct AboutView: View {
                 .frame(maxWidth: .infinity)
                 Spacer()
                 VStack(spacing: 8) {
-                    Text("Version 1.5")
+                    Text("Version \(appVersion)")
                         .font(.body)
                     Button {
                         if let url = URL(string: "https://www.littlebluebug.com") {
