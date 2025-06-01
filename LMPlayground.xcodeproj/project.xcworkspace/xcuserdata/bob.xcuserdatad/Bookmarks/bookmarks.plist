@@ -235,13 +235,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>119</string>
+					<string>124</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>118</string>
+					<string>123</string>
 					<key>Timestamp</key>
-					<string>757456246.552099</string>
+					<string>770480770.737401</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -257,16 +257,16 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>        
+				<string>        }
 </string>
 				<key>leading</key>
-				<string>        let context = container.mainContext
-        let syncBroker = SyncBroker(context: context)
+				<string>                break
+            }
 </string>
 				<key>trailing</key>
-				<string>        let pendingCount = try await syncBroker.fetchTransactions(prefix: "Shortcut", andSync: false) { progressMessage in
-            print("Check Transactions Progress: \(progressMessage)")
-        }
+				<string>    }
+    
+    func userNotificationCenter(
 </string>
 			</dict>
 			<key>type</key>
@@ -280,13 +280,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>153</string>
+					<string>158</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>152</string>
+					<string>157</string>
 					<key>Timestamp</key>
-					<string>757456246.552111</string>
+					<string>770480770.7373821</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -302,16 +302,16 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>    func application(
+				<string>        let syncBroker = SyncBroker(context: context)
 </string>
 				<key>leading</key>
-				<string>    let notificationDelegate = NotificationDelegate()
-    
+				<string>        let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
+        let context = container.mainContext
 </string>
 				<key>trailing</key>
-				<string>        _ application: UIApplication,
-        didReceiveRemoteNotification userInfo: [AnyHashable : Any],
-        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -&gt; Void
+				<string>        
+        let pendingCount = try await syncBroker.fetchTransactions(prefix: "Shortcut", andSync: false) { progressMessage in
+            print("Check Transactions Progress: \(progressMessage)")
 </string>
 			</dict>
 			<key>type</key>

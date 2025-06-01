@@ -279,7 +279,7 @@ struct MainView: View {
                                     let response = await appDelegate.notificationDelegate.registerForPushNotifications(deviceToken: token, active: true, frequency: backgroundJobFrequency)
                                     await MainActor.run {
                                         registrationMessage = response
-                                    }
+                                    }                                    
                                 }
                             } else {
                                 print("Device token not yet available")

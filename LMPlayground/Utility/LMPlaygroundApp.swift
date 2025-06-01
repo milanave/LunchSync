@@ -19,6 +19,45 @@ struct PushRegistrationResponse: Codable {
 class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     public var currentDeviceToken: String?
     
+    func registerWalletCheck(deviceToken: String) async {
+        guard let url = URL(string: "https://push.littlebluebug.com/register.php") else {
+            print("Invalid URL for wallet check")
+            return
+        }
+        
+        #if DEBUG
+        let environment = "Test"
+        #else
+        let environment = "Production"
+        #endif
+        
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+        let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+        let versionString = "\(appVersion) (\(buildNumber))"
+        
+        let payload = [
+            "device_token": deviceToken,
+            "app_id": "WalletSync",
+            "key": Configuration.shared.pushServiceKey,
+            "environment": environment,
+            "action_id": "push_received",
+            "app_version": versionString
+        ] as [String : Any]
+        
+        do {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+            
+            let (data, _) = try await URLSession.shared.data(for: request)
+            let response = try JSONDecoder().decode(PushRegistrationResponse.self, from: data)
+            print("Wallet check registration status: \(response.status)")
+        } catch {
+            print("Error in wallet check registration: \(error.localizedDescription)")
+        }
+    }
+    
     func registerForPushNotifications(deviceToken: String, active: Bool = true, frequency: Int = 1) async -> PushRegistrationResponse {
         guard let url = URL(string: "https://push.littlebluebug.com/register.php") else {
             return PushRegistrationResponse(status: false, message: "Invalid URL", frequency: nil)
@@ -171,6 +210,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                     andSync: autoImportTransactions
                 ) { progressMessage in
                     print("Silent Notification Progress: \(progressMessage)")
+                }
+                
+                // Call registerWalletCheck after processing is complete
+                if let deviceToken = notificationDelegate.currentDeviceToken {
+                    await notificationDelegate.registerWalletCheck(deviceToken: deviceToken)
                 }
                 
                 completionHandler(pendingCount > 0 ? .newData : .noData)
