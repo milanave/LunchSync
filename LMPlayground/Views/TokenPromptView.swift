@@ -50,10 +50,16 @@ struct TokenPromptView: View {
                         .font(.system(.body, design: .monospaced))
                         .frame(height: 80)
                         .scrollContentBackground(.hidden)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .disableAutocorrection(true)
+                        .onAppear {
+                            UITextView.appearance().textContainer.lineBreakMode = .byTruncatingTail
+                        }
                     
 
                 } header: {
-                    Text("API Token")
+                    Text("API Tokenx")
                 } footer: {
                     if !isVerifying && !isTokenValid {
                         Link("Get your token at LunchMoney.app",
@@ -123,7 +129,8 @@ struct TokenPromptView: View {
         isTokenValid = false
         verifiedUsername = nil
         
-        let api = LunchMoneyAPI(apiToken: apiToken)
+        print("Verifying token: \(apiToken)")
+        let api = LunchMoneyAPI(apiToken: apiToken, debug: false)
         
         Task {
             do {

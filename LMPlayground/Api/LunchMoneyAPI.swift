@@ -113,7 +113,7 @@ struct User: Decodable {
     let accountId: Int
     let budgetName: String
     let primaryCurrency: String
-    let apiKeyLabel: String
+    let apiKeyLabel: String?
 
     private enum CodingKeys: String, CodingKey {
         case userName = "user_name"
