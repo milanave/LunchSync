@@ -43,6 +43,18 @@ struct DeleteTransactionsResponse: Decodable {
 
 struct CreateTransactionsRequest: Encodable {
     let transactions: [CreateTransactionRequest]
+    let applyRules: Bool?
+    let skipDuplicates: Bool?
+    let checkForRecurring: Bool?
+    let skipBalanceUpdate: Bool?
+    
+    private enum CodingKeys: String, CodingKey {
+        case transactions
+        case applyRules = "apply_rules"
+        case skipDuplicates = "skip_duplicates"
+        case checkForRecurring = "check_for_recurring"
+        case skipBalanceUpdate = "skip_balance_update"
+    }
 }
 
 struct CreateTransactionsResponse: Decodable {
@@ -438,8 +450,16 @@ class LunchMoneyAPI {
         return response.transactions
     }
     
-    func createTransactions(transactions: [CreateTransactionRequest]) async throws -> CreateTransactionsResponse {
-        let requestBody = CreateTransactionsRequest(transactions: transactions)
+    func createTransactions(transactions: [CreateTransactionRequest], applyRules: Bool? = nil, skipDuplicates: Bool? = nil, checkForRecurring: Bool? = nil, skipBalanceUpdate: Bool? = nil) async throws -> CreateTransactionsResponse {
+        let requestBody = CreateTransactionsRequest(
+            transactions: transactions,
+            applyRules: applyRules,
+            skipDuplicates: skipDuplicates,
+            checkForRecurring: checkForRecurring,
+            skipBalanceUpdate: skipBalanceUpdate
+        )
+        print("INSERT-----")
+        print(applyRules!, skipDuplicates!, checkForRecurring!, skipBalanceUpdate!)
         let response = try await call(path: "/transactions", responseType: CreateTransactionsResponse.self, requestBody: requestBody)
 
         if let errors = response.errors, !errors.isEmpty {

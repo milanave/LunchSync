@@ -100,7 +100,7 @@ struct TransactionDetailView: View {
                     }
                     Button("Cancel", role: .cancel) { }
                 }, message: {
-                    Text("It may be re-synced from Apple Wallet")
+                    Text("This deletes the transaction from the local cache and may re-sync from the Wallet. It will not be deleted from Lunch Money.")
                 }
             )
         }

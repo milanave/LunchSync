@@ -146,13 +146,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>470</string>
+					<string>473</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>470</string>
+					<string>472</string>
 					<key>Timestamp</key>
-					<string>755276008.364205</string>
+					<string>773683930.096231</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -168,15 +168,16 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string></string>
+				<string>        
+</string>
 				<key>leading</key>
-				<string>        return try await call(path: "/transactions/\(id)", responseType: UpdateTransactionResponse.self, requestBody: request, method: "PUT")
-    }
+				<string>    
+    func deleteTransactions(transactionId: Int) async throws -&gt; DeleteTransactionsResponse {
 </string>
 				<key>trailing</key>
-				<string>
-    func updateAsset(id: Int, request: UpdateAssetRequest) async throws -&gt; UpdateAssetResponse {
-        return try await call(path: "/assets/\(id)", responseType: UpdateAssetResponse.self, requestBody: request, method: "PUT")
+				<string>        let requestBody = DeleteTransactionsRequest(transactions: [transactionId])
+        let response = try await call(path: "/transactions/group/\(transactionId)", responseType: DeleteTransactionsResponse.self, requestBody: requestBody, method: "DELETE")
+
 </string>
 			</dict>
 			<key>type</key>

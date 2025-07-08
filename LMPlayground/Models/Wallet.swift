@@ -504,6 +504,10 @@ class Wallet :ObservableObject {
         
         let importAsCleared = UserDefaults.standard.bool(forKey: "importTransactionsCleared")
         let putTransStatusInNotes = UserDefaults.standard.bool(forKey: "putTransStatusInNotes")
+        let applyRules = UserDefaults.standard.bool(forKey: "apply_rules")
+        let skipDuplicates = UserDefaults.standard.bool(forKey: "skip_duplicates")
+        let checkForRecurring = UserDefaults.standard.bool(forKey: "check_for_recurring")
+        let skipBalanceUpdate = UserDefaults.standard.bool(forKey: "skip_balance_update")
         
         do {
             // First check for existing transactions
@@ -573,7 +577,13 @@ class Wallet :ObservableObject {
             )
             
             // Create new transaction
-            let response = try await API.createTransactions(transactions: [createRequest])
+            let response = try await API.createTransactions(
+                transactions: [createRequest],
+                applyRules: applyRules,
+                skipDuplicates: skipDuplicates,
+                checkForRecurring: checkForRecurring,
+                skipBalanceUpdate: skipBalanceUpdate
+            )
             
             if let transactionIds = response.transactionIds, !transactionIds.isEmpty {
                 transaction.lm_id = String(transactionIds[0])

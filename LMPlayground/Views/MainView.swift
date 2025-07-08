@@ -1,3 +1,6 @@
+/*
+ updated 7/8/25, added SettingsView
+ */
 import SwiftUI
 import SwiftData
 import FinanceKit
@@ -32,11 +35,10 @@ struct MainView: View {
     @AppStorage("enableBackgroundJob") private var enableBackgroundJob = false
     @AppStorage("autoImportTransactions") private var autoImportTransactions = false
     @AppStorage("backgroundJobFrequency") private var backgroundJobFrequency: Int = 1
-    @AppStorage("importTransactionsCleared") private var importTransactionsCleared = true
-    @AppStorage("putTransStatusInNotes") private var putTransStatusInNotes = true
 
     @State private var showingAboutSheet = false
     @State private var showingJobSheet = false
+    @State private var showingSettingsSheet = false
 
     private let appDelegate: AppDelegate
 
@@ -111,6 +113,7 @@ struct MainView: View {
                             //automateButtons()
                         }
                     }
+                    settingsSection()
                 }
                 .refreshable {
                     //checkApiToken()
@@ -173,6 +176,9 @@ struct MainView: View {
             }
             .sheet(isPresented: $showingJobSheet) {
                 backgroundSyncSheet()
+            }
+            .sheet(isPresented: $showingSettingsSheet) {
+                SettingsView(isPresented: $showingSettingsSheet)
             }
         }.navigationTitle("Lunch Sync")
         .onAppear {
@@ -521,24 +527,6 @@ struct MainView: View {
                 }
             }
             .disabled(pendingCount < 1)
-
-            Toggle(isOn: $importTransactionsCleared) {
-                HStack {
-                    Image(systemName: importTransactionsCleared ? "checkmark.circle.fill" : "circle")
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(importTransactionsCleared ? .green : .gray)
-                    Text("Import as \(importTransactionsCleared ? "Reviewed" : "Unreviewed")")
-                }
-            }
-            
-            Toggle(isOn: $putTransStatusInNotes) {
-                HStack {
-                    Image(systemName: putTransStatusInNotes ? "checkmark.circle.fill" : "circle")
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(putTransStatusInNotes ? .green : .gray)
-                    Text("Transaction status in notes")
-                }
-            }
             
             Button {
                 showingJobSheet = true
@@ -560,6 +548,25 @@ struct MainView: View {
                 Text("No background sync currently scheduled").foregroundStyle(.secondary)
             }
         }
+    }
+    
+    // MARK: settingsSection
+    private func settingsSection() -> some View {
+        Section {
+            Button {
+                showingSettingsSheet = true
+            } label: {
+                HStack {
+                    Image(systemName: "gearshape")
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(.blue)
+                    Text("Settings")
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } 
     }
     
     // MARK: automateButtons
