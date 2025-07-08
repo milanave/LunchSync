@@ -43,6 +43,17 @@ struct DeleteTransactionsResponse: Decodable {
 
 struct CreateTransactionsRequest: Encodable {
     let transactions: [CreateTransactionRequest]
+    let applyRules: Bool
+    
+    private enum CodingKeys: String, CodingKey {
+        case transactions
+        case applyRules = "apply_rules"
+    }
+    
+    init(transactions: [CreateTransactionRequest], applyRules: Bool = true) {
+        self.transactions = transactions
+        self.applyRules = applyRules
+    }
 }
 
 struct CreateTransactionsResponse: Decodable {
