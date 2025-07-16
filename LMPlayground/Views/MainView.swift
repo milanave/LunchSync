@@ -35,6 +35,7 @@ struct MainView: View {
     @AppStorage("enableBackgroundJob") private var enableBackgroundJob = false
     @AppStorage("autoImportTransactions") private var autoImportTransactions = false
     @AppStorage("backgroundJobFrequency") private var backgroundJobFrequency: Int = 1
+    @AppStorage("enableBackgroundDelivery") private var enableBackgroundDelivery = false
 
     @State private var showingAboutSheet = false
     @State private var showingJobSheet = false
@@ -229,10 +230,21 @@ struct MainView: View {
     }
     
     // MARK: background sync sheet
+    
     private func backgroundSyncSheet() -> some View {
         NavigationStack {
             List {
                 Section {
+                    if #available(iOS 26.0, *) {
+                        Toggle("Enable background delivery", isOn:$enableBackgroundDelivery.animation())
+                            .onChange(of:enableBackgroundDelivery){ _, newValue in
+                                if !newValue {
+                                    FinanceStore.shared.disableBackgroundDelivery(for: [.transactions, .accounts, .accountBalances])
+                                }else{
+                                    FinanceStore.shared.enableBackgroundDelivery(for: [.transactions, .accounts, .accountBalances], frequency: .hourly)
+                                }
+                            }
+                    }
                     Toggle("Enable background sync", isOn: $enableBackgroundJob.animation())
                         .disabled(walletsConnected < 1)
                         .onChange(of: enableBackgroundJob) { _, newValue in
