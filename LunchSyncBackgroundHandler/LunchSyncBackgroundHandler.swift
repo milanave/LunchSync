@@ -28,20 +28,6 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
     }
 
     func didReceiveData(for types: [FinanceStore.BackgroundDataType]) async {
-        /*
-        let calendar = Calendar.current
-        let endDate = Date()
-        let startDate = calendar.date(byAdding: .month, value: -1, to: endDate)!
-        let sortDescriptor = SortDescriptor(\FinanceKit.Transaction.transactionDate, order: .reverse)
-        let query = TransactionQuery(sortDescriptors: [sortDescriptor], predicate: #Predicate<FinanceKit.Transaction>{transaction in
-            transaction.transactionDate >= startDate &&
-            transaction.transactionDate <= endDate
-        }, limit: 1000, offset: 0)
-        
-        let transactions = try? await FinanceStore.shared.transactions(query: query)
-        
-        print("didReceiveData \(transactions?.count ?? 0)")
-        */
         do{
             let autoImportTransactions = UserDefaults.standard.bool(forKey: "autoImportTransactions")
             let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
@@ -52,21 +38,20 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
                 return SyncBroker(context: context)
             }
             
-            _ = try await syncBroker.fetchTransactions(
+            let pendingCount = try await syncBroker.fetchTransactions(
                 prefix: "BD",
                 andSync: autoImportTransactions
             ) { progressMessage in
                 print("Silent Notification Progress: \(progressMessage)")
             }
-            
-            // Call registerWalletCheck after processing is complete
-            // Fetch device token from AppStorage
+            await addNotification(time: 0.5, title: "Transactions Synced", subtitle: "", body: "BGD found \(pendingCount) new transactions")
             
             if let storedDeviceToken = UserDefaults.standard.string(forKey: "deviceToken") {
                 await registerWalletCheck(deviceToken: storedDeviceToken)
             }
         } catch {
-            print("Error processing silent notification: \(error)")            
+            print("Error processing silent notification: \(error)")
+            await addNotification(time: 0.5, title: "Error", subtitle: "", body: "Error processing background delivery: \(error)")
         }
         
     }
@@ -117,6 +102,52 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             print("Wallet check registration status: \(response.status)")
         } catch {
             print("Error in wallet check registration: \(error.localizedDescription)")
+        }
+    }
+    
+    func addNotification(time: Double, title: String, subtitle: String, body: String) async {
+        //print("addNotification \(title), \(body)")
+        let center = UNUserNotificationCenter.current()
+        
+        // First check current authorization status
+        let settings = await center.notificationSettings()
+        //print("Notification settings: \(settings.authorizationStatus.rawValue)")
+        
+        guard settings.authorizationStatus == .authorized else {
+            print("Notifications not authorized")
+            return
+        }
+        
+        // Create and add notification
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.subtitle = subtitle
+        content.body = body
+        content.sound = UNNotificationSound.default
+        
+        // Add category identifier and increase interruption level
+        //content.categoryIdentifier = "TRANSACTION_UPDATE"
+        //content.interruptionLevel = .timeSensitive  // Makes notification more likely to appear
+        //content.interruptionLevel = .active
+        content.interruptionLevel = .timeSensitive
+        
+        // For debugging, use a shorter time interval
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, time), repeats: false)
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+        
+        do {
+            try await center.add(request)
+            //print("Notification scheduled successfully for \(Date().addingTimeInterval(time))")
+            
+            // Debug: List pending notifications
+            _ = await center.pendingNotificationRequests()
+            //print("Pending notifications: \(pending.count)")
+            
+            // Debug: List delivered notifications
+            _ = await center.deliveredNotifications()
+            //print("Delivered notifications: \(delivered.count)")
+        } catch {
+            print("Error scheduling notification: \(error)")
         }
     }
 }

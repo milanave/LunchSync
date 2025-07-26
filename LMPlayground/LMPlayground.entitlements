@@ -12,5 +12,9 @@
 	<array>
 		<string>group.com.littlebluebug.AppleCardSync</string>
 	</array>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)MF7QJ9TF5S.com.littlebluebug.AppleCardSync</string>
+	</array>
 </dict>
 </plist>
