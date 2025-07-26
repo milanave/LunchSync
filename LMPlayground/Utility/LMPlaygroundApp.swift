@@ -230,7 +230,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
         let token = tokenParts.joined()
         notificationDelegate.currentDeviceToken = token
+        
+        // Store the device token in AppStorage
+        @AppStorage("deviceToken") var storedDeviceToken: String = ""
+        storedDeviceToken = token
+        
         @AppStorage("backgroundJobFrequency") var backgroundJobFrequency: Int = 1
+        
         print("Device Token: \(token) freq=\(backgroundJobFrequency)")
         
         // Register the token with your server if background jobs are enabled

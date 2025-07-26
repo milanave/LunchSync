@@ -121,32 +121,7 @@ struct MainView: View {
                     refreshView()
                     //refreshWalletTransactions()
                 }
-                
-                // Add this new button at the bottom
-                /*
-                if walletsConnected > 0 {
-                    Button(action: {
-                        Task {
-                            let transactions = wallet.getTransactionsWithStatus(.complete)
-                            // Take the 3 most recent transactions
-                            let recentTransactions = Array(transactions.prefix(3))
-                            recentTransactions.forEach { transaction in
-                                print("Resync \(transaction.id)")
-                                wallet.setSyncStatus(newTrans: transaction, newStatus: .pending)
-                            }
-                            refreshView()
-                        }
-                    }) {
-                        Text("Mark 3 Recent Transactions as Pending")
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(10)
-                    }
-                    .padding()
-                }
-                 */
+
             }
             .onAppear {
                 refreshView()
@@ -194,6 +169,7 @@ struct MainView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             refreshView()
+            setBackgroundDelivery(enabled: enableBackgroundDelivery)
         }
         .sheet(isPresented: $showingSyncProgress) {
             VStack(spacing: 20) {
@@ -230,6 +206,15 @@ struct MainView: View {
     }
     
     // MARK: background sync sheet
+    private func setBackgroundDelivery(enabled: Bool){
+        if #available(iOS 26.0, *) {
+            if !enabled {
+                FinanceStore.shared.disableBackgroundDelivery(for: [.transactions, .accounts, .accountBalances])
+            }else{
+                FinanceStore.shared.enableBackgroundDelivery(for: [.transactions, .accounts, .accountBalances], frequency: .hourly)
+            }
+        }
+    }
     
     private func backgroundSyncSheet() -> some View {
         NavigationStack {
@@ -239,9 +224,9 @@ struct MainView: View {
                         Toggle("Enable background delivery", isOn:$enableBackgroundDelivery.animation())
                             .onChange(of:enableBackgroundDelivery){ _, newValue in
                                 if !newValue {
-                                    FinanceStore.shared.disableBackgroundDelivery(for: [.transactions, .accounts, .accountBalances])
+                                    setBackgroundDelivery(enabled: false)
                                 }else{
-                                    FinanceStore.shared.enableBackgroundDelivery(for: [.transactions, .accounts, .accountBalances], frequency: .hourly)
+                                    setBackgroundDelivery(enabled: true)
                                 }
                             }
                     }

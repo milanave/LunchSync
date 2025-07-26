@@ -57,6 +57,27 @@
 			);
 			target = C4D328402CCD137200B638AB /* LMPlayground */;
 		};
+		C4AEADFA2E34F22E00ECB40A /* Exceptions for "LMPlayground" folder in "LunchSyncBackgroundHandler" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Api/AppleWallet.swift,
+				Api/LunchMoneyAPI.swift,
+				Api/MockAppleWallet.swift,
+				Api/MockWallet.swift,
+				Api/SyncBroker.swift,
+				Models/Account.swift,
+				Models/Item.swift,
+				Models/Log.swift,
+				Models/Transaction.swift,
+				Models/Wallet.swift,
+				Utility/Assets.xcassets,
+				Utility/Configuration.swift,
+				Utility/CurrencyFormatter.swift,
+				Utility/Keychain.swift,
+				Utility/LastUpdatedEnvironment.swift,
+			);
+			target = C40812972E1FD35000121F0C /* LunchSyncBackgroundHandler */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -72,6 +93,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				C4A5CCA02CE375AD00F3F372 /* Exceptions for "LMPlayground" folder in "LMPlayground" target */,
+				C4AEADFA2E34F22E00ECB40A /* Exceptions for "LMPlayground" folder in "LunchSyncBackgroundHandler" target */,
 			);
 			path = LMPlayground;
 			sourceTree = "<group>";
@@ -252,7 +274,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = LunchSyncBackgroundHandler/LunchSyncBackgroundHandler.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LunchSyncBackgroundHandler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LunchSyncBackgroundHandler;
@@ -263,7 +285,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.littlebluebug.AppleCardSync.LunchSyncBackgroundHandler;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -281,7 +303,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = LunchSyncBackgroundHandler/LunchSyncBackgroundHandler.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LunchSyncBackgroundHandler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LunchSyncBackgroundHandler;
@@ -292,7 +314,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.littlebluebug.AppleCardSync.LunchSyncBackgroundHandler;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

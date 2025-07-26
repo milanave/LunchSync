@@ -5,7 +5,7 @@ enum ConfigurationError: Error {
 }
 
 struct Configuration {
-    static let shared = Configuration()
+    public static let shared = Configuration()
     
     private init() {}
     
