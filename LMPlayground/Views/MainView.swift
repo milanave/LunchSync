@@ -5,6 +5,8 @@ import SwiftUI
 import SwiftData
 import FinanceKit
 import BackgroundTasks
+import os
+
 
 struct MainView: View {
     @Environment(\.modelContext) private var modelContext
@@ -51,7 +53,8 @@ struct MainView: View {
     @State private var isSimulator = false
 
     @State private var registrationMessage: PushRegistrationResponse?
-
+    var logger: Logger!
+    
     private var backgroundJobFrequencyText: String {
         switch backgroundJobFrequency {
         case 1: return "hour"
@@ -98,6 +101,8 @@ struct MainView: View {
         #if targetEnvironment(simulator)
         _isSimulator = State(initialValue: true)
         #endif
+        
+        logger = Logger(subsystem: "com.littlebluebug.AppleCardSync", category: "MainView")
     }
     
     // MARK: main view body
@@ -114,7 +119,6 @@ struct MainView: View {
                             //automateButtons()
                         }
                     }
-                    settingsSection()
                 }
                 .refreshable {
                     //checkApiToken()
@@ -133,6 +137,14 @@ struct MainView: View {
                         showingAboutSheet = true
                     } label: {
                         Image(systemName: "info.circle")
+                    }
+                }
+                
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showingSettingsSheet = true
+                    } label: {
+                        Image(systemName: "gearshape")
                     }
                 }
             }
@@ -205,14 +217,16 @@ struct MainView: View {
 
     }
     
-    // MARK: background sync sheet
+    // MARK: setBackgroundDelivery
     private func setBackgroundDelivery(enabled: Bool){
         if #available(iOS 26.0, *) {
-            if !enabled {
-                FinanceStore.shared.disableBackgroundDelivery(for: [.transactions, .accounts, .accountBalances])
-            }else{
+            if enabled {
                 FinanceStore.shared.enableBackgroundDelivery(for: [.transactions, .accounts, .accountBalances], frequency: .hourly)
+            }else{
+                FinanceStore.shared.disableBackgroundDelivery(for: [.transactions, .accounts, .accountBalances])
             }
+        }else{
+            wallet.addLog(message: "MV: setBackgroundDelivery not available on this OS \(enabled)", level: 1)
         }
     }
     
@@ -234,7 +248,6 @@ struct MainView: View {
                         .disabled(walletsConnected < 1)
                         .onChange(of: enableBackgroundJob) { _, newValue in
                             if !newValue {
-                                autoImportTransactions = false
                                 if let token = appDelegate.notificationDelegate.currentDeviceToken {
                                     Task {
                                         let response = await appDelegate.notificationDelegate.registerForPushNotifications(deviceToken: token, active: false, frequency: backgroundJobFrequency)
@@ -262,10 +275,9 @@ struct MainView: View {
                             }
                             
                         }
-                    
+
                     if enableBackgroundJob {
-                        Toggle("Import Transactions Automatically", isOn: $autoImportTransactions)
-                            .disabled(walletsConnected < 1)
+
                         
                         Picker("Check for transactions every", selection: $backgroundJobFrequency) {
                             Text("Hour").tag(1)
@@ -282,7 +294,7 @@ struct MainView: View {
                                     let response = await appDelegate.notificationDelegate.registerForPushNotifications(deviceToken: token, active: true, frequency: backgroundJobFrequency)
                                     await MainActor.run {
                                         registrationMessage = response
-                                    }                                    
+                                    }
                                 }
                             } else {
                                 print("Device token not yet available")
@@ -292,6 +304,9 @@ struct MainView: View {
                             }
                         }
                     }
+
+                    Toggle("Import Transactions Automatically", isOn: $autoImportTransactions)
+                        .disabled(walletsConnected < 1)
                 } footer: {
                     if let message = registrationMessage {
                         let fullToken = appDelegate.notificationDelegate.currentDeviceToken ?? "Not found"
@@ -512,7 +527,7 @@ struct MainView: View {
             
             Button {
                 Task {
-                    wallet.addLog(message: "importing \(pendingCount) transactions for \(walletsConnected) accounts", level: 2)
+                    wallet.addLog(message: "MV: importing \(pendingCount) transactions for \(walletsConnected) accounts", level: 2)
                     await importPendingTransactions()
                     updateBadgeCount()
                 }
@@ -529,9 +544,9 @@ struct MainView: View {
                 showingJobSheet = true
             } label: {
                 HStack {
-                    Image(systemName: enableBackgroundJob ? "clock.badge.checkmark.fill" : "clock.badge.xmark.fill")
+                    Image(systemName: (enableBackgroundJob || enableBackgroundDelivery) ? "clock.badge.checkmark.fill" : "clock.badge.xmark.fill")
                         .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(enableBackgroundJob ? .green : .gray)
+                        .foregroundStyle((enableBackgroundJob || enableBackgroundDelivery) ? .green : .gray)
                     Text("Background Sync")
                     Spacer()
                 }
@@ -541,29 +556,12 @@ struct MainView: View {
         } footer: {
             if enableBackgroundJob {
                 Text("A background task will check for new transactions every \(backgroundJobFrequencyText).").foregroundStyle(.secondary)
+            }else if(enableBackgroundDelivery){
+                Text("Background delivery is enabled.").foregroundStyle(.secondary)
             }else{
                 Text("No background sync currently scheduled").foregroundStyle(.secondary)
             }
         }
-    }
-    
-    // MARK: settingsSection
-    private func settingsSection() -> some View {
-        Section {
-            Button {
-                showingSettingsSheet = true
-            } label: {
-                HStack {
-                    Image(systemName: "gearshape")
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(.blue)
-                    Text("Settings")
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .foregroundStyle(.secondary)
-                }
-            }
-        } 
     }
     
     // MARK: automateButtons
@@ -666,8 +664,8 @@ struct MainView: View {
         
         do {
             let syncBroker = SyncBroker(context: modelContext)
-            try await syncBroker.syncTransactions(prefix: "MV", shouldContinue: { @MainActor in 
-                isSyncing 
+            try await syncBroker.syncTransactions(prefix: "MV", shouldContinue: { @MainActor in
+                isSyncing
             }) { @MainActor progress in
                 syncProgress = progress
             }

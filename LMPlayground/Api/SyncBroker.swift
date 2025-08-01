@@ -111,7 +111,7 @@ class SyncBroker {
             let accountsToUpdate = try await appleWallet.getWalletAccounts()
             try await wallet.syncAccountBalances(accounts: accountsToUpdate)
             for acct in accountsToUpdate {
-                addLog(prefix: prefix, message: "sync account: \(acct.name) \(acct.id) \(acct.balance)", level: 2)
+                addLog(prefix: prefix, message: "sync account: \(acct.name) \(acct.balance)", level: 2)
             }
             
             // update the badge count

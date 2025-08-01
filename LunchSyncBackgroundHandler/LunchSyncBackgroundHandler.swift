@@ -10,6 +10,8 @@ import FinanceKit
 import Foundation
 import SwiftData
 import SwiftUI
+import os
+
 
 extension Notification.Name {
     static let pendingTransactionsChanged = Notification.Name("pendingTransactionsChanged")
@@ -23,19 +25,49 @@ struct PushRegistrationResponse: Codable {
 
 @main
 class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
+    var logger: Logger!
+    
     required init() {
         // Set up any resources or storage used by the extension
+        print("LunchSyncBackgroundHandlerBGD Extension Initialized")
+        do{
+            logger = Logger(subsystem: "com.littlebluebug.AppleCardSync", category: "BackgroundDelivery")
+            logger.error(" LunchSyncBackgroundHandlerBGD init started")
+            let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
+            let modelContext = container.mainContext
+            self.addLog(modelContext: modelContext, prefix: "BGD", message: "LunchSyncBackgroundHandlerBGD init", level: 1)
+            logger.error(" LunchSyncBackgroundHandlerBGD init complete")
+        }catch {
+            print("LunchSyncBackgroundHandlerBGD init failed: \(error)")
+            logger.error(" LunchSyncBackgroundHandlerBGD init failed \(error)")
+        }
     }
+    
+    
 
     func didReceiveData(for types: [FinanceStore.BackgroundDataType]) async {
         do{
+            /*
+            print("LunchSyncBackgroundHandlerBGD didReceiveData")
+            logger.error(" LunchSyncBackgroundHandlerBGD didReceiveData")
+            await addNotification(time: 0.5, title: "BGD LunchSync Sync Starting", subtitle: "", body: "BGD LunchSync Sync Starting")
+            logger.error(" LunchSyncBackgroundHandlerBGD didReceiveData notification sent")
+            
+            let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
+            await MainActor.run {
+                let modelContext = container.mainContext
+                self.addLog(modelContext: modelContext, prefix: "BGD", message: "LunchSyncBackgroundHandlerBGD didReceiveData", level: 1)
+            }
+            */
+            
             let autoImportTransactions = UserDefaults.standard.bool(forKey: "autoImportTransactions")
             let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
-            
-            // Ensure ModelContext operations stay on main actor
+
             let syncBroker = await MainActor.run {
                 let context = container.mainContext
-                return SyncBroker(context: context)
+                let syncBroker = SyncBroker(context: context)
+                syncBroker.addLog(prefix: "BGD", message: "LunchSyncBackgroundHandlerBGD didReceiveData", level: 1)
+                return syncBroker
             }
             
             let pendingCount = try await syncBroker.fetchTransactions(
@@ -44,20 +76,39 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             ) { progressMessage in
                 print("Silent Notification Progress: \(progressMessage)")
             }
-            await addNotification(time: 0.5, title: "Transactions Synced", subtitle: "", body: "BGD found \(pendingCount) new transactions")
             
+            await syncBroker.addLog(prefix: "BGD", message: "BGD found \(pendingCount) new transactions", level: 1)
+
+            await addNotification(time: 0.5, title: "BGD LunchSync Transactions Synced", subtitle: "", body: "BGD found \(pendingCount) new transactions")
+
             if let storedDeviceToken = UserDefaults.standard.string(forKey: "deviceToken") {
                 await registerWalletCheck(deviceToken: storedDeviceToken)
             }
+            
         } catch {
-            print("Error processing silent notification: \(error)")
-            await addNotification(time: 0.5, title: "Error", subtitle: "", body: "Error processing background delivery: \(error)")
+            print("LunchSyncBackgroundHandlerBGD Error processing silent notification: \(error)")
+            logger.error(" LunchSyncBackgroundHandlerBGD Error processing background delivery: \(error)")
+            await addNotification(time: 0.5, title: "BDG LunchSync Error", subtitle: "", body: "Error processing background delivery: \(error)")
         }
-        
+        logger.error(" LunchSyncBackgroundHandlerBGD finished")
     }
 
     func willTerminate() async {
         // Called just before the extension will be terminated by the system
+        logger.error(" LunchSyncBackgroundHandlerBGD willTerminate")
+        await addNotification(time: 0.5, title: "BDG terminating", subtitle: "", body: "BDG terminating")
+    }
+    
+    @MainActor
+    public func addLog(modelContext: ModelContext, prefix: String, message: String, level: Int = 1) {
+        let log = Log(message: "\(prefix): \(message)", level: level)
+        modelContext.insert(log)
+        
+        do {
+            try modelContext.save()
+        } catch {
+            print("Failed to save log: \(error)")
+        }
     }
     
     func registerWalletCheck(deviceToken: String) async {
@@ -87,7 +138,7 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             "app_id": "WalletSync",
             "key": pushServiceKey,
             "environment": environment,
-            "action_id": "push_received",
+            "action_id": "bgd_complete",
             "app_version": versionString
         ] as [String : Any]
         
@@ -150,4 +201,6 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             print("Error scheduling notification: \(error)")
         }
     }
+    
+    
 }
