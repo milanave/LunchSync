@@ -59,35 +59,75 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
                 self.addLog(modelContext: modelContext, prefix: "BGD", message: "LunchSyncBackgroundHandlerBGD didReceiveData", level: 1)
             }
             */
+<<<<<<< Updated upstream
             
             let autoImportTransactions = UserDefaults.standard.bool(forKey: "autoImportTransactions")
             let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
+=======
+
+            let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
+            await MainActor.run {
+                let modelContext = container.mainContext
+                self.addLog(modelContext: modelContext, prefix: "BGD", message: "LunchSyncBackgroundHandlerBGD didReceiveData", level: 1)
+            }
+
+            
+            let autoImportTransactions = UserDefaults.standard.bool(forKey: "autoImportTransactions")
+>>>>>>> Stashed changes
 
             let syncBroker = await MainActor.run {
                 let context = container.mainContext
                 let syncBroker = SyncBroker(context: context)
+<<<<<<< Updated upstream
                 syncBroker.addLog(prefix: "BGD", message: "LunchSyncBackgroundHandlerBGD didReceiveData", level: 1)
+=======
+                syncBroker.addLog(prefix: "BGD", message: "SyncBroker starting, auto=\(autoImportTransactions)", level: 2)
+>>>>>>> Stashed changes
                 return syncBroker
             }
             
             let pendingCount = try await syncBroker.fetchTransactions(
+<<<<<<< Updated upstream
                 prefix: "BD",
+=======
+                prefix: "BGD",
+>>>>>>> Stashed changes
                 andSync: autoImportTransactions
             ) { progressMessage in
                 print("Silent Notification Progress: \(progressMessage)")
             }
             
+<<<<<<< Updated upstream
             await syncBroker.addLog(prefix: "BGD", message: "BGD found \(pendingCount) new transactions", level: 1)
 
+=======
+            //await syncBroker.addLog(prefix: "BGD", message: "BGD found \(pendingCount) new transactions", level: 1)
+            await MainActor.run {
+                let modelContext = container.mainContext
+                self.addLog(modelContext: modelContext, prefix: "BGD", message: "BGD found \(pendingCount) new transactions", level: 1)
+            }
+            
+>>>>>>> Stashed changes
             await addNotification(time: 0.5, title: "BGD LunchSync Transactions Synced", subtitle: "", body: "BGD found \(pendingCount) new transactions")
 
             if let storedDeviceToken = UserDefaults.standard.string(forKey: "deviceToken") {
                 await registerWalletCheck(deviceToken: storedDeviceToken)
             }
             
+<<<<<<< Updated upstream
         } catch {
             print("LunchSyncBackgroundHandlerBGD Error processing silent notification: \(error)")
             logger.error(" LunchSyncBackgroundHandlerBGD Error processing background delivery: \(error)")
+=======
+            await MainActor.run {
+                let modelContext = container.mainContext
+                self.addLog(modelContext: modelContext, prefix: "BGD", message: "BGD complete", level: 1)
+            }
+            
+        } catch {
+            logger.error(" LunchSyncBackgroundHandlerBGD Error processing background delivery: \(error)")
+            
+>>>>>>> Stashed changes
             await addNotification(time: 0.5, title: "BDG LunchSync Error", subtitle: "", body: "Error processing background delivery: \(error)")
         }
         logger.error(" LunchSyncBackgroundHandlerBGD finished")
@@ -96,6 +136,18 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
     func willTerminate() async {
         // Called just before the extension will be terminated by the system
         logger.error(" LunchSyncBackgroundHandlerBGD willTerminate")
+<<<<<<< Updated upstream
+=======
+        do{
+            let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
+            await MainActor.run {
+                let modelContext = container.mainContext
+                self.addLog(modelContext: modelContext, prefix: "BGD", message: "calling willTerminate", level: 1)
+            }
+        } catch {
+            logger.error(" LunchSyncBackgroundHandlerBGD willTerminate failed to create container: \(error)")
+        }
+>>>>>>> Stashed changes
         await addNotification(time: 0.5, title: "BDG terminating", subtitle: "", body: "BDG terminating")
     }
     
