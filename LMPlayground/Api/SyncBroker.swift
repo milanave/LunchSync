@@ -47,7 +47,7 @@ class SyncBroker {
         let putTransStatusInNotes = UserDefaults.standard.bool(forKey: "putTransStatusInNotes")
 
         do {
-            addLog(prefix: prefix, message: "Starting transaction fetch (importAsCleared: \(importAsCleared), transStatusInNotes: \(putTransStatusInNotes))", level: 2)
+            addLog(prefix: prefix, message: "Starting transaction fetch (importAsCleared: \(importAsCleared), transStatusInNotes: \(putTransStatusInNotes), autoSync: \(andSync))", level: 2)
             
             if apiToken.isEmpty {
                 let keychain = Keychain()
@@ -73,10 +73,17 @@ class SyncBroker {
                 addLog(prefix: prefix, message: "token was blank, but successfully retrieved", level: 2)
             }
             
+            addLog(prefix: prefix, message: "token rertrieved", level: 2)
+            
             let initialPendingCount = wallet.getTransactionsWithStatus(.pending).count
+            
+            addLog(prefix: prefix, message: "got initialPendingCount: \(initialPendingCount)", level: 2)
             
             // get a list of accounts, then Apple Wallet transactions for those accounts
             let accounts = wallet.getSyncedAccounts()
+            
+            addLog(prefix: prefix, message: "got accounts: \(accounts.count)", level: 2)
+            
             let newTransactions = try await appleWallet.refreshWalletTransactionsForAccounts(accounts: accounts)
             addLog(prefix: prefix, message: "Found \(newTransactions.count) transactions to sync", level: 2)
             
@@ -84,7 +91,6 @@ class SyncBroker {
             newTransactions.forEach { transaction in
                 wallet.replaceTransaction(newTrans: transaction)
             }
-            
 
             let pendingCount = wallet.getTransactionsWithStatus(.pending).count
 
@@ -111,7 +117,7 @@ class SyncBroker {
             let accountsToUpdate = try await appleWallet.getWalletAccounts()
             try await wallet.syncAccountBalances(accounts: accountsToUpdate)
             for acct in accountsToUpdate {
-                addLog(prefix: prefix, message: "sync account: \(acct.name) \(acct.id) \(acct.balance)", level: 2)
+                addLog(prefix: prefix, message: "sync account: \(acct.name) \(acct.balance)", level: 2)
             }
             
             // update the badge count

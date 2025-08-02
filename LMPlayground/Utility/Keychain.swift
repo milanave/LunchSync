@@ -10,13 +10,15 @@ enum KeychainError: Error {
 class Keychain {
     private let appId = "com.milanave.lmwallet"
     private let tokenKey = "apiToken" // Use a constant for the token account name
+    private let sharedAccessGroup = "group.com.littlebluebug.AppleCardSync"
     
     public func listAllKeychainItems() {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecMatchLimit as String: kSecMatchLimitAll,
             kSecReturnAttributes as String: true,
-            kSecReturnData as String: true
+            kSecReturnData as String: true,
+            kSecAttrAccessGroup as String: sharedAccessGroup
         ]
         
         var result: CFTypeRef?
@@ -47,14 +49,16 @@ class Keychain {
             kSecAttrService as String: appId,
             kSecAttrAccount as String: tokenKey,
             kSecValueData as String: tokenData,
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock,
+            kSecAttrAccessGroup as String: sharedAccessGroup
         ]
 
         // Attempt to delete any existing item
         let deleteStatus = SecItemDelete([
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: appId,
-            kSecAttrAccount as String: tokenKey
+            kSecAttrAccount as String: tokenKey,
+            kSecAttrAccessGroup as String: sharedAccessGroup
         ] as CFDictionary)
 
         if deleteStatus == errSecSuccess {
@@ -82,7 +86,8 @@ class Keychain {
             kSecAttrService as String: appId,
             kSecAttrAccount as String: tokenKey,
             kSecReturnData as String: kCFBooleanTrue!,
-            kSecMatchLimit as String: kSecMatchLimitOne
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecAttrAccessGroup as String: sharedAccessGroup
         ]
 
         var item: CFTypeRef?

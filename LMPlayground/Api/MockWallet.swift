@@ -6,6 +6,7 @@
 import SwiftUI
 import SwiftData
 import FinanceKit
+import Combine
 
 class MockWallet: Wallet {
     @Published var transactions: [Transaction] = []

@@ -2,12 +2,14 @@ import Foundation
 import SwiftData
 import Combine
 import UserNotifications
+import os
 
 @MainActor
 class Wallet :ObservableObject {
     private let modelContext: ModelContext
     private var API: LunchMoneyAPI
     private var lastLogTime: Date?
+    var logger: Logger!
     
     var isSimulator: Bool = {
         #if targetEnvironment(simulator)
@@ -20,6 +22,7 @@ class Wallet :ObservableObject {
     init(context: ModelContext, apiToken: String) {
         self.modelContext = context
         self.API = LunchMoneyAPI(apiToken: apiToken, debug: false)
+        logger = Logger(subsystem: "com.littlebluebug.AppleCardSync", category: "Wallet")
     }
     
     func updateAPIToken(_ token: String) {
@@ -618,6 +621,7 @@ class Wallet :ObservableObject {
         }
         
         let log = Log(message: fullMessage, level: level)
+        logger.error("\(fullMessage)")
         modelContext.insert(log)
         
         do {

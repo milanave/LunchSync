@@ -10,13 +10,7 @@
 	<string>Loading ApplePay transactions to Lunch Money</string>
 	<key>NSFinancialDataUsageDescription</key>
 	<string>Loading ApplePay transactions to Lunch Money</string>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>fetch</string>
-		<string>processing</string>
-		<string>remote-notification</string>
-	</array>
-    <key>PUSH_SERVICE_KEY</key>
-    <string>$(PUSH_SERVICE_KEY)</string>
+	<key>PUSH_SERVICE_KEY</key>
+	<string>$(PUSH_SERVICE_KEY)</string>
 </dict>
 </plist>

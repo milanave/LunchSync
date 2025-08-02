@@ -43,6 +43,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C40812A52E1FD35000121F0C /* Exceptions for "LunchSyncBackgroundHandler" folder in "LunchSyncBackgroundHandler" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = C40812972E1FD35000121F0C /* LunchSyncBackgroundHandler */;
+		};
 		C4A5CCA02CE375AD00F3F372 /* Exceptions for "LMPlayground" folder in "LMPlayground" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -76,6 +83,9 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		C40812992E1FD35000121F0C /* LunchSyncBackgroundHandler */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C40812A52E1FD35000121F0C /* Exceptions for "LunchSyncBackgroundHandler" folder in "LunchSyncBackgroundHandler" target */,
+			);
 			path = LunchSyncBackgroundHandler;
 			sourceTree = "<group>";
 		};
