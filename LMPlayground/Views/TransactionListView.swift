@@ -60,6 +60,9 @@ struct TransactionRowView: View {
                 HStack {
                     Text(transaction.date.formatted(.dateTime.month(.defaultDigits).day(.defaultDigits).year(.twoDigits)))
                     Spacer()
+                    Text(transaction.lm_category_name?.isEmpty == false ? transaction.lm_category_name! : "unknown")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
                 }
                 HStack {
                     Text(transaction.account).font(.footnote)

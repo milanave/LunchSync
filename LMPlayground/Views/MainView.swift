@@ -757,6 +757,7 @@ struct MainView: View {
                     //print("refreshWalletTransactions Progress: \(progressMessage)")
                 }
                 //print("refreshWalletTransactions Completed with \(pendingCount) pending transactions")
+                refreshView()
             } catch {
                 print("Error: \(error)")
             }
