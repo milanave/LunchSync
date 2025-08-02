@@ -7,10 +7,36 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C40812A02E1FD35000121F0C /* LunchSyncBackgroundHandler.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = C40812982E1FD35000121F0C /* LunchSyncBackgroundHandler.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C4D328642CCD1DA900B638AB /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = C4D328632CCD1DA900B638AB /* README.md */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		C408129E2E1FD35000121F0C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C4D328392CCD137200B638AB /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C40812972E1FD35000121F0C;
+			remoteInfo = LunchSyncBackgroundHandler;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C40812A12E1FD35000121F0C /* Embed ExtensionKit Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				C40812A02E1FD35000121F0C /* LunchSyncBackgroundHandler.appex in Embed ExtensionKit Extensions */,
+			);
+			name = "Embed ExtensionKit Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		C40812982E1FD35000121F0C /* LunchSyncBackgroundHandler.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = LunchSyncBackgroundHandler.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		C4475ACB2D19A7E900ED73DF /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 		C4D328412CCD137200B638AB /* LMPlayground.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LMPlayground.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C4D328632CCD1DA900B638AB /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
@@ -24,13 +50,40 @@
 			);
 			target = C4D328402CCD137200B638AB /* LMPlayground */;
 		};
+		C4AEADFA2E34F22E00ECB40A /* Exceptions for "LMPlayground" folder in "LunchSyncBackgroundHandler" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Api/AppleWallet.swift,
+				Api/LunchMoneyAPI.swift,
+				Api/MockAppleWallet.swift,
+				Api/MockWallet.swift,
+				Api/SyncBroker.swift,
+				Models/Account.swift,
+				Models/Item.swift,
+				Models/Log.swift,
+				Models/Transaction.swift,
+				Models/Wallet.swift,
+				Utility/Assets.xcassets,
+				Utility/Configuration.swift,
+				Utility/CurrencyFormatter.swift,
+				Utility/Keychain.swift,
+				Utility/LastUpdatedEnvironment.swift,
+			);
+			target = C40812972E1FD35000121F0C /* LunchSyncBackgroundHandler */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		C40812992E1FD35000121F0C /* LunchSyncBackgroundHandler */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = LunchSyncBackgroundHandler;
+			sourceTree = "<group>";
+		};
 		C4D328432CCD137200B638AB /* LMPlayground */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				C4A5CCA02CE375AD00F3F372 /* Exceptions for "LMPlayground" folder in "LMPlayground" target */,
+				C4AEADFA2E34F22E00ECB40A /* Exceptions for "LMPlayground" folder in "LunchSyncBackgroundHandler" target */,
 			);
 			path = LMPlayground;
 			sourceTree = "<group>";
@@ -38,6 +91,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		C40812952E1FD35000121F0C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C4D3283E2CCD137200B638AB /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -54,6 +114,7 @@
 				C4475ACB2D19A7E900ED73DF /* Config.xcconfig */,
 				C4D328632CCD1DA900B638AB /* README.md */,
 				C4D328432CCD137200B638AB /* LMPlayground */,
+				C40812992E1FD35000121F0C /* LunchSyncBackgroundHandler */,
 				C4D328422CCD137200B638AB /* Products */,
 			);
 			sourceTree = "<group>";
@@ -62,6 +123,7 @@
 			isa = PBXGroup;
 			children = (
 				C4D328412CCD137200B638AB /* LMPlayground.app */,
+				C40812982E1FD35000121F0C /* LunchSyncBackgroundHandler.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -69,6 +131,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		C40812972E1FD35000121F0C /* LunchSyncBackgroundHandler */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C40812A42E1FD35000121F0C /* Build configuration list for PBXNativeTarget "LunchSyncBackgroundHandler" */;
+			buildPhases = (
+				C40812942E1FD35000121F0C /* Sources */,
+				C40812952E1FD35000121F0C /* Frameworks */,
+				C40812962E1FD35000121F0C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				C40812992E1FD35000121F0C /* LunchSyncBackgroundHandler */,
+			);
+			name = LunchSyncBackgroundHandler;
+			packageProductDependencies = (
+			);
+			productName = LunchSyncBackgroundHandler;
+			productReference = C40812982E1FD35000121F0C /* LunchSyncBackgroundHandler.appex */;
+			productType = "com.apple.product-type.extensionkit-extension";
+		};
 		C4D328402CCD137200B638AB /* LMPlayground */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = C4D328512CCD137400B638AB /* Build configuration list for PBXNativeTarget "LMPlayground" */;
@@ -76,10 +160,12 @@
 				C4D3283D2CCD137200B638AB /* Sources */,
 				C4D3283E2CCD137200B638AB /* Frameworks */,
 				C4D3283F2CCD137200B638AB /* Resources */,
+				C40812A12E1FD35000121F0C /* Embed ExtensionKit Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				C408129F2E1FD35000121F0C /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				C4D328432CCD137200B638AB /* LMPlayground */,
@@ -98,9 +184,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1600;
-				LastUpgradeCheck = 1620;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
 				TargetAttributes = {
+					C40812972E1FD35000121F0C = {
+						CreatedOnToolsVersion = 26.0;
+					};
 					C4D328402CCD137200B638AB = {
 						CreatedOnToolsVersion = 16.0;
 					};
@@ -121,11 +210,19 @@
 			projectRoot = "";
 			targets = (
 				C4D328402CCD137200B638AB /* LMPlayground */,
+				C40812972E1FD35000121F0C /* LunchSyncBackgroundHandler */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		C40812962E1FD35000121F0C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C4D3283F2CCD137200B638AB /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -137,6 +234,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		C40812942E1FD35000121F0C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C4D3283D2CCD137200B638AB /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -146,7 +250,73 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		C408129F2E1FD35000121F0C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C40812972E1FD35000121F0C /* LunchSyncBackgroundHandler */;
+			targetProxy = C408129E2E1FD35000121F0C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		C40812A22E1FD35000121F0C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = LunchSyncBackgroundHandler/LunchSyncBackgroundHandler.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 5;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LunchSyncBackgroundHandler/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LunchSyncBackgroundHandler;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.7;
+				PRODUCT_BUNDLE_IDENTIFIER = com.littlebluebug.AppleCardSync.LunchSyncBackgroundHandler;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C40812A32E1FD35000121F0C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = LunchSyncBackgroundHandler/LunchSyncBackgroundHandler.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 5;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LunchSyncBackgroundHandler/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LunchSyncBackgroundHandler;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.7;
+				PRODUCT_BUNDLE_IDENTIFIER = com.littlebluebug.AppleCardSync.LunchSyncBackgroundHandler;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		C4D3284F2CCD137400B638AB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -182,6 +352,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = MF7QJ9TF5S;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -205,6 +376,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -245,6 +417,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = MF7QJ9TF5S;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -261,6 +434,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -274,9 +448,8 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = LMPlayground/LMPlayground.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"LMPlayground/Preview Content\"";
-				DEVELOPMENT_TEAM = MF7QJ9TF5S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LMPlayground/Info.plist;
@@ -288,11 +461,12 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_UISupportsDocumentBrowser = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.littlebluebug.AppleCardSync;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PUSH_SERVICE_KEY = "$(PUSH_SERVICE_KEY)";
@@ -314,9 +488,8 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = LMPlayground/LMPlayground.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_ASSET_PATHS = "\"LMPlayground/Preview Content\"";
-				DEVELOPMENT_TEAM = MF7QJ9TF5S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LMPlayground/Info.plist;
@@ -328,11 +501,12 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_UISupportsDocumentBrowser = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.6;
+				MARKETING_VERSION = 1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.littlebluebug.AppleCardSync;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PUSH_SERVICE_KEY = "$(PUSH_SERVICE_KEY)";
@@ -349,6 +523,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		C40812A42E1FD35000121F0C /* Build configuration list for PBXNativeTarget "LunchSyncBackgroundHandler" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C40812A22E1FD35000121F0C /* Debug */,
+				C40812A32E1FD35000121F0C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		C4D3283C2CCD137200B638AB /* Build configuration list for PBXProject "LMPlayground" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
