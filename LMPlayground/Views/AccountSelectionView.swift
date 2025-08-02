@@ -218,7 +218,9 @@ class AccountSelectionViewModel: ObservableObject {
         Transaction.self,
         Account.self,
         Log.self,
-        Item.self
+        Item.self,
+        LMCategory.self,
+        TrnCategory.self
     ])
     let container = try! ModelContainer(for: schema, configurations: config)
     let context = container.mainContext

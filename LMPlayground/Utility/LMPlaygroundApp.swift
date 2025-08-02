@@ -201,7 +201,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         
         Task {
             do {
-                let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
+                let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self, LMCategory.self, TrnCategory.self)
                 let context = container.mainContext
                 let syncBroker = SyncBroker(context: context)
                 
@@ -302,7 +302,9 @@ struct LMPlaygroundApp: App {
             Item.self,
             Transaction.self,
             Account.self,
-            Log.self
+            Log.self,
+            LMCategory.self,
+            TrnCategory.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

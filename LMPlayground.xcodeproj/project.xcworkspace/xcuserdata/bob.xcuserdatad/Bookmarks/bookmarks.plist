@@ -168,16 +168,16 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>        
+				<string>    func getTransactions(request: GetTransactionsRequest? = nil) async throws -&gt; [LMTransaction] {
 </string>
 				<key>leading</key>
-				<string>    
-    func deleteTransactions(transactionId: Int) async throws -&gt; DeleteTransactionsResponse {
+				<string>    }
+    
 </string>
 				<key>trailing</key>
-				<string>        let requestBody = DeleteTransactionsRequest(transactions: [transactionId])
-        let response = try await call(path: "/transactions/group/\(transactionId)", responseType: DeleteTransactionsResponse.self, requestBody: requestBody, method: "DELETE")
-
+				<string>            // Pass `nil` for requestBody if request is not provided
+            let response = try await call(path: "/transactions", responseType: GetTransactionsResponse.self, requestBody: request, method: "GET")
+            return response.transactions
 </string>
 			</dict>
 			<key>type</key>

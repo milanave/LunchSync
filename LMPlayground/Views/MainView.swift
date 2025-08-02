@@ -21,6 +21,7 @@ struct MainView: View {
     @State private var pendingCount = 0
     @State private var errorCount = 0
     @State private var completedCount = 0
+    @State private var uncategorizedCount = 0
     @State private var isSyncing = false
     @State private var syncError: String?
     
@@ -42,11 +43,13 @@ struct MainView: View {
     @State private var showingAboutSheet = false
     @State private var showingJobSheet = false
     @State private var showingSettingsSheet = false
+    @State private var showingCategorySheet = false
 
     private let appDelegate: AppDelegate
 
     @State private var timeUpdateTimer: Timer? = nil
     @State private var timeUpdateTrigger = Date()
+    @State private var refreshTrigger = UUID()
 
     @State private var isVerifyingToken = false
 
@@ -129,6 +132,10 @@ struct MainView: View {
             }
             .onAppear {
                 refreshView()
+                refreshTrigger = UUID()
+            }
+            .task {
+                refreshView()
             }
             .navigationTitle("Lunch Sync")
             .toolbar {
@@ -137,6 +144,27 @@ struct MainView: View {
                         showingAboutSheet = true
                     } label: {
                         Image(systemName: "info.circle")
+                    }
+                }
+                
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showingCategorySheet = true
+                    } label: {
+                        ZStack {
+                            Image(systemName: "tag")
+                            
+                            if uncategorizedCount > 0 {
+                                Text("\(uncategorizedCount)")
+                                    .font(.caption2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .frame(minWidth: 16, minHeight: 16)
+                                    .background(Color.red)
+                                    .clipShape(Circle())
+                                    .offset(x: 8, y: -8)
+                            }
+                        }
                     }
                 }
                 
@@ -168,6 +196,23 @@ struct MainView: View {
             .sheet(isPresented: $showingSettingsSheet) {
                 SettingsView(isPresented: $showingSettingsSheet)
             }
+            .sheet(isPresented: $showingCategorySheet) {
+                NavigationStack {
+                    CategoryView()
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") {
+                                    showingCategorySheet = false
+                                }
+                            }
+                        }
+                }
+                .presentationDetents([.large])
+                .presentationDragIndicator(.hidden)
+                .onDisappear {
+                    refreshTrigger = UUID()
+                }
+            }
         }.navigationTitle("Lunch Sync")
         .onAppear {
             checkApiToken()
@@ -182,6 +227,9 @@ struct MainView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             refreshView()
             setBackgroundDelivery(enabled: enableBackgroundDelivery)
+        }
+        .onChange(of: refreshTrigger) { _, _ in
+            refreshView()
         }
         .sheet(isPresented: $showingSyncProgress) {
             VStack(spacing: 20) {
@@ -405,10 +453,16 @@ struct MainView: View {
             NavigationLink {
                 AccountSelectionView(
                     isPresented: $isShowingAccountSelectionDialog,
-                    onSave: refreshView,
+                    onSave: {
+                        refreshView()
+                        refreshTrigger = UUID()
+                    },
                     allowDismissal: true,
                     wallet: wallet
                 )
+                .onDisappear {
+                    refreshTrigger = UUID()
+                }
             } label: {
                 HStack {
                     Image(systemName: walletsConnected>0 ? "checkmark.rectangle.fill" : "rectangle.on.rectangle.slash.fill")
@@ -431,9 +485,10 @@ struct MainView: View {
     private func transactionSyncSection() -> some View {
         Section{
             NavigationLink {
-                TransactionListView(wallet: wallet, syncStatus: .pending).onAppear {
-                    refreshView()
-                }
+                TransactionListView(wallet: wallet, syncStatus: .pending)
+                    .onDisappear {
+                        refreshTrigger = UUID()
+                    }
             } label: {
                 HStack {
                     Image(systemName: "questionmark.app.fill")
@@ -451,9 +506,10 @@ struct MainView: View {
             
             if(errorCount>0){
                 NavigationLink {
-                    TransactionListView(wallet: wallet, syncStatus: .never).onAppear {
-                        refreshView()
-                    }
+                    TransactionListView(wallet: wallet, syncStatus: .never)
+                        .onDisappear {
+                            refreshTrigger = UUID()
+                        }
                 } label: {
                     HStack {
                         Image(systemName: "exclamationmark.circle.fill")
@@ -471,9 +527,10 @@ struct MainView: View {
             }
 
             NavigationLink {
-                TransactionListView(wallet: wallet, syncStatus: .complete).onAppear {
-                    refreshView()
-                }
+                TransactionListView(wallet: wallet, syncStatus: .complete)
+                    .onDisappear {
+                        refreshTrigger = UUID()
+                    }
             } label: {
                 HStack {
                     Image(systemName: "checkmark.seal.fill")
@@ -647,6 +704,13 @@ struct MainView: View {
         pendingCount = wallet.getTransactionsWithStatus(.pending).count
         errorCount = wallet.getTransactionsWithStatus(.never).count
         walletsConnected = wallet.getSyncedAccounts().count
+        
+        // Count uncategorized TrnCategory objects
+        let fetchDescriptor = FetchDescriptor<TrnCategory>(
+            predicate: #Predicate<TrnCategory> { $0.lm_category == nil }
+        )
+        uncategorizedCount = (try? modelContext.fetch(fetchDescriptor).count) ?? 0
+        
         updateBadgeCount()
         updateLastUpdated()
     }
@@ -759,7 +823,6 @@ struct MainView: View {
     
 }
 
-
 // MARK: preview
 #Preview {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -767,7 +830,9 @@ struct MainView: View {
         Transaction.self,
         Account.self,
         Log.self,
-        Item.self
+        Item.self,
+        LMCategory.self,
+        TrnCategory.self
     ])
     let container = try! ModelContainer(for: schema, configurations: config)
     let context = container.mainContext

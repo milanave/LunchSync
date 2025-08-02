@@ -2,10 +2,16 @@ import Foundation
 import FinanceKit
 import FinanceKitUI
 
+struct MCCCode: Codable {
+    let id: Int
+    let mcc: String
+    let description: String
+}
 
 class AppleWallet{
  
     var authStatus: AuthorizationStatus = .notDetermined
+    private var mccCodes: [MCCCode] = []
     var isSimulator: Bool = {
         #if targetEnvironment(simulator)
         return true
@@ -13,6 +19,30 @@ class AppleWallet{
         return false
         #endif
         }()
+    
+    // MARK: - MCC Code Loading and Lookup
+    
+    private func loadMCCCodes() {
+        guard mccCodes.isEmpty else { return } // Only load once
+        
+        guard let url = Bundle.main.url(forResource: "MCC_Codes", withExtension: "json") else {
+            print("Could not find MCC_Codes.json file")
+            return
+        }
+        
+        do {
+            let data = try Data(contentsOf: url)
+            mccCodes = try JSONDecoder().decode([MCCCode].self, from: data)
+            print("Loaded \(mccCodes.count) MCC codes")
+        } catch {
+            print("Error loading MCC codes: \(error)")
+        }
+    }
+    
+    private func getMCCDescription(for mccCode: String) -> String? {
+        loadMCCCodes() // Ensure codes are loaded
+        return mccCodes.first { $0.mcc == mccCode }?.description
+    }
     
     func getSimulatedAccounts() -> [Account] {
         return [
@@ -231,6 +261,10 @@ class AppleWallet{
             
             let isPending = transaction.status == .booked ? false : true
             //print("fetchhWalletTransactionsForAccounts \(payeeDescription) \(transaction.status)=\(isPending)")
+            
+            let category_id = transaction.merchantCategoryCode.map { String(describing: $0) }
+            let category_name = category_id.flatMap { getMCCDescription(for: $0) }
+            
             let t = Transaction(
                 id: transaction.id.uuidString,
                 account: accountName,
@@ -245,7 +279,11 @@ class AppleWallet{
                 accountID: transaction.accountID.uuidString,
                 status: "",
                 isPending: isPending,
-                sync: .pending
+                sync: .pending,
+                lm_category_id: "",
+                lm_category_name: "",
+                category_id: category_id,
+                category_name: category_name
             )
             transactionsFound.append(t)
         }
@@ -283,9 +321,15 @@ class AppleWallet{
             if transaction.creditDebitIndicator == .credit {
                 amount = amount * -1
             }
+            //print(transaction)
+            let category_id = transaction.merchantCategoryCode.map { String(describing: $0) }
             //print(" -- \(transaction.transactionDescription) \(amount) \(accountName) \(transaction.id.uuidString)")
             
+            // Look up MCC description
+            let category_name = category_id.flatMap { getMCCDescription(for: $0) }
+            
             //print("refreshWalletTransactionsForAccounts \(payeeDescription) \(transaction.status)=\(isPending)")
+            //print("refreshWalletTransactionsForAccounts \(transaction.transactionDescription) cat_id=\(category_id ?? "n/a"), cat_name=\(category_name ?? "n/a")")
             
             let t = Transaction(
                 id: transaction.id.uuidString,
@@ -301,7 +345,11 @@ class AppleWallet{
                 accountID: transaction.accountID.uuidString,
                 status: "",
                 isPending: transaction.status == .booked ? false : true,
-                sync: .pending
+                sync: .pending,
+                lm_category_id: "",
+                lm_category_name: "",
+                category_id: category_id,
+                category_name: category_name
             )
             transactionsFound.append(t)                    
         }

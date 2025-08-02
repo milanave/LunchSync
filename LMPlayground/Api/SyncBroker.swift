@@ -42,6 +42,7 @@ class SyncBroker {
     }
     
     public func fetchTransactions(prefix: String, andSync: Bool, showAlert: Bool = false, progress: @escaping (String) -> Void) async throws -> Int {
+        print("----------------- starting fetchTransactions")
         // Check if API token is empty and try to retrieve it
         let importAsCleared = UserDefaults.standard.bool(forKey: "importTransactionsCleared")
         let putTransStatusInNotes = UserDefaults.standard.bool(forKey: "putTransStatusInNotes")
@@ -86,9 +87,21 @@ class SyncBroker {
             
             let newTransactions = try await appleWallet.refreshWalletTransactionsForAccounts(accounts: accounts)
             addLog(prefix: prefix, message: "Found \(newTransactions.count) transactions to sync", level: 2)
+            print("DEBUG: About to process \(newTransactions.count) transactions")
             
-            // update the local store with each of these transactions
+            // Process MCCs and create category mappings
+            let trnCategoryMap = try await processMCCCategories(transactions: newTransactions, prefix: prefix)
+            
+            // Now process each transaction with the category mapping
             newTransactions.forEach { transaction in
+                // If we have a category mapping and it has a linked LMCategory, set the transaction's lm_category_id
+                if let categoryId = transaction.category_id,
+                   let trnCategory = trnCategoryMap[categoryId],
+                   let lmCategory = trnCategory.lm_category {
+                    transaction.lm_category_id = lmCategory.id
+                    transaction.lm_category_name = lmCategory.name
+                }
+                
                 wallet.replaceTransaction(newTrans: transaction)
             }
 
@@ -132,7 +145,8 @@ class SyncBroker {
             if showAlert {
                 await wallet.addNotification(time: 0.1, title: "Sync Error", subtitle: "", body: "fetchTransactionsAndSync:\(andSync) failed with error: \(error.localizedDescription)")
             }
-            return 0
+            throw error
+            //return 0
         }
     }
     
@@ -172,6 +186,58 @@ class SyncBroker {
         } catch {
             print("Failed to save log: \(error)")
         }
+    }
+    
+    private func processMCCCategories(transactions: [Transaction], prefix: String) async throws -> [String: TrnCategory] {
+        // Collect all unique MCC codes and create missing TrnCategories
+        let uniqueMCCs = Set(transactions.compactMap { $0.category_id?.isEmpty == false ? $0.category_id : nil })
+        print("Processing \(uniqueMCCs.count) unique MCCs: \(Array(uniqueMCCs).sorted())")
+        
+        var trnCategoryMap: [String: TrnCategory] = [:]
+        var foundCount = 0
+        var createdCount = 0
+        
+        for mcc in uniqueMCCs {
+            let fetchDescriptor = FetchDescriptor<TrnCategory>(
+                predicate: #Predicate<TrnCategory> { $0.mcc == mcc }
+            )
+            
+            do {
+                let existingCategories = try modelContext.fetch(fetchDescriptor)
+                
+                if let existingCategory = existingCategories.first {
+                    trnCategoryMap[mcc] = existingCategory
+                    foundCount += 1
+                    print("Found existing TrnCategory - MCC: \(existingCategory.mcc), Name: \(existingCategory.name)")
+                } else {
+                    // Find the transaction with this MCC to get the category name
+                    if let sampleTransaction = transactions.first(where: { $0.category_id == mcc }) {
+                        let newTrnCategory = TrnCategory(
+                            mcc: mcc,
+                            name: sampleTransaction.category_name ?? "Unknown Category"
+                        )
+                        modelContext.insert(newTrnCategory)
+                        trnCategoryMap[mcc] = newTrnCategory
+                        createdCount += 1
+                        addLog(prefix: prefix, message: "Created new TrnCategory for MCC: \(mcc), name: \(sampleTransaction.category_name ?? "Unknown Category")", level: 2)
+                        print("Created new TrnCategory for MCC: \(mcc), name: \(sampleTransaction.category_name ?? "Unknown Category")")
+                    }
+                }
+            } catch {
+                addLog(prefix: prefix, message: "Error checking/creating TrnCategory for MCC \(mcc): \(error)", level: 1)
+            }
+        }
+        
+        // Save all new categories at once
+        do {
+            try modelContext.save()
+            print("TrnCategory summary: Found \(foundCount), Created \(createdCount), Total \(foundCount + createdCount)")
+        } catch {
+            print("Failed to save TrnCategories: \(error)")
+            throw error
+        }
+        
+        return trnCategoryMap
     }
     
 }

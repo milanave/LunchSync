@@ -343,6 +343,39 @@ struct UpdateAssetResponse: Decodable {
     }
 }
 
+// MARK: - Categories
+struct LMCategoryAPI: Decodable {
+    let id: Int
+    let name: String
+    let description: String?
+    let excludeFromBudget: Bool
+    let excludeFromTotals: Bool
+    let archived: Bool
+    let archivedOn: String?
+    let updatedAt: String
+    let createdAt: String
+    let isIncome: Bool
+    let groupId: Int?
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case description
+        case excludeFromBudget = "exclude_from_budget"
+        case excludeFromTotals = "exclude_from_totals"
+        case archived
+        case archivedOn = "archived_on"
+        case updatedAt = "updated_at"
+        case createdAt = "created_at"
+        case isIncome = "is_income"
+        case groupId = "group_id"
+    }
+}
+
+struct GetCategoriesResponse: Decodable {
+    let categories: [LMCategoryAPI]
+}
+
 // MARK: LunchMoneyAPI
 class LunchMoneyAPI {
     private let baseURL = "https://dev.lunchmoney.app/v1"
@@ -430,6 +463,11 @@ class LunchMoneyAPI {
     func getAssets() async throws -> [Asset] {
         let response = try await call(path: "/assets", responseType: GetAssetsResponse.self)
         return response.assets
+    }
+    
+    func getCategories() async throws -> [LMCategoryAPI] {
+        let response = try await call(path: "/categories", responseType: GetCategoriesResponse.self)
+        return response.categories
     }
     
     func getTransactions(request: GetTransactionsRequest? = nil) async throws -> [LMTransaction] {

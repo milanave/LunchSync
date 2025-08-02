@@ -61,6 +61,15 @@ struct TransactionDetailView: View {
                 Text("Additional Details")
             }
             
+            Section{
+                DetailRow(label: "Category Id", value: transaction.category_id ?? "")
+                DetailRow(label: "Category Name", value: transaction.category_name ?? "")
+                DetailRow(label: "LM Category Id", value: transaction.lm_category_id ?? "")
+                DetailRow(label: "LM Category Name", value: transaction.lm_category_name ?? "")
+            } header:{
+                Text("Category")
+            }
+            
             Section {
                 DetailRow(label: "Transaction ID", value: transaction.id)
                 DetailRow(label: "Lunch Money ID", value: transaction.lm_id.isEmpty ? "Not synced" : transaction.lm_id)

@@ -24,7 +24,11 @@ class Transaction: Identifiable {
     var status: String
     var isPending: Bool
     @Attribute(originalName: "sync") var syncStatus: String
-    
+    var lm_category_id: String?
+    var lm_category_name: String?
+    var category_id: String?
+    var category_name: String?
+
     var sync: SyncStatus {
         get {
             return SyncStatus(rawValue: syncStatus) ?? .pending
@@ -47,7 +51,12 @@ class Transaction: Identifiable {
          accountID: String = "",
          status: String = "",
          isPending: Bool = false,
-         sync: SyncStatus = .pending) {
+         sync: SyncStatus = .pending,
+         lm_category_id: String? = nil,
+         lm_category_name: String? = nil,
+         category_id: String? = nil,
+         category_name: String? = nil
+        ) {
         self.id = id
         self.account = account
         self.payee = payee
@@ -62,5 +71,9 @@ class Transaction: Identifiable {
         self.status = status
         self.syncStatus = sync.rawValue
         self.isPending = isPending
+        self.lm_category_id = lm_category_id ?? ""
+        self.lm_category_name = lm_category_name ?? ""
+        self.category_id = category_id ?? ""
+        self.category_name = category_name ?? ""
     }
 }

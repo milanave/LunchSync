@@ -292,7 +292,10 @@ class Wallet :ObservableObject {
                     newTrans.amount != transaction.amount ||
                     newTrans.date != transaction.date ||
                     newTrans.notes != transaction.notes ||
-                    newTrans.isPending != transaction.isPending
+                    newTrans.isPending != transaction.isPending ||
+                    newTrans.category_id != transaction.category_id ||
+                    newTrans.category_name != transaction.category_name ||
+                    newTrans.lm_category_id != transaction.lm_category_id
                 ){
                     /*
                     print(" -- \(transaction.lm_id) has changes in payee, amount or date")
@@ -300,6 +303,7 @@ class Wallet :ObservableObject {
                     print(" -- -- \(newTrans.amount) != \(transaction.amount) \(newTrans.amount != transaction.amount)")
                     print(" -- -- \(newTrans.date) != \(transaction.date) \(newTrans.date != transaction.date)")
                      */
+                    //print(" -- -- \(newTrans.category_id ?? "n/a") != \(transaction.category_id ?? "n/a") \(newTrans.category_name ?? "n/a" != transaction.category_name ?? "n/a")")
                     transaction.payee = newTrans.payee
                     transaction.amount = newTrans.amount
                     transaction.date = newTrans.date
@@ -308,6 +312,10 @@ class Wallet :ObservableObject {
                     transaction.lm_account = newTrans.lm_account
                     transaction.sync = .pending
                     transaction.isPending = newTrans.isPending
+                    transaction.category_id = newTrans.category_id
+                    transaction.category_name = newTrans.category_name
+                    transaction.lm_category_id = newTrans.lm_category_id
+                    transaction.lm_category_name = newTrans.lm_category_name
                 }
                 //else{
                     //print(" -- \(transaction.payee) \(transaction.amount) has no changes: \(transaction.id)")
@@ -526,13 +534,14 @@ class Wallet :ObservableObject {
                 if trn.externalId == transaction.id {
                     //print("Matching \(String(describing: trn.externalId)) to existing transaction \(trn.id)")
                     
+                    
                     let updateRequest = UpdateTransactionRequest(
                         transaction: UpdateTransactionRequest.TransactionUpdate(
                             date: dateString,
                             payee: transaction.payee,
                             amount: String(format: "%.2f", transaction.amount),
                             currency: "usd",
-                            categoryId: nil,
+                            categoryId: transaction.lm_category_id != nil ? Int(transaction.lm_category_id!) : nil,
                             assetId: Int(transaction.lm_account),
                             notes: putTransStatusInNotes ? (transaction.notes.isEmpty ? nil : transaction.notes) : nil,
                             status: importAsCleared ? "cleared" : "uncleared",
@@ -571,7 +580,7 @@ class Wallet :ObservableObject {
                 payee: transaction.payee,
                 amount: String(format: "%.2f", transaction.amount),
                 currency: "usd",
-                categoryId: nil,
+                categoryId: transaction.lm_category_id != nil ? Int(transaction.lm_category_id!) : nil,
                 assetId: Int(transaction.lm_account),
                 notes: putTransStatusInNotes ? (transaction.notes.isEmpty ? nil : transaction.notes) : nil,
                 status: importAsCleared ? "cleared" : "uncleared",
