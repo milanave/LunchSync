@@ -8,8 +8,8 @@ class BackgroundTaskManager {
     private var modelContext: ModelContext?
     private var lastLogTime: Date?
     private var lastTaskStatus: (date: Date?, status: String) = (nil, "Not started")
-    @AppStorage("autoImportTransactions") private var autoImportTransactions = false
-    @AppStorage("backgroundJobFrequency") private var backgroundJobFrequency: Int = 1
+    @AppStorage("autoImportTransactions", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var autoImportTransactions = false
+    @AppStorage("backgroundJobFrequency", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var backgroundJobFrequency: Int = 1
     
     private func addLog(message: String, level: Int = 1) {
         let now = Date()

@@ -36,7 +36,8 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             logger = Logger(subsystem: "com.littlebluebug.AppleCardSync", category: "BackgroundDelivery")
             logger.error(" LunchSyncBackgroundHandlerBGD init started")
             container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self, LMCategory.self, TrnCategory.self)
-            modelContext = container.mainContext
+            //modelContext = container.mainContext
+            modelContext = ModelContext(container)
             self.addLog(prefix: "BGD", message: "LunchSyncBackgroundHandlerBGD init", level: 1)
             logger.error(" LunchSyncBackgroundHandlerBGD init complete")
         }catch {
@@ -64,7 +65,8 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             
             await addLog( prefix: "BGD", message: "LunchSyncBackgroundHandlerBGD didReceiveData", level: 1)
             
-            let autoImportTransactions = UserDefaults.standard.bool(forKey: "autoImportTransactions")
+            let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
+            let autoImportTransactions = sharedDefaults.bool(forKey: "autoImportTransactions")
             let syncBroker = await SyncBroker(context: modelContext)
             await addLog(prefix: "BGD", message: "SyncBroker starting, auto=\(autoImportTransactions)", level: 2)
             
@@ -80,7 +82,7 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             
             await addNotification(time: 0.5, title: "BGD LunchSync Transactions Synced", subtitle: "", body: "BGD found \(pendingCount) new transactions")
 
-            if let storedDeviceToken = UserDefaults.standard.string(forKey: "deviceToken") {
+            if let storedDeviceToken = sharedDefaults.string(forKey: "deviceToken") {
                 await registerWalletCheck(deviceToken: storedDeviceToken)
             }else{
                 await addLog( prefix: "BGD", message: "registerWalletCheck failed, no deviceToken", level: 1)

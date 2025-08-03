@@ -44,8 +44,9 @@ class SyncBroker {
     public func fetchTransactions(prefix: String, andSync: Bool, showAlert: Bool = false, progress: @escaping (String) -> Void) async throws -> Int {
         print("----------------- starting fetchTransactions")
         // Check if API token is empty and try to retrieve it
-        let importAsCleared = UserDefaults.standard.bool(forKey: "importTransactionsCleared")
-        let putTransStatusInNotes = UserDefaults.standard.bool(forKey: "putTransStatusInNotes")
+        let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
+        let importAsCleared = sharedDefaults.bool(forKey: "importTransactionsCleared")
+        let putTransStatusInNotes = sharedDefaults.bool(forKey: "putTransStatusInNotes")
 
         do {
             addLog(prefix: prefix, message: "Starting transaction fetch (importAsCleared: \(importAsCleared), transStatusInNotes: \(putTransStatusInNotes), autoSync: \(andSync))", level: 2)
@@ -87,7 +88,8 @@ class SyncBroker {
             
             let newTransactions = try await appleWallet.refreshWalletTransactionsForAccounts(accounts: accounts)
             addLog(prefix: prefix, message: "Found \(newTransactions.count) transactions to sync", level: 2)
-            print("DEBUG: About to process \(newTransactions.count) transactions")
+            
+            //print("DEBUG: About to process \(newTransactions.count) transactions")
             
             // Process MCCs and create category mappings
             let trnCategoryMap = try await processMCCCategories(transactions: newTransactions, prefix: prefix)

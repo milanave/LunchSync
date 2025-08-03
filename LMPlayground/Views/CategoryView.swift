@@ -30,7 +30,7 @@ struct CategoryView: View {
                                 Text(displayName(for: category))
                                     .font(.headline)
                                 if let lmCategory = category.lm_category {
-                                    Text("LM Category: \(lmCategory.name)")
+                                    Text("\(lmCategory.name)")
                                         .font(.caption)
                                         .foregroundColor(.green)
                                 } else {
@@ -59,7 +59,7 @@ struct CategoryView: View {
     }
     
     private func displayName(for category: TrnCategory) -> String {
-        return category.name.isEmpty ? "Unknown Category" : category.name
+        return category.name.isEmpty ? "Unknown Category \(category.mcc)" : category.name
     }
 }
 

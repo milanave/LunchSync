@@ -11,12 +11,12 @@ import SwiftData
 struct SettingsView: View {
     @Binding var isPresented: Bool
     
-    @AppStorage("importTransactionsCleared") private var importTransactionsCleared = true
-    @AppStorage("putTransStatusInNotes") private var putTransStatusInNotes = true
-    @AppStorage("apply_rules") private var applyRules = false
-    @AppStorage("skip_duplicates") private var skipDuplicates = false
-    @AppStorage("check_for_recurring") private var checkForRecurring = false
-    @AppStorage("skip_balance_update") private var skipBalanceUpdate = false
+    @AppStorage("importTransactionsCleared", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var importTransactionsCleared = true
+    @AppStorage("putTransStatusInNotes", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var putTransStatusInNotes = true
+    @AppStorage("apply_rules", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var applyRules = false
+    @AppStorage("skip_duplicates", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var skipDuplicates = false
+    @AppStorage("check_for_recurring", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var checkForRecurring = false
+    @AppStorage("skip_balance_update", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var skipBalanceUpdate = false
     
     var body: some View {
         NavigationView {

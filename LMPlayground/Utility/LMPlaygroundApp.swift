@@ -197,7 +197,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         print("Received silent notification in background: \(userInfo)")
         
         // Get autoImportTransactions from UserDefaults
-        let autoImportTransactions = UserDefaults.standard.bool(forKey: "autoImportTransactions")
+        let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
+        let autoImportTransactions = sharedDefaults.bool(forKey: "autoImportTransactions")
         
         Task {
             do {
@@ -232,15 +233,16 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         notificationDelegate.currentDeviceToken = token
         
         // Store the device token in AppStorage
-        @AppStorage("deviceToken") var storedDeviceToken: String = ""
+        @AppStorage("deviceToken", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) var storedDeviceToken: String = ""
         storedDeviceToken = token
         
-        @AppStorage("backgroundJobFrequency") var backgroundJobFrequency: Int = 1
+        @AppStorage("backgroundJobFrequency", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) var backgroundJobFrequency: Int = 1
         
         print("Device Token: \(token) freq=\(backgroundJobFrequency)")
         
         // Register the token with your server if background jobs are enabled
-        if UserDefaults.standard.bool(forKey: "enableBackgroundJob") {
+                        let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
+                if sharedDefaults.bool(forKey: "enableBackgroundJob") {
             Task {
                 await notificationDelegate.registerForPushNotifications(deviceToken: token, active: true, frequency: backgroundJobFrequency)
             }
@@ -258,8 +260,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 @main
 struct LMPlaygroundApp: App {
     @State private var pendingCount: Int = 0
-    @AppStorage("enableBackgroundJob") private var enableBackgroundJob = false
-    @AppStorage("backgroundJobFrequency") private var backgroundJobFrequency: Int = 1
+    @AppStorage("enableBackgroundJob", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var enableBackgroundJob = false
+    @AppStorage("backgroundJobFrequency", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var backgroundJobFrequency: Int = 1
     
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     

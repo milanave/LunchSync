@@ -513,12 +513,13 @@ class Wallet :ObservableObject {
         let endDate = dateFormatter.string(from: thirtyDaysAfter)
         let dateString = dateFormatter.string(from: transaction.date)
         
-        let importAsCleared = UserDefaults.standard.bool(forKey: "importTransactionsCleared")
-        let putTransStatusInNotes = UserDefaults.standard.bool(forKey: "putTransStatusInNotes")
-        let applyRules = UserDefaults.standard.bool(forKey: "apply_rules")
-        let skipDuplicates = UserDefaults.standard.bool(forKey: "skip_duplicates")
-        let checkForRecurring = UserDefaults.standard.bool(forKey: "check_for_recurring")
-        let skipBalanceUpdate = UserDefaults.standard.bool(forKey: "skip_balance_update")
+        let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
+        let importAsCleared = sharedDefaults.bool(forKey: "importTransactionsCleared")
+        let putTransStatusInNotes = sharedDefaults.bool(forKey: "putTransStatusInNotes")
+        let applyRules = sharedDefaults.bool(forKey: "apply_rules")
+        let skipDuplicates = sharedDefaults.bool(forKey: "skip_duplicates")
+        let checkForRecurring = sharedDefaults.bool(forKey: "check_for_recurring")
+        let skipBalanceUpdate = sharedDefaults.bool(forKey: "skip_balance_update")
         
         do {
             // First check for existing transactions

@@ -35,10 +35,10 @@ struct MainView: View {
     
     @State private var lastUpdated = Date() //.addingTimeInterval(-10*60) //(-365 * 24 * 60 * 60)
 
-    @AppStorage("enableBackgroundJob") private var enableBackgroundJob = false
-    @AppStorage("autoImportTransactions") private var autoImportTransactions = false
-    @AppStorage("backgroundJobFrequency") private var backgroundJobFrequency: Int = 1
-    @AppStorage("enableBackgroundDelivery") private var enableBackgroundDelivery = false
+    @AppStorage("enableBackgroundJob", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var enableBackgroundJob = false
+    @AppStorage("autoImportTransactions", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var autoImportTransactions = false
+    @AppStorage("backgroundJobFrequency", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var backgroundJobFrequency: Int = 1
+    @AppStorage("enableBackgroundDelivery", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var enableBackgroundDelivery = false
 
     @State private var showingAboutSheet = false
     @State private var showingJobSheet = false
