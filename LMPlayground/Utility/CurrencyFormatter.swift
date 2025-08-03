@@ -40,3 +40,10 @@ struct CurrencyFormatter {
             .foregroundColor(amount < 0 ? .red : .primary)
     }
 }
+
+/// Global function that formats a Double as currency string like $1,234,123.00
+/// - Parameter amount: The amount to format
+/// - Returns: Formatted currency string with commas and two decimal places
+func niceAmount(_ amount: Double) -> String {
+    return CurrencyFormatter.shared.format(amount)
+}

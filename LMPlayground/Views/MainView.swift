@@ -30,7 +30,7 @@ struct MainView: View {
     @State private var appleWallet: AppleWallet
     @State private var showingPreviewTransactions = false
     @State private var transactions: [Transaction] = []
-    @State private var syncProgress: Wallet.SyncProgress?
+    @State private var syncProgress: SafeSyncBroker.SafeSyncProgress?
     @State private var showingSyncProgress = false
     
     @State private var lastUpdated = Date() //.addingTimeInterval(-10*60) //(-365 * 24 * 60 * 60)
@@ -584,7 +584,7 @@ struct MainView: View {
             
             Button {
                 Task {
-                    wallet.addLog(message: "MV: importing \(pendingCount) transactions for \(walletsConnected) accounts", level: 2)
+                    wallet.addLog(message: "MV: importing \(pendingCount) transactions for \(walletsConnected) accounts", level: 1)
                     await importPendingTransactions()
                     updateBadgeCount()
                 }
@@ -723,14 +723,14 @@ struct MainView: View {
             isSyncing = true
             syncError = nil
             showingSyncProgress = true
-            syncProgress = Wallet.SyncProgress(current: 0, total: pendingCount, status: "Starting sync...")
+            syncProgress = SafeSyncBroker.SafeSyncProgress(current: 0, total: pendingCount, status: "Starting sync...")
         }
         
         do {
-            let syncBroker = SyncBroker(context: modelContext)
-            try await syncBroker.syncTransactions(prefix: "MV", shouldContinue: { @MainActor in
+            let syncBroker = SafeSyncBroker(context: modelContext, logPrefix: "MV")
+            try await syncBroker.syncTransactions(prefix: "MV", shouldContinue: {
                 isSyncing
-            }) { @MainActor progress in
+            }) { progress in
                 syncProgress = progress
             }
             await MainActor.run {
@@ -750,10 +750,10 @@ struct MainView: View {
     
     // MARK: refreshWalletTransactions
     private func refreshWalletTransactions() {
-        let syncBroker = SyncBroker(context: modelContext)
+        let syncBroker = SafeSyncBroker(context: modelContext)
         Task {
             do {
-                _ = try await syncBroker.fetchTransactions(prefix: "MV", andSync: false, showAlert: true) { progressMessage in
+                _ = try await syncBroker.fetchTransactions(prefix: "MV", showAlert: true) { progressMessage in
                     //print("refreshWalletTransactions Progress: \(progressMessage)")
                 }
                 //print("refreshWalletTransactions Completed with \(pendingCount) pending transactions")

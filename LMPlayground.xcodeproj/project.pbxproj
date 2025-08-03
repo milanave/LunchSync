@@ -64,6 +64,7 @@
 				Api/LunchMoneyAPI.swift,
 				Api/MockAppleWallet.swift,
 				Api/MockWallet.swift,
+				Api/SafeSyncBroker.swift,
 				Api/SyncBroker.swift,
 				Models/Account.swift,
 				Models/Item.swift,

@@ -154,9 +154,9 @@ struct CheckTransactionsIntent: AppIntent {
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
         let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
         let context = container.mainContext
-        let syncBroker = SyncBroker(context: context)
+        let syncBroker = SafeSyncBroker(context: context)
         
-        let pendingCount = try await syncBroker.fetchTransactions(prefix: "Shortcut", andSync: false) { progressMessage in
+        let pendingCount = try await syncBroker.fetchTransactions(prefix: "SC", showAlert: true, skipSync: true) { progressMessage in
             print("Check Transactions Progress: \(progressMessage)")
         }
         
@@ -175,9 +175,9 @@ struct SyncTransactionsIntent: AppIntent {
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
         let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
         let context = container.mainContext
-        let syncBroker = SyncBroker(context: context)
+        let syncBroker = SafeSyncBroker(context: context)
         
-        _ = try await syncBroker.fetchTransactions(prefix: "Shortcut", andSync: true) { progressMessage in
+        _ = try await syncBroker.fetchTransactions(prefix: "SC", showAlert: true) { progressMessage in
             print("Check Transactions Progress: \(progressMessage)")
         }
                 
@@ -196,19 +196,15 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     ) {
         print("Received silent notification in background: \(userInfo)")
         
-        // Get autoImportTransactions from UserDefaults
-        let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
-        let autoImportTransactions = sharedDefaults.bool(forKey: "autoImportTransactions")
-        
         Task {
             do {
                 let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self, LMCategory.self, TrnCategory.self)
                 let context = container.mainContext
-                let syncBroker = SyncBroker(context: context)
+                let syncBroker = SafeSyncBroker(context: context, logPrefix: "BN")
                 
                 let pendingCount = try await syncBroker.fetchTransactions(
                     prefix: "BN",
-                    andSync: autoImportTransactions
+                    showAlert: true
                 ) { progressMessage in
                     print("Silent Notification Progress: \(progressMessage)")
                 }

@@ -28,6 +28,9 @@ struct LogListView: View {
         } else if message.hasPrefix("BN:") {
             let cleanMessage = String(message.dropFirst(3)).trimmingCharacters(in: .whitespaces)
             return (cleanMessage, "Background Notice", .orange)
+        } else if message.hasPrefix("SC:") {
+            let cleanMessage = String(message.dropFirst(3)).trimmingCharacters(in: .whitespaces)
+            return (cleanMessage, "Shortcut", .orange)
         } else if message.hasPrefix("BGD:") {
             let cleanMessage = String(message.dropFirst(4)).trimmingCharacters(in: .whitespaces)
             return (cleanMessage, "Background Delivery", .green)

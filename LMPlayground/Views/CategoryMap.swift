@@ -95,7 +95,7 @@ struct CategoryMap: View {
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: category.lm_category) { oldValue, newValue in
             // Only trigger if we're actually assigning a new category (not removing)
-            if let newCategory = newValue {
+            if newValue != nil {
                 assignTransactionsAndResync()
             }
         }

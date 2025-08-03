@@ -303,7 +303,7 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>        let syncBroker = SyncBroker(context: context)
+				<string>        let syncBroker = SafeSyncBroker(context: context)
 </string>
 				<key>leading</key>
 				<string>        let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
@@ -311,7 +311,7 @@
 </string>
 				<key>trailing</key>
 				<string>        
-        let pendingCount = try await syncBroker.fetchTransactions(prefix: "Shortcut", andSync: false) { progressMessage in
+        let pendingCount = try await syncBroker.fetchTransactions(prefix: "SC", showAlert: true, skipSync: true) { progressMessage in
             print("Check Transactions Progress: \(progressMessage)")
 </string>
 			</dict>
