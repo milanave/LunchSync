@@ -766,10 +766,12 @@ struct MainView: View {
 
     // MARK: utility functions
     private func updateBadgeCount() {
+        /*
         NotificationCenter.default.post(
             name: .pendingTransactionsChanged,
             object: pendingCount
         )
+         */
     }
         
     private func checkForStoredToken() {

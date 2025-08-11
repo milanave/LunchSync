@@ -20,6 +20,13 @@ class AppleWallet{
         #endif
         }()
     
+    // Check if we're running in a background extension
+    var isBackgroundExtension: Bool = {
+        let isExtension = Bundle.main.bundleIdentifier?.contains("BackgroundHandler") == true
+        //print("AppleWallet: isBackgroundExtension = \(isExtension), bundleIdentifier = \(Bundle.main.bundleIdentifier ?? "nil")")
+        return isExtension
+    }()
+    
     // MARK: - MCC Code Loading and Lookup
     
     private func loadMCCCodes() {
@@ -194,6 +201,7 @@ class AppleWallet{
     private func dataAvailable() -> Bool{
         var dataAvail: Bool = false
         dataAvail = FinanceStore.isDataAvailable(.financialData)
+        print("FinanceKit data available check: \(dataAvail), isBackgroundExtension: \(isBackgroundExtension)")
         return dataAvail
     }
     
@@ -203,11 +211,17 @@ class AppleWallet{
         }
         
         do {
+            // Check if data is available first
+            if !dataAvailable() {
+                print("FinanceKit data not available")
+                return .denied
+            }
+            
             let status = try await FinanceStore.shared.requestAuthorization()
-            //print("Authorization granted")
+            print("FinanceKit authorization status: \(status)")
             return status
         } catch {
-            //print("Authorization request error: \(error.localizedDescription)")
+            print("FinanceKit authorization request error: \(error.localizedDescription)")
             return .denied
         }
     }
@@ -295,8 +309,40 @@ class AppleWallet{
      this is meant to fetch the latest transactions
      */
     func refreshWalletTransactionsForAccounts(accounts:[Account]) async throws -> [Transaction] {
+        print("refreshWalletTransactionsForAccounts called with \(accounts.count) accounts, isBackgroundExtension: \(isBackgroundExtension)")
+        
+        // Check if we have authorization to access FinanceKit data
+        if !isSimulator {
+            // In background extension context, we might not need to request authorization again
+            // as the extension should inherit the authorization from the main app
+            if !isBackgroundExtension {
+                print("Requesting FinanceKit authorization in main app context")
+                let currentAuthStatus = await requestAuth()
+                guard currentAuthStatus == .authorized else {
+                    print("FinanceKit authorization not granted. Status: \(currentAuthStatus)")
+                    throw NSError(domain: "AppleWallet", code: -1, userInfo: [NSLocalizedDescriptionKey: "FinanceKit authorization not granted. Status: \(currentAuthStatus)"])
+                }
+            } else {
+                // For background extension, just check if data is available
+                print("Checking FinanceKit data availability in background extension context")
+                if !dataAvailable() {
+                    print("FinanceKit data not available in background extension")
+                    throw NSError(domain: "AppleWallet", code: -3, userInfo: [NSLocalizedDescriptionKey: "FinanceKit data not available in background extension"])
+                }
+                print("FinanceKit data is available in background extension")
+            }
+        }
+        
         // Convert all account string IDs to UUIDs, filtering out any invalid UUIDs
-        let accountUUIDs = accounts.compactMap { UUID(uuidString: $0.id) }
+        let accountUUIDSet = Set(accounts.compactMap { UUID(uuidString: $0.id) })
+        
+        // Check if we have any valid account UUIDs
+        guard !accountUUIDSet.isEmpty else {
+            print("No valid account UUIDs found")
+            return []
+        }
+
+        //print("Processing \(accountUUIDs.count) valid account UUIDs")
 
         // pick a date one month in the past
         let calendar = Calendar.current
@@ -304,18 +350,50 @@ class AppleWallet{
         let startDate = calendar.date(byAdding: .day, value: -7, to: endDate)!
         
         let sortDescriptor = SortDescriptor(\FinanceKit.Transaction.transactionDate, order: .reverse)
-        let query = TransactionQuery(sortDescriptors: [sortDescriptor], predicate: #Predicate<FinanceKit.Transaction>{transaction in
-            accountUUIDs.contains(transaction.accountID) &&
-            transaction.transactionDate >= startDate &&
-            transaction.transactionDate <= endDate
-        })
+        // Avoid including a dynamic "IN" list in the predicate; fetch by date and filter in Swift.
+        let query = TransactionQuery(
+            sortDescriptors: [sortDescriptor],
+            predicate: #Predicate<FinanceKit.Transaction> { transaction in
+                transaction.transactionDate >= startDate &&
+                transaction.transactionDate <= endDate
+            }
+        )
 
-        let transactions = try await FinanceStore.shared.transactions(query: query)
-        //print("refreshWalletTransactionsForAccounts got \(transactions.count) transactions from \(accounts.count) accounts:")
+        print("Executing FinanceStore query for date range \(startDate) to \(endDate)")
+
+        // Wrap the FinanceStore call in a try-catch to handle potential authorization issues
+        var transactions: [FinanceKit.Transaction]
+        do {
+            transactions = try await FinanceStore.shared.transactions(query: query)
+            print("refreshWalletTransactionsForAccounts got \(transactions.count) transactions (pre-filter) for date range")
+        } catch {
+            print("Failed to fetch transactions from FinanceStore: \(error.localizedDescription)")
+            
+            // If we're in a background extension and the error seems to be authorization-related, 
+            // try to wait a bit and retry once
+            if isBackgroundExtension {
+                print("Retrying FinanceStore call in background extension context...")
+                do {
+                    // Wait a short time for authorization to be established
+                    try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                    transactions = try await FinanceStore.shared.transactions(query: query)
+                    print("Retry successful: got \(transactions.count) transactions")
+                } catch {
+                    print("Retry also failed: \(error.localizedDescription)")
+                    throw NSError(domain: "AppleWallet", code: -2, userInfo: [NSLocalizedDescriptionKey: "Failed to fetch transactions from FinanceStore after retry: \(error.localizedDescription)"])
+                }
+            } else {
+                throw NSError(domain: "AppleWallet", code: -2, userInfo: [NSLocalizedDescriptionKey: "Failed to fetch transactions from FinanceStore: \(error.localizedDescription)"])
+            }
+        }
         
+        // Filter the fetched transactions by the allowed accounts
+        let filteredTransactions = transactions.filter { accountUUIDSet.contains($0.accountID) }
+        print("Filtered to \(filteredTransactions.count) transactions for \(accountUUIDSet.count) accounts")
+
         var transactionsFound: [Transaction] = []
         
-        for transaction in transactions {
+        for transaction in filteredTransactions {
             let accountName = accounts.first(where: { $0.id == transaction.accountID.uuidString })?.name ?? ""
             var amount = (transaction.transactionAmount.amount as NSDecimalNumber).doubleValue
             if transaction.creditDebitIndicator == .credit {
@@ -353,7 +431,7 @@ class AppleWallet{
             )
             transactionsFound.append(t)                    
         }
-        //print("returning \(transactionsFound.count)")
+        print("returning \(transactionsFound.count) transactions")
         
         return transactionsFound
     }

@@ -15,15 +15,6 @@ struct CategoryView: View {
         NavigationStack {
             List {
                 Section {
-                    Text("To sync categories to LunchMoney, assign a category to each transaction.")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .padding(.vertical, 8)
-                } header: {
-                    Text("About Categories")
-                }
-                
-                Section {
                     ForEach(sortedCategories, id: \.mcc) { category in
                         NavigationLink(destination: CategoryMap(category: category)) {
                             VStack(alignment: .leading, spacing: 4) {
@@ -42,11 +33,9 @@ struct CategoryView: View {
                             .padding(.vertical, 2)
                         }
                     }
-                } header: {
-                    Text("Categories (\(sortedCategories.count))")
                 }
             }
-            .navigationTitle("Categories")
+            .navigationTitle("Wallet Categories")
         }
     }
     

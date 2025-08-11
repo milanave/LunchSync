@@ -136,11 +136,13 @@ class SyncBroker {
             }
             
             // update the badge count
+            /*
             NotificationCenter.default.post(
                 name: .pendingTransactionsChanged,
                 object: pendingCount
             )
             addLog(prefix: prefix, message: "Sync complete with \(pendingCount) imported", level: 1)
+             */
             return pendingCount
         } catch {
             addLog(prefix: prefix, message: "Sync failed with error: \(error.localizedDescription)", level: 1)

@@ -61,6 +61,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Api/AppleWallet.swift,
+				Api/FinanceUtilities.swift,
 				Api/LunchMoneyAPI.swift,
 				Api/MockAppleWallet.swift,
 				Api/MockWallet.swift,

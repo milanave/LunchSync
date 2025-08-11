@@ -254,7 +254,7 @@ class Wallet :ObservableObject {
         
         // Add category identifier and increase interruption level
         content.categoryIdentifier = "TRANSACTION_UPDATE"
-        //content.interruptionLevel = .timeSensitive  // Makes notification more likely to appear
+        content.interruptionLevel = .timeSensitive  // Makes notification more likely to appear
         
         // For debugging, use a shorter time interval
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, time), repeats: false)

@@ -209,12 +209,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                     print("Silent Notification Progress: \(progressMessage)")
                 }
                 
-                // Call registerWalletCheck after processing is complete
-                if let deviceToken = notificationDelegate.currentDeviceToken {
-                    await notificationDelegate.registerWalletCheck(deviceToken: deviceToken)
-                }
-                
-                completionHandler(pendingCount > 0 ? .newData : .noData)
+                //completionHandler(pendingCount > 0 ? .newData : .noData)
+                completionHandler(.newData) // send this all the time to try to get more executions
             } catch {
                 print("Error processing silent notification: \(error)")
                 completionHandler(.failed)
@@ -317,6 +313,7 @@ struct LMPlaygroundApp: App {
         WindowGroup {
             MainView(context: sharedModelContainer.mainContext, appDelegate: appDelegate)
                 .modelContainer(sharedModelContainer)
+            /*
                 .onReceive(NotificationCenter.default.publisher(for: .pendingTransactionsChanged)) { notification in
                     if let count = notification.object as? Int {
                         pendingCount = count
@@ -327,6 +324,7 @@ struct LMPlaygroundApp: App {
                         }
                     }
                 }
+             */
         }
     }
 }

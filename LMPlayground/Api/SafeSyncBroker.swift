@@ -87,22 +87,20 @@ class SafeSyncBroker {
             
             addLog(prefix: prefix, message: "token rertrieved", level: 2)
             
-            let initialPendingCount = getTransactionsWithStatus(.pending).count
-            
-            addLog(prefix: prefix, message: "got initialPendingCount: \(initialPendingCount)", level: 2)
+            //let initialPendingCount = getTransactionsWithStatus(.pending).count
+            //addLog(prefix: prefix, message: "got initialPendingCount: \(initialPendingCount)", level: 2)
             
             // get a list of accounts, then Apple Wallet transactions for those accounts
             let accounts = getSyncedAccounts()
             
-            addLog(prefix: prefix, message: "got accounts: \(accounts.count)", level: 2)
+            addLog(prefix: prefix, message: "got accounts: \(accounts.count) to sync", level: 2)
             
             let newTransactions = try await appleWallet.refreshWalletTransactionsForAccounts(accounts: accounts)
-            addLog(prefix: prefix, message: "Found \(newTransactions.count) transactions to sync", level: 2)
-            
-            //print("DEBUG: About to process \(newTransactions.count) transactions")
+            addLog(prefix: prefix, message: "found \(newTransactions.count) transactions to sync", level: 2)
             
             // Process MCCs and create category mappings
-            let trnCategoryMap = try await processMCCCategories(transactions: newTransactions, prefix: prefix)
+            let trnCategoryMap = try processMCCCategories(transactions: newTransactions, prefix: prefix)
+            addLog(prefix: prefix, message: "processing \(trnCategoryMap.count) mcc categories", level: 2)
             
             // Now process each transaction with the category mapping
             newTransactions.forEach { transaction in
@@ -113,50 +111,75 @@ class SafeSyncBroker {
                     transaction.lm_category_id = lmCategory.id
                     transaction.lm_category_name = lmCategory.name
                 }
-                
                 replaceTransaction(newTrans: transaction)
             }
 
-            let pendingCount = getTransactionsWithStatus(.pending).count
-
-            let body = "\(pendingCount) transaction\(pendingCount == 1 ? "" : "s") synced"
-            addLog(prefix: prefix, message: "\(body) (4/8)", level: 2)
-            if(pendingCount > 0 && pendingCount != initialPendingCount) {
-                await addNotification(time: 0.5, title: "Transactions synced", subtitle: "", body: body)
-            }else if showAlert {
-                await addNotification(time: 0.1, title: "Transactions synced", subtitle: "", body: body)
-            }
-
+            let transactionsToSyncCount = getTransactionsWithStatus(.pending).count
+            addLog(prefix: prefix, message: "\(transactionsToSyncCount) transactions ready to sync", level: 2)
+            
             if(autoImportTransactions){
-                addLog(prefix: prefix, message: "starting import for \(pendingCount) transactions", level: 2)
+                addLog(prefix: prefix, message: "starting import for \(transactionsToSyncCount) transactions", level: 2)
                 try await syncTransactions(prefix: prefix) { SafeSyncProgress in
                     self.addLog(prefix: prefix, message: "syncTransactions \(SafeSyncProgress.status) \(SafeSyncProgress.current)/\(SafeSyncProgress.total)", level: 2)
                 }
-                addLog(prefix: prefix, message: "auto import done, updating badge count", level: 2)
+                addLog(prefix: prefix, message: "auto import complete", level: 2)
             } else {
                 addLog(prefix: prefix, message: "skipping auto import", level: 2)
             }
                         
+            let finalPendingCount = getTransactionsWithStatus(.pending).count
+            
             // Get and sync account balances
-            addLog(prefix: prefix, message: "Getting account balances", level: 2)
+            addLog(prefix: prefix, message: "Updating account balances", level: 2)
             let accountsToUpdate = try await appleWallet.getWalletAccounts()
             try await syncAccountBalances(accounts: accountsToUpdate)
             for acct in accountsToUpdate {
                 addLog(prefix: prefix, message: "sync account: \(acct.name) \(CurrencyFormatter.shared.format(acct.balance))", level: 2)
             }
             
-            // update the badge count
-            /*
-            DispatchQueue.main.async {
-                NotificationCenter.default.post(
-                    name: .pendingTransactionsChanged,
-                    object: pendingCount
-                )
-            }
-            */
+            // get number of unmapped categories
+            addLog(prefix: prefix, message: "Updating badge counts", level: 2)
+            let fetchDescriptor = FetchDescriptor<TrnCategory>(
+                predicate: #Predicate<TrnCategory> { $0.lm_category == nil }
+            )
+            let uncategorizedCount = (try? modelContext.fetch(fetchDescriptor).count) ?? 0
             
-            addLog(prefix: prefix, message: "Sync complete with \(pendingCount) imported", level: 1)
-            return pendingCount
+            var body = ""
+            if(transactionsToSyncCount == 0 && uncategorizedCount == 0){
+                // no alert needed
+                
+            }else if(transactionsToSyncCount > 0 && uncategorizedCount == 0){
+                body = "\(transactionsToSyncCount) transaction\(transactionsToSyncCount == 1 ? "" : "s") synced"
+            }else if(transactionsToSyncCount > 0 && uncategorizedCount > 0){
+                body = "\(transactionsToSyncCount) transaction\(transactionsToSyncCount == 1 ? "" : "s") synced, \(uncategorizedCount) categories that need mapping"
+            }else if(transactionsToSyncCount == 0 && uncategorizedCount > 0){
+                body = "\(uncategorizedCount) categories that need mapping"
+            }
+            
+            // update the badge count
+            addLog(prefix: prefix, message: "Updating badge count to \(finalPendingCount+uncategorizedCount)", level: 2)
+            updateBadgeCounts(count:finalPendingCount+uncategorizedCount)
+                    
+            if( body.isEmpty ){
+                addLog(prefix: prefix, message: "Sync complete, pending=\(finalPendingCount), uncategorized=\(uncategorizedCount)", level: 2)
+            }else{
+                addLog(prefix: prefix, message: body, level: 2)
+                if showAlert {
+                    await addNotification(time: 0.5, title: "Transactions synced", subtitle: "", body: body)
+                }
+            }
+            
+            
+            
+            if let storedDeviceToken = sharedDefaults.string(forKey: "deviceToken") {
+                await registerWalletCheck(deviceToken: storedDeviceToken)
+                addLog( prefix: logPrefix, message: "registerWalletCheck complete", level: 2)
+            }else{
+                addLog( prefix: logPrefix, message: "registerWalletCheck failed, no deviceToken", level: 1)
+            }
+            
+            addLog(prefix: prefix, message: "Sync complete with \(finalPendingCount) imported", level: 1)
+            return finalPendingCount
         } catch {
             addLog(prefix: prefix, message: "Sync failed with error: \(error.localizedDescription)", level: 1)
             if showAlert {
@@ -202,7 +225,15 @@ class SafeSyncBroker {
         }
     }
     
-    private func processMCCCategories(transactions: [Transaction], prefix: String) async throws -> [String: TrnCategory] {
+    private func updateBadgeCounts(count: Int){
+        UNUserNotificationCenter.current().setBadgeCount(count) { error in
+            if let error = error {
+                print("Error setting badge count: \(error)")
+            }
+        }
+    }
+    
+    private func processMCCCategories(transactions: [Transaction], prefix: String) throws -> [String: TrnCategory] {
         // Collect all unique MCC codes and create missing TrnCategories
         let uniqueMCCs = Set(transactions.compactMap { $0.category_id?.isEmpty == false ? $0.category_id : nil })
         print("Processing \(uniqueMCCs.count) unique MCCs: \(Array(uniqueMCCs).sorted())")
@@ -242,14 +273,8 @@ class SafeSyncBroker {
             }
         }
         
-        // Save all new categories at once
-        do {
-            try modelContext.save()
-            print("TrnCategory summary: Found \(foundCount), Created \(createdCount), Total \(foundCount + createdCount)")
-        } catch {
-            print("Failed to save TrnCategories: \(error)")
-            throw error
-        }
+        try modelContext.save()
+        //print("TrnCategory summary: Found \(foundCount), Created \(createdCount), Total \(foundCount + createdCount)")
         
         return trnCategoryMap
     }
@@ -330,7 +355,7 @@ class SafeSyncBroker {
         
         // Add category identifier and increase interruption level
         content.categoryIdentifier = "TRANSACTION_UPDATE"
-        //content.interruptionLevel = .timeSensitive  // Makes notification more likely to appear
+        content.interruptionLevel = .timeSensitive  // Makes notification more likely to appear
         
         // For debugging, use a shorter time interval
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, time), repeats: false)
@@ -653,5 +678,50 @@ class SafeSyncBroker {
             //print("Error searching for account")
         }
         try? modelContext.save()
+    }
+    
+    func registerWalletCheck(deviceToken: String) async {
+        guard let url = URL(string: "https://push.littlebluebug.com/register.php") else {
+            print("Invalid URL for wallet check")
+            return
+        }
+        
+        guard let pushServiceKey = Bundle.main.infoDictionary?["PUSH_SERVICE_KEY"] as? String ??
+                Bundle.main.object(forInfoDictionaryKey: "INFOPLIST_KEY_PUSH_SERVICE_KEY") as? String else{
+            print("Unable to get PUSH_SERVICE_KEY")
+            return
+        }
+        
+        #if DEBUG
+        let environment = "Test"
+        #else
+        let environment = "Production"
+        #endif
+        
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+        let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+        let versionString = "\(appVersion) (\(buildNumber))"
+        
+        let payload = [
+            "device_token": deviceToken,
+            "app_id": "WalletSync",
+            "key": pushServiceKey,
+            "environment": environment,
+            "action_id": logPrefix == "BGD" ? "bgd_complete" : "push_received",
+            "app_version": versionString
+        ] as [String : Any]
+        
+        do {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+            
+            let (data, _) = try await URLSession.shared.data(for: request)
+            let response = try JSONDecoder().decode(PushRegistrationResponse.self, from: data)
+            print("Wallet check registration status: \(response.status)")
+        } catch {
+            print("Error in wallet check registration: \(error.localizedDescription)")
+        }
     }
 }
