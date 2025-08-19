@@ -59,7 +59,7 @@ struct TokenPromptView: View {
                     
 
                 } header: {
-                    Text("API Tokenx")
+                    Text("API Token")
                 } footer: {
                     if !isVerifying && !isTokenValid {
                         Link("Get your token at LunchMoney.app",

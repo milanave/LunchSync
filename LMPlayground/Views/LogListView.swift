@@ -8,17 +8,56 @@ struct LogListView: View {
     @State private var searchText = ""
     @AppStorage("detailedLogging") private var detailedLogging = false
     @State private var showAllLogs = false
+    @State private var sourceFilter: LogSourceFilter = .all
     let wallet: Wallet
     
     private var filteredLogs: [Log] {
         let levelFiltered = showAllLogs ? logs : logs.filter { $0.level == 1 }
-        
-        if searchText.isEmpty {
-            return levelFiltered
+
+        let typeFiltered: [Log]
+        switch sourceFilter {
+        case .all:
+            typeFiltered = levelFiltered
+        case .manual, .backgroundNotice, .shortcut, .backgroundDelivery:
+            typeFiltered = levelFiltered.filter { log in
+                sourceType(for: log.message) == sourceFilter
+            }
         }
-        return levelFiltered.filter { log in
+
+        if searchText.isEmpty {
+            return typeFiltered
+        }
+        return typeFiltered.filter { log in
             log.message.localizedCaseInsensitiveContains(searchText)
         }
+    }
+
+    enum LogSourceFilter: String, CaseIterable, Identifiable, Hashable {
+        case all
+        case manual
+        case backgroundNotice
+        case shortcut
+        case backgroundDelivery
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .all: return "All"
+            case .manual: return "Manual"
+            case .backgroundNotice: return "Background Notice"
+            case .shortcut: return "Shortcut"
+            case .backgroundDelivery: return "Background Delivery"
+            }
+        }
+    }
+
+    private func sourceType(for message: String) -> LogSourceFilter? {
+        if message.hasPrefix("MV:") { return .manual }
+        if message.hasPrefix("BN:") { return .backgroundNotice }
+        if message.hasPrefix("SC:") { return .shortcut }
+        if message.hasPrefix("BGD:") { return .backgroundDelivery }
+        return nil
     }
     
     private func parseLogMessage(_ message: String) -> (cleanMessage: String, sourceLabel: String?, labelColor: Color) {
@@ -30,7 +69,7 @@ struct LogListView: View {
             return (cleanMessage, "Background Notice", .orange)
         } else if message.hasPrefix("SC:") {
             let cleanMessage = String(message.dropFirst(3)).trimmingCharacters(in: .whitespaces)
-            return (cleanMessage, "Shortcut", .orange)
+            return (cleanMessage, "Shortcut", .red)
         } else if message.hasPrefix("BGD:") {
             let cleanMessage = String(message.dropFirst(4)).trimmingCharacters(in: .whitespaces)
             return (cleanMessage, "Background Delivery", .green)
@@ -113,40 +152,42 @@ struct LogListView: View {
         .searchable(text: $searchText, prompt: "Search logs")
         .navigationTitle("Activity Log")
         .toolbar {
+            // Filter button
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showAllLogs.toggle()
-                } label: {
-                    HStack {
-                        Image(systemName: showAllLogs ? "list.bullet.rectangle" : "list.dash.header.rectangle")
-                        Text("All")
+                Menu {
+                    Picker("Log Type", selection: $sourceFilter) {
+                        ForEach(LogSourceFilter.allCases) { option in
+                            Text(option.title).tag(option)
+                        }
                     }
-                    .foregroundColor(showAllLogs ? .blue : .gray)
+                } label: {
+                    Label("Filter", systemImage: "line.3.horizontal.decrease.circle")
                 }
             }
             
             ToolbarItem(placement: .topBarTrailing) {
-                ShareLink(
-                    item: diagnosticEmailContent,
-                    subject: Text("Wallet sync diagnostic data"),
-                    message: Text(""),
-                    label: {
-                        HStack{
-                            Image(systemName: "square.and.arrow.up")
-                            Text("Share")
-                        }
+                Menu {
+                    Button {
+                        showAllLogs.toggle()
+                    } label: {
+                        Label(showAllLogs ? "Hide Debug Logs" : "Show All Logs", systemImage: showAllLogs ? "list.bullet.rectangle" : "list.dash.header.rectangle")
                     }
-                )
-            }
-            
-            ToolbarItem(placement: .topBarTrailing) {
-                Button(role: .destructive) {
-                    wallet.clearLogs()
+
+                    ShareLink(
+                        item: diagnosticEmailContent,
+                        subject: Text("Wallet sync diagnostic data"),
+                        message: Text("")
+                    ) {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                    }
+
+                    Button(role: .destructive) {
+                        wallet.clearLogs()
+                    } label: {
+                        Label("Clear Logs", systemImage: "trash")
+                    }
                 } label: {
-                    HStack{
-                        Image(systemName: "trash")
-                        Text("Clear")
-                    }
+                    Label("Options", systemImage: "ellipsis.circle")
                 }
             }
         }
@@ -172,7 +213,7 @@ struct LogListView: View {
         Log(date: Date().addingTimeInterval(-28800), message: "BN: Debug: Memory usage at 45MB", level: 3),
         Log(date: Date().addingTimeInterval(-21600), message: "BN: Debug: Processing account ID 12345", level: 3),
         Log(date: Date().addingTimeInterval(-25200), message: "MV: Wallet initialized successfully", level: 1),
-        Log(date: Date().addingTimeInterval(-28800), message: "BN: Debug: Memory usage at 45MB", level: 3),
+        Log(date: Date().addingTimeInterval(-28800), message: "SC: Debug: Memory usage at 45MB", level: 1),
     ]
     
     // Insert sample logs into the context

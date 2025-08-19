@@ -52,7 +52,7 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             self.addLog(prefix: "BGD", message: "test total = \(total)", level: 1)
             */
             
-            /*
+            
             // try to fetch directly
             let calendar = Calendar.current
             let endDate = Date()
@@ -67,8 +67,9 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
                 let amount = (transaction.transactionAmount.amount as NSDecimalNumber).doubleValue
                 addLog(prefix: logPrefix, message: "T: \(transaction.transactionDescription) \(amount) \(transaction.transactionDate)", level: 2)
             }
-            */
             
+            
+            /*
             // the normal code..
             let syncBroker = SafeSyncBroker(context: modelContext, logPrefix: logPrefix)
             addLog(prefix: logPrefix, message: "SyncBroker starting", level: 2)
@@ -78,9 +79,11 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             ) { progressMessage in
                 print("Silent Notification Progress: \(progressMessage)")
             }
-            
             //await syncBroker.addLog(prefix: logPrefix, message: "BGD found \(pendingCount) new transactions", level: 1)
-            addLog( prefix: logPrefix, message: "found \(pendingCount) new transactions", level: 2)
+            */
+            
+            let pendingCount = 0
+            addLog( prefix: logPrefix, message: "finished, found \(pendingCount) new transactions", level: 2)
 
         } catch {
             addLog( prefix: "BGD", message: "Error processing background delivery: \(error)", level: 1)
