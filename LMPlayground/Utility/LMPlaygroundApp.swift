@@ -63,6 +63,10 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             return PushRegistrationResponse(status: false, message: "Invalid URL", frequency: nil)
         }
         
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
+        let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
+        let versionString = "\(appVersion) (\(buildNumber))"
+        
         var frequencyHour = 1
         switch frequency {
             case 0: frequencyHour = 1
@@ -88,7 +92,8 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             "app_id" : "WalletSync",
             "frequency": frequencyHour,
             "key": Configuration.shared.pushServiceKey,
-            "environment": environment
+            "environment": environment,
+            "app_version": versionString
         ] as [String : Any]
         
         do {
