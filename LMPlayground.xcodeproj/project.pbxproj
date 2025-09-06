@@ -73,6 +73,7 @@
 				Models/Log.swift,
 				Models/MCC_Codes.json,
 				Models/Transaction.swift,
+				Models/TransactionHistory.swift,
 				Models/Wallet.swift,
 				Utility/Assets.xcassets,
 				Utility/Configuration.swift,
@@ -278,7 +279,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = LunchSyncBackgroundHandler/LunchSyncBackgroundHandler.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LunchSyncBackgroundHandler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LunchSyncBackgroundHandler;
@@ -307,7 +308,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = LunchSyncBackgroundHandler/LunchSyncBackgroundHandler.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LunchSyncBackgroundHandler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LunchSyncBackgroundHandler;
@@ -462,7 +463,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = LMPlayground/LMPlayground.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_ASSET_PATHS = "\"LMPlayground/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -503,7 +504,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = LMPlayground/LMPlayground.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 9;
+				CURRENT_PROJECT_VERSION = 10;
 				DEVELOPMENT_ASSET_PATHS = "\"LMPlayground/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;

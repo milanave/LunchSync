@@ -96,6 +96,24 @@ struct TransactionDetailView: View {
                 }
             }
             
+            Section {
+                if transaction.histories.isEmpty {
+                    Text("No transaction history")
+                        .foregroundColor(.secondary)
+                } else {
+                    ForEach(Array(transaction.histories.sorted { $0.date < $1.date }.enumerated()), id: \.offset) { _, history in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(history.note)
+                            Text(history.date.formatted(date: .abbreviated, time: .shortened))
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            } header: {
+                Text("History")
+            }
+            
             Button(role: .destructive, action: {
                 showingAlert = true
             }) {
@@ -112,6 +130,8 @@ struct TransactionDetailView: View {
                     Text("This deletes the transaction from the local cache and may re-sync from the Wallet. It will not be deleted from Lunch Money.")
                 }
             )
+
+
         }
         .listStyle(GroupedListStyle())
         .navigationTitle(transaction.payee)
@@ -147,16 +167,21 @@ struct TransactionDetailView: View {
         let year = Calendar.current.component(.year, from: transaction.date)
         let month = Calendar.current.component(.month, from: transaction.date)
         
-        let encodedPayee = transaction.payee
-            .addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)?
-            .replacingOccurrences(of: "&", with: "%26")
-            .replacingOccurrences(of: "+", with: "%2B")
-            .replacingOccurrences(of: "#", with: "%23")
-            .replacingOccurrences(of: "=", with: "%3D")
-            .replacingOccurrences(of: "/", with: "%2F")
-            .replacingOccurrences(of: "?", with: "%3F") ?? ""
+        let encodedPayee = encodePayee(transaction.payee)
         
         return "https://my.lunchmoney.app/transactions/\(year)/\(month)?start_date=\(dateString)&end_date=\(dateString)&match=all&payee_exact=\(encodedPayee)&time=custom"
+    }
+
+    private func encodePayee(_ payee: String) -> String {
+        let allowed = CharacterSet.urlQueryAllowed
+        var encoded = payee.addingPercentEncoding(withAllowedCharacters: allowed) ?? ""
+        encoded = encoded.replacingOccurrences(of: "&", with: "%26")
+        encoded = encoded.replacingOccurrences(of: "+", with: "%2B")
+        encoded = encoded.replacingOccurrences(of: "#", with: "%23")
+        encoded = encoded.replacingOccurrences(of: "=", with: "%3D")
+        encoded = encoded.replacingOccurrences(of: "/", with: "%2F")
+        encoded = encoded.replacingOccurrences(of: "?", with: "%3F")
+        return encoded
     }
 
 }
@@ -174,5 +199,50 @@ struct DetailRow: View {
                 .multilineTextAlignment(.trailing)
         }
     }
+}
+
+
+#Preview {
+    // In-memory model container for previews
+    let schema = Schema([
+        Transaction.self,
+        Account.self,
+        Log.self,
+        Item.self,
+        TransactionHistory.self
+    ])
+    let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: schema, configurations: [config])
+    let context = container.mainContext
+
+    // Mock wallet and sample transaction
+    let wallet = MockWallet(context: context, apiToken: "preview-token")
+    let sample = Transaction(
+        id: "txn_preview_001",
+        account: "Apple Card",
+        payee: "Blue Bottle Coffee",
+        amount: 7.85,
+        date: Date(),
+        lm_id: "",
+        lm_account: "",
+        notes: "Latte and croissant",
+        category: "Food & Drink",
+        type: "card",
+        accountID: "acc_preview_001",
+        status: "cleared",
+        isPending: false,
+        sync: .pending,
+        lm_category_id: "123",
+        lm_category_name: "Dining",
+        category_id: "200",
+        category_name: "Restaurants"
+    )
+    sample.addHistory(note: "Queued for sync")
+    sample.addHistory(note: "amount = $1,000.23, payee = Acme Corp")
+
+    return NavigationStack {
+        TransactionDetailView(transaction: sample, wallet: wallet)
+    }
+    .modelContainer(container)
 }
 

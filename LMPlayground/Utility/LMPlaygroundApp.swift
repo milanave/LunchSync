@@ -93,7 +93,8 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
             "frequency": frequencyHour,
             "key": Configuration.shared.pushServiceKey,
             "environment": environment,
-            "app_version": versionString
+            "app_version": versionString,
+            "action_id": "register",
         ] as [String : Any]
         
         do {
@@ -207,7 +208,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                 let context = container.mainContext
                 let syncBroker = SafeSyncBroker(context: context, logPrefix: "BN")
                 
-                let pendingCount = try await syncBroker.fetchTransactions(
+                _ = try await syncBroker.fetchTransactions(
                     prefix: "BN",
                     showAlert: true
                 ) { progressMessage in
@@ -303,7 +304,8 @@ struct LMPlaygroundApp: App {
             Account.self,
             Log.self,
             LMCategory.self,
-            TrnCategory.self
+            TrnCategory.self,
+            TransactionHistory.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

@@ -835,7 +835,8 @@ struct MainView: View {
         Log.self,
         Item.self,
         LMCategory.self,
-        TrnCategory.self
+        TrnCategory.self,
+        TransactionHistory.self
     ])
     let container = try! ModelContainer(for: schema, configurations: config)
     let context = container.mainContext

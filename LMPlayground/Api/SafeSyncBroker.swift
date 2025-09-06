@@ -299,6 +299,19 @@ class SafeSyncBroker {
                     newTrans.category_name != transaction.category_name ||
                     newTrans.lm_category_id != transaction.lm_category_id
                 ){
+                    var changes: [String] = []
+                    if newTrans.payee != transaction.payee { changes.append("payee = \(newTrans.payee)") }
+                    if newTrans.amount != transaction.amount { changes.append("amount = \(newTrans.amount)") }
+                    if newTrans.date != transaction.date { changes.append("date = \(newTrans.date)") }
+                    if newTrans.notes != transaction.notes { changes.append("notes = \(newTrans.notes)") }
+                    if newTrans.isPending != transaction.isPending { changes.append("isPending = \(newTrans.isPending)") }
+                    if newTrans.category_id != transaction.category_id { changes.append("category_id = \(newTrans.category_id ?? "nil")") }
+                    if newTrans.category_name != transaction.category_name { changes.append("category_name = \(newTrans.category_name ?? "nil")") }
+                    if newTrans.lm_category_id != transaction.lm_category_id { changes.append("lm_category_id = \(newTrans.lm_category_id ?? "nil")") }
+                    let changeSummary = changes.joined(separator: ", ")
+                    if !changeSummary.isEmpty {
+                        transaction.addHistory(note: changeSummary)
+                    }
                     /*
                     print(" -- \(transaction.lm_id) has changes in payee, amount or date")
                     print(" -- -- \(newTrans.payee) != \(transaction.payee) \(newTrans.payee != transaction.payee)")

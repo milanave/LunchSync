@@ -299,6 +299,7 @@ class AppleWallet{
                 category_id: category_id,
                 category_name: category_name
             )
+            t.addHistory(note: "Created")
             transactionsFound.append(t)
         }
         
