@@ -8,6 +8,7 @@ import SwiftData
 struct TransactionDetailView: View {
     let transaction: Transaction
     let wallet: Wallet
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @State private var showingConfirmation = false        
     @State private var showingConfirmationDialog: Bool = false
@@ -110,6 +111,12 @@ struct TransactionDetailView: View {
                         }
                     }
                 }
+                /*
+                Button("add history") {
+                    transaction.addHistory(note: "Added manually")
+                    try? modelContext.save()
+                }
+                */
             } header: {
                 Text("History")
             }

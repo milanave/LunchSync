@@ -39,7 +39,8 @@ struct MainView: View {
     @AppStorage("autoImportTransactions", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var autoImportTransactions = false
     @AppStorage("backgroundJobFrequency", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var backgroundJobFrequency: Int = 1
     @AppStorage("enableBackgroundDelivery", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var enableBackgroundDelivery = false
-
+    @AppStorage("categorize_incoming", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var categorize_incoming = true
+    
     @State private var showingAboutSheet = false
     @State private var showingJobSheet = false
     @State private var showingSettingsSheet = false
@@ -147,22 +148,24 @@ struct MainView: View {
                     }
                 }
                 
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showingCategorySheet = true
-                    } label: {
-                        ZStack {
-                            Image(systemName: "tag")
-                            
-                            if uncategorizedCount > 0 {
-                                Text("\(uncategorizedCount)")
-                                    .font(.caption2)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.white)
-                                    .frame(minWidth: 16, minHeight: 16)
-                                    .background(Color.red)
-                                    .clipShape(Circle())
-                                    .offset(x: 8, y: -8)
+                if(categorize_incoming){
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            showingCategorySheet = true
+                        } label: {
+                            ZStack {
+                                Image(systemName: "tag")
+                                
+                                if uncategorizedCount > 0 {
+                                    Text("\(uncategorizedCount)")
+                                        .font(.caption2)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.white)
+                                        .frame(minWidth: 16, minHeight: 16)
+                                        .background(Color.red)
+                                        .clipShape(Circle())
+                                        .offset(x: 8, y: -8)
+                                }
                             }
                         }
                     }
@@ -766,12 +769,17 @@ struct MainView: View {
 
     // MARK: utility functions
     private func updateBadgeCount() {
-        /*
-        NotificationCenter.default.post(
-            name: .pendingTransactionsChanged,
-            object: pendingCount
+        let finalPendingCount = wallet.getTransactionsWithStatus(.pending).count
+        let fetchDescriptor = FetchDescriptor<TrnCategory>(
+            predicate: #Predicate<TrnCategory> { $0.lm_category == nil }
         )
-         */
+        let uncategorizedCount = (try? modelContext.fetch(fetchDescriptor).count) ?? 0
+        let count = finalPendingCount+uncategorizedCount
+        UNUserNotificationCenter.current().setBadgeCount(count) { error in
+            if let error = error {
+                print("Error setting badge count: \(error)")
+            }
+        }
     }
         
     private func checkForStoredToken() {

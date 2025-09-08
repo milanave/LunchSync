@@ -23,7 +23,7 @@ struct CategoryView: View {
                                 if let lmCategory = category.lm_category {
                                     Text("\(lmCategory.name)")
                                         .font(.caption)
-                                        .foregroundColor(.green)
+                                        .foregroundColor( lmCategory.id=="0" ? .yellow : .green)
                                 } else {
                                     Text("Unmapped")
                                         .font(.caption)

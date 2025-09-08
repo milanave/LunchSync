@@ -17,11 +17,29 @@ struct SettingsView: View {
     @AppStorage("skip_duplicates", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var skipDuplicates = false
     @AppStorage("check_for_recurring", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var checkForRecurring = false
     @AppStorage("skip_balance_update", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var skipBalanceUpdate = false
+    @AppStorage("categorize_incoming", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var categorize_incoming = true
+    @AppStorage("alert_after_import", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var alert_after_import = true
     
     var body: some View {
         NavigationView {
             List {
                 Section {
+                    Toggle(isOn: $categorize_incoming) {
+                        HStack {
+                            Image(systemName: categorize_incoming ? "checkmark.circle.fill" : "circle")
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(categorize_incoming ? .green : .gray)
+                            Text("Categorize Transactions")
+                        }
+                    }
+                    .listRowSeparator(.hidden)
+                    
+                    Text("If true, map Wallet's MCC codes to Lunch Money categories")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 20)
+                        .listRowSeparator(.hidden)
+                    
                     Toggle(isOn: $importTransactionsCleared) {
                         HStack {
                             Image(systemName: importTransactionsCleared ? "checkmark.circle.fill" : "circle")
@@ -49,6 +67,22 @@ struct SettingsView: View {
                     .listRowSeparator(.hidden)
                     
                     Text("Put the Wallet transaction's latest status in the LunchMoney notes field.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 20)
+                        .listRowSeparator(.hidden)
+                    
+                    Toggle(isOn: $alert_after_import) {
+                        HStack {
+                            Image(systemName: alert_after_import ? "checkmark.circle.fill" : "circle")
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(alert_after_import ? .green : .gray)
+                            Text("Alert after import")
+                        }
+                    }
+                    .listRowSeparator(.hidden)
+                    
+                    Text("Send an alert after an import finds new transactions.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .padding(.leading, 20)

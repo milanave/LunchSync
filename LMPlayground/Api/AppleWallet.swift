@@ -430,7 +430,7 @@ class AppleWallet{
                 category_id: category_id,
                 category_name: category_name
             )
-            transactionsFound.append(t)                    
+            transactionsFound.append(t)
         }
         print("returning \(transactionsFound.count) transactions")
         

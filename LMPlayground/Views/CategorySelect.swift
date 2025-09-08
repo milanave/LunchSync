@@ -24,6 +24,14 @@ struct CategorySelect: View {
         }
     }
     
+    private var skipCategory: LMCategory? {
+        return filteredCategories.first { $0.id == "0" }
+    }
+    
+    private var otherCategories: [LMCategory] {
+        return filteredCategories.filter { $0.id != "0" }
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // Search bar
@@ -57,8 +65,38 @@ struct CategorySelect: View {
             
             // Categories list
             List {
+                Section{
+                    if let skip = skipCategory {
+                        Button(action: {
+                            assignMapping(lmCategory: skip)
+                        }) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text(skip.name)
+                                            .font(.headline)
+                                            .foregroundColor(.primary)
+                                    }
+                                    if !skip.descript.isEmpty {
+                                        Text(skip.descript)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                Spacer()
+                                if category.lm_category?.id == skip.id {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.green)
+                                        .font(.title2)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                }
                 Section {
-                    if filteredCategories.isEmpty {
+                    if otherCategories.isEmpty {
                         if lmCategories.isEmpty {
                             Text("No LunchMoney categories available")
                                 .font(.subheadline)
@@ -71,7 +109,7 @@ struct CategorySelect: View {
                                 .padding(.vertical, 8)
                         }
                     } else {
-                        ForEach(filteredCategories, id: \.id) { lmCategory in
+                        ForEach(otherCategories, id: \.id) { lmCategory in
                             Button(action: {
                                 assignMapping(lmCategory: lmCategory)
                             }) {
@@ -148,6 +186,9 @@ struct CategorySelect: View {
         } message: {
             Text(errorMessage ?? "")
         }
+        .onAppear {
+            ensureSkipCategoryExists()
+        }
     }
     
     private func assignMapping(lmCategory: LMCategory) {
@@ -183,6 +224,16 @@ struct CategorySelect: View {
                 modelContext.delete(category)
             }
             
+            // insert an unmapped category
+            let lmCategory = LMCategory(
+                id: "0",
+                name: "Skip Mapping",
+                descript: "Not mapped to Lunch Money",
+                exclude_from_budget: false,
+                exclude_from_totals: false
+            )
+            modelContext.insert(lmCategory)
+            
             // Convert and save new categories
             for categoryAPI in categoriesAPI {
                 let lmCategory = LMCategory(
@@ -204,6 +255,25 @@ struct CategorySelect: View {
         }
         
         isLoadingCategories = false
+    }
+
+    private func ensureSkipCategoryExists() {
+        let exists = lmCategories.contains { $0.id == "0" }
+        if !exists {
+            let skip = LMCategory(
+                id: "0",
+                name: "Skip Mapping",
+                descript: "Not mapped to Lunch Money",
+                exclude_from_budget: false,
+                exclude_from_totals: false
+            )
+            modelContext.insert(skip)
+            do {
+                try modelContext.save()
+            } catch {
+                errorMessage = "Failed to create Skip Mapping category: \(error.localizedDescription)"
+            }
+        }
     }
 }
 

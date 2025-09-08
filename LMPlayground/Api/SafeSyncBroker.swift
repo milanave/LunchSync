@@ -51,6 +51,7 @@ class SafeSyncBroker {
         }
     }
     
+    // MARK main import function
     public func fetchTransactions(prefix: String, showAlert: Bool = false, skipSync: Bool = false, progress: @escaping (String) -> Void) async throws -> Int {
         
         logPrefix = prefix
@@ -58,6 +59,9 @@ class SafeSyncBroker {
         let importAsCleared = sharedDefaults.bool(forKey: "importTransactionsCleared")
         let putTransStatusInNotes = sharedDefaults.bool(forKey: "putTransStatusInNotes")
         let autoImportTransactions = skipSync ? false : sharedDefaults.bool(forKey: "autoImportTransactions")
+        
+        let categorize_incoming = sharedDefaults.object(forKey: "categorize_incoming") == nil ? true : sharedDefaults.bool(forKey: "categorize_incoming")
+        let alert_after_import = sharedDefaults.object(forKey: "alert_after_import") == nil ? true : sharedDefaults.bool(forKey: "alert_after_import")
         
         do {
             addLog(prefix: prefix, message: "Starting transaction fetch (importAsCleared: \(importAsCleared), transStatusInNotes: \(putTransStatusInNotes), autoSync: \(autoImportTransactions))", level: 1)
@@ -99,20 +103,25 @@ class SafeSyncBroker {
             addLog(prefix: prefix, message: "found \(newTransactions.count) transactions to sync", level: 2)
             
             // Process MCCs and create category mappings
-            let trnCategoryMap = try processMCCCategories(transactions: newTransactions, prefix: prefix)
-            addLog(prefix: prefix, message: "processing \(trnCategoryMap.count) mcc categories", level: 2)
-            
-            // Now process each transaction with the category mapping
-            newTransactions.forEach { transaction in
-                // If we have a category mapping and it has a linked LMCategory, set the transaction's lm_category_id
-                if let categoryId = transaction.category_id,
-                   let trnCategory = trnCategoryMap[categoryId],
-                   let lmCategory = trnCategory.lm_category {
-                    transaction.lm_category_id = lmCategory.id
-                    transaction.lm_category_name = lmCategory.name
+            if(categorize_incoming){
+                let trnCategoryMap = try processMCCCategories(transactions: newTransactions, prefix: prefix)
+                addLog(prefix: prefix, message: "processing \(trnCategoryMap.count) mcc categories", level: 2)
+                
+                // Now process each transaction with the category mapping
+                newTransactions.forEach { transaction in
+                    // If we have a category mapping and it has a linked LMCategory, set the transaction's lm_category_id
+                    if let categoryId = transaction.category_id,
+                       let trnCategory = trnCategoryMap[categoryId],
+                       let lmCategory = trnCategory.lm_category {
+                        if( lmCategory.id != "0" ){ // skip "unmapped" categories
+                            transaction.lm_category_id = lmCategory.id
+                            transaction.lm_category_name = lmCategory.name
+                        }
+                    }
+                    replaceTransaction(newTrans: transaction)
                 }
-                replaceTransaction(newTrans: transaction)
             }
+            
 
             let transactionsToSyncCount = getTransactionsWithStatus(.pending).count
             addLog(prefix: prefix, message: "\(transactionsToSyncCount) transactions ready to sync", level: 2)
@@ -165,7 +174,9 @@ class SafeSyncBroker {
             }else{
                 addLog(prefix: prefix, message: body, level: 2)
                 if showAlert {
-                    await addNotification(time: 0.5, title: "Transactions synced", subtitle: "", body: body)
+                    if(alert_after_import){
+                        await addNotification(time: 0.5, title: "Transactions synced", subtitle: "", body: body)
+                    }
                 }
             }
             
@@ -283,7 +294,9 @@ class SafeSyncBroker {
         // find a transaction in the local store
         let id = newTrans.id
         let fetchDescriptor = FetchDescriptor<Transaction>(predicate: #Predicate { $0.id == id })
-        //print("replaceTransaction with \(id)")
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        
         do {
             let transactions = try modelContext.fetch(fetchDescriptor)
             
@@ -300,14 +313,15 @@ class SafeSyncBroker {
                     newTrans.lm_category_id != transaction.lm_category_id
                 ){
                     var changes: [String] = []
+                    
                     if newTrans.payee != transaction.payee { changes.append("payee = \(newTrans.payee)") }
-                    if newTrans.amount != transaction.amount { changes.append("amount = \(newTrans.amount)") }
-                    if newTrans.date != transaction.date { changes.append("date = \(newTrans.date)") }
+                    if newTrans.amount != transaction.amount { changes.append("amount = \(CurrencyFormatter.shared.format(newTrans.amount))") }
+                    let noteDate = dateFormatter.string(from: newTrans.date)
+                    if newTrans.date != transaction.date { changes.append("date = \(noteDate)") }
                     if newTrans.notes != transaction.notes { changes.append("notes = \(newTrans.notes)") }
-                    if newTrans.isPending != transaction.isPending { changes.append("isPending = \(newTrans.isPending)") }
-                    if newTrans.category_id != transaction.category_id { changes.append("category_id = \(newTrans.category_id ?? "nil")") }
-                    if newTrans.category_name != transaction.category_name { changes.append("category_name = \(newTrans.category_name ?? "nil")") }
-                    if newTrans.lm_category_id != transaction.lm_category_id { changes.append("lm_category_id = \(newTrans.lm_category_id ?? "nil")") }
+                    if newTrans.isPending != transaction.isPending { changes.append("pending = \(newTrans.isPending)") }
+                    if newTrans.category_name != transaction.category_name { changes.append("category = \(newTrans.category_name ?? "nil")") }
+                    
                     let changeSummary = changes.joined(separator: ", ")
                     if !changeSummary.isEmpty {
                         transaction.addHistory(note: changeSummary)
@@ -337,6 +351,7 @@ class SafeSyncBroker {
                 //}
             }else{
                 //print("replaceTransaction insert new \(newTrans.payee)")
+                newTrans.addHistory(note: "Created")
                 modelContext.insert(newTrans)
             }
         } catch {
@@ -587,6 +602,7 @@ class SafeSyncBroker {
             if let transactionIds = response.transactionIds, !transactionIds.isEmpty {
                 transaction.lm_id = String(transactionIds[0])
                 transaction.sync = .complete
+                transaction.addHistory(note: "Synced to LM")
                 //print("Inserted \(transaction.lm_id) -> \(transaction.sync)")
                 addLog(message: "syncTransaction, synced to LM for \(transaction.id), status=\(importAsCleared ? "cleared" : "uncleared")", level: 2)
             } else {
@@ -598,6 +614,7 @@ class SafeSyncBroker {
             return transaction
         } catch {
             print("Error in syncTransaction: \(error)")
+            transaction.addHistory(note: "Error syncing to LM: \(error)")
             addLog(message: "syncTransaction, error \(error) for \(transaction.id)", level: 2)
             transaction.sync = .never
             throw error
