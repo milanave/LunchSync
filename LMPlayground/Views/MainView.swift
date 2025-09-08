@@ -710,7 +710,7 @@ struct MainView: View {
         
         // Count uncategorized TrnCategory objects
         let fetchDescriptor = FetchDescriptor<TrnCategory>(
-            predicate: #Predicate<TrnCategory> { $0.lm_category == nil }
+            predicate: #Predicate<TrnCategory> { $0.lm_id == "" }
         )
         uncategorizedCount = (try? modelContext.fetch(fetchDescriptor).count) ?? 0
         
@@ -771,7 +771,7 @@ struct MainView: View {
     private func updateBadgeCount() {
         let finalPendingCount = wallet.getTransactionsWithStatus(.pending).count
         let fetchDescriptor = FetchDescriptor<TrnCategory>(
-            predicate: #Predicate<TrnCategory> { $0.lm_category == nil }
+            predicate: #Predicate<TrnCategory> { $0.lm_id == "" }
         )
         let uncategorizedCount = (try? modelContext.fetch(fetchDescriptor).count) ?? 0
         let count = finalPendingCount+uncategorizedCount

@@ -32,6 +32,33 @@ struct CategorySelect: View {
         return filteredCategories.filter { $0.id != "0" }
     }
     
+    private var recommendedCategories: [LMCategory] {
+        // Build a set of whole-word tokens from the current wallet category's name
+        let words = tokenize(category.name)
+        guard !words.isEmpty else { return [] }
+        
+        var results: [LMCategory] = []
+        for lm in lmCategories where lm.id != "0" {
+            // Tokenize both name and description for whole-word matching
+            var lmTokens = tokenize(lm.name)
+            lmTokens.formUnion(tokenize(lm.descript))
+            if !words.isDisjoint(with: lmTokens) {
+                results.append(lm)
+                if results.count == 5 { break }
+            }
+        }
+        return results
+    }
+
+    private func tokenize(_ text: String) -> Set<String> {
+        let separators = CharacterSet.alphanumerics.inverted
+        let tokens = text
+            .lowercased()
+            .components(separatedBy: separators)
+            .filter { !$0.isEmpty && $0 != "and" }
+        return Set(tokens)
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             // Search bar
@@ -84,7 +111,7 @@ struct CategorySelect: View {
                                     }
                                 }
                                 Spacer()
-                                if category.lm_category?.id == skip.id {
+                                if category.lm_id == skip.id {
                                     Image(systemName: "checkmark.circle.fill")
                                         .foregroundColor(.green)
                                         .font(.title2)
@@ -95,6 +122,59 @@ struct CategorySelect: View {
                         .buttonStyle(PlainButtonStyle())
                     }
                 }
+                
+                if searchText.isEmpty {
+                    Section{
+                        if recommendedCategories.isEmpty {
+                            Text("No recommendations found")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .padding(.vertical, 8)
+                        } else {
+                            ForEach(recommendedCategories, id: \.id) { lmCategory in
+                                Button(action: {
+                                    assignMapping(lmCategory: lmCategory)
+                                }) {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            HStack {
+                                                Text(lmCategory.name)
+                                                    .font(.headline)
+                                                    .foregroundColor(.primary)
+                                                if lmCategory.exclude_from_budget {
+                                                    Image(systemName: "minus.circle")
+                                                        .font(.caption)
+                                                        .foregroundColor(.orange)
+                                                }
+                                                if lmCategory.exclude_from_totals {
+                                                    Image(systemName: "sum")
+                                                        .font(.caption)
+                                                        .foregroundColor(.red)
+                                                }
+                                            }
+                                            if !lmCategory.descript.isEmpty {
+                                                Text(lmCategory.descript)
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                        }
+                                        Spacer()
+                                        if category.lm_id == lmCategory.id {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .foregroundColor(.green)
+                                                .font(.title2)
+                                        }
+                                    }
+                                    .padding(.vertical, 4)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                    }header:{
+                        Text("Categories matching \(category.name)")
+                    }
+                }
+                
                 Section {
                     if otherCategories.isEmpty {
                         if lmCategories.isEmpty {
@@ -137,7 +217,7 @@ struct CategorySelect: View {
                                         }
                                     }
                                     Spacer()
-                                    if category.lm_category?.id == lmCategory.id {
+                                    if category.lm_id == lmCategory.id {
                                         Image(systemName: "checkmark.circle.fill")
                                             .foregroundColor(.green)
                                             .font(.title2)
@@ -148,6 +228,8 @@ struct CategorySelect: View {
                             .buttonStyle(PlainButtonStyle())
                         }
                     }
+                } header: {
+                    Text("All Lunch Money Categories")
                 }
                 
                 Section {
@@ -192,7 +274,13 @@ struct CategorySelect: View {
     }
     
     private func assignMapping(lmCategory: LMCategory) {
-        category.lm_category = lmCategory
+        category.set_lm_category(
+            id: lmCategory.id,
+            name: lmCategory.name,
+            descript: lmCategory.descript,
+            exclude_from_budget: lmCategory.exclude_from_budget,
+            exclude_from_totals: lmCategory.exclude_from_totals
+        )
         do {
             try modelContext.save()
             print("Successfully assigned mapping: \(category.name) -> \(lmCategory.name)")
@@ -278,7 +366,7 @@ struct CategorySelect: View {
 }
 
 #Preview {
-    @Previewable @State var sampleCategory = TrnCategory(mcc: "5812", name: "Eating Places/Restaurants", lm_category: nil)
+    @Previewable @State var sampleCategory = TrnCategory(mcc: "5812", name: "Eating Places and Restaurants", lm_category: nil)
     
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: TrnCategory.self, LMCategory.self, configurations: config)

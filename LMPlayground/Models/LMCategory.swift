@@ -31,9 +31,25 @@ final class TrnCategory {
     var name: String
     var lm_category: LMCategory?
     
+    // the properties of an LMCategory
+    var lm_id: String = ""
+    var lm_name: String = ""
+    var lm_descript: String = ""
+    var exclude_from_budget: Bool = false
+    var exclude_from_totals: Bool = false
+    
     init(mcc: String, name: String, lm_category: LMCategory? = nil) {
         self.mcc = mcc
         self.name = name
         self.lm_category = lm_category
+        // defaults are provided at declaration for migration safety
+    }
+    
+    public func set_lm_category(id: String, name: String, descript: String, exclude_from_budget: Bool, exclude_from_totals: Bool){
+        self.lm_id = id
+        self.lm_name = name
+        self.lm_descript = descript
+        self.exclude_from_budget = exclude_from_budget
+        self.exclude_from_totals = exclude_from_totals
     }
 }

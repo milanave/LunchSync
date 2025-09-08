@@ -111,11 +111,10 @@ class SafeSyncBroker {
                 newTransactions.forEach { transaction in
                     // If we have a category mapping and it has a linked LMCategory, set the transaction's lm_category_id
                     if let categoryId = transaction.category_id,
-                       let trnCategory = trnCategoryMap[categoryId],
-                       let lmCategory = trnCategory.lm_category {
-                        if( lmCategory.id != "0" ){ // skip "unmapped" categories
-                            transaction.lm_category_id = lmCategory.id
-                            transaction.lm_category_name = lmCategory.name
+                       let trnCategory = trnCategoryMap[categoryId] {
+                        if( !trnCategory.lm_id.isEmpty && trnCategory.lm_id != "0" ){
+                            transaction.lm_category_id = trnCategory.lm_id
+                            transaction.lm_category_name = trnCategory.lm_name
                         }
                     }
                     replaceTransaction(newTrans: transaction)
@@ -149,7 +148,7 @@ class SafeSyncBroker {
             // get number of unmapped categories
             addLog(prefix: prefix, message: "Updating badge counts", level: 2)
             let fetchDescriptor = FetchDescriptor<TrnCategory>(
-                predicate: #Predicate<TrnCategory> { $0.lm_category == nil }
+                predicate: #Predicate<TrnCategory> { $0.lm_id == "" }
             )
             let uncategorizedCount = (try? modelContext.fetch(fetchDescriptor).count) ?? 0
             

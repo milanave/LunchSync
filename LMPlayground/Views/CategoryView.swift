@@ -20,10 +20,10 @@ struct CategoryView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(displayName(for: category))
                                     .font(.headline)
-                                if let lmCategory = category.lm_category {
-                                    Text("\(lmCategory.name)")
+                                if !category.lm_id.isEmpty {
+                                    Text("\(category.lm_name)")
                                         .font(.caption)
-                                        .foregroundColor( lmCategory.id=="0" ? .yellow : .green)
+                                        .foregroundColor( category.lm_id=="0" ? .yellow : .green)
                                 } else {
                                     Text("Unmapped")
                                         .font(.caption)

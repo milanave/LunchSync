@@ -29,8 +29,8 @@ struct CategoryMap: View {
                 Section{
                     NavigationLink(destination: CategorySelect(category: $category)) {
                         HStack {
-                            if let lmCategory = category.lm_category {
-                                Text(lmCategory.name)
+                            if !category.lm_id.isEmpty {
+                                Text(category.lm_name)
                                     .font(.headline)
                                     .fontWeight(.semibold)
                             }else{
@@ -93,9 +93,8 @@ struct CategoryMap: View {
         }
         .navigationTitle("Category Mapping")
         .navigationBarTitleDisplayMode(.inline)
-        .onChange(of: category.lm_category) { oldValue, newValue in
-            // Only trigger if we're actually assigning a new category (not removing)
-            if newValue != nil {
+        .onChange(of: category.lm_id) { oldValue, newValue in
+            if !newValue.isEmpty {
                 assignTransactionsAndResync()
             }
         }
@@ -134,7 +133,7 @@ struct CategoryMap: View {
     }
     
     private func removeMapping() {
-        category.lm_category = nil
+        category.set_lm_category(id: "", name: "", descript: "", exclude_from_budget: false, exclude_from_totals: false)
         do {
             try modelContext.save()
             print("Successfully removed mapping for category: \(category.name)")
@@ -145,7 +144,7 @@ struct CategoryMap: View {
     }
     
     private func assignTransactionsAndResync() {
-        guard let lmCategory = category.lm_category else {
+        guard !category.lm_id.isEmpty else {
             errorMessage = "No LunchMoney category assigned to this category"
             return
         }
@@ -172,15 +171,15 @@ struct CategoryMap: View {
         
         // Iterate through each matching transaction and update it
         for transaction in allMatchingTransactions {
-            transaction.lm_category_id = lmCategory.id
-            transaction.lm_category_name = lmCategory.name
+            transaction.lm_category_id = category.lm_id
+            transaction.lm_category_name = category.lm_name
             wallet.setSyncStatus(newTrans: transaction, newStatus: .pending)
         }
         
         do {
             try modelContext.save()
             successMessage = "\(allMatchingTransactions.count) transactions categorized"
-            print("Successfully assigned \(allMatchingTransactions.count) transactions to category: \(lmCategory.name)")
+            print("Successfully assigned \(allMatchingTransactions.count) transactions to category: \(category.lm_name)")
         } catch {
             errorMessage = "Failed to assign transactions: \(error.localizedDescription)"
             print("Error assigning transactions: \(error.localizedDescription)")

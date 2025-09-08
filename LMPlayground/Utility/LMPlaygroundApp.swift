@@ -310,7 +310,12 @@ struct LMPlaygroundApp: App {
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            // One-time, minimal setup to backfill TrnCategory.lm_* from lm_category and clear link
+            Task { @MainActor in
+                runTrnCategorySetupOnce(context: container.mainContext)
+            }
+            return container
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
@@ -354,5 +359,32 @@ struct AppShortcuts: AppShortcutsProvider {
                 systemImageName: "arrow.triangle.2.circlepath"
             )
         ]
+    }
+}
+
+// MARK: Setup: backfill TrnCategory.lm_* and clear relationship once
+@MainActor
+func runTrnCategorySetupOnce(context: ModelContext) {
+    let defaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? .standard
+    let key = "setup_trncategory_lm_fields_v1"
+    if defaults.bool(forKey: key) { return }
+    do {
+        let fetch = FetchDescriptor<TrnCategory>()
+        let all = try context.fetch(fetch)
+        var cleared = 0
+        for trn in all {
+            // Avoid dereferencing a potentially invalid LMCategory instance; just clear the link.
+            if trn.lm_category != nil {
+                trn.lm_category = nil
+                cleared += 1
+            }
+        }
+        if cleared > 0 {
+            try context.save()
+        }
+        defaults.set(true, forKey: key)
+        print("Setup complete: cleared \(cleared) TrnCategory relationships")
+    } catch {
+        print("Setup failed: \(error)")
     }
 }

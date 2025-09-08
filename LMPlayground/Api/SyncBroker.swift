@@ -96,12 +96,12 @@ class SyncBroker {
             
             // Now process each transaction with the category mapping
             newTransactions.forEach { transaction in
-                // If we have a category mapping and it has a linked LMCategory, set the transaction's lm_category_id
+                // If we have a category mapping and it has LM category fields, set the transaction's lm_category_id
                 if let categoryId = transaction.category_id,
                    let trnCategory = trnCategoryMap[categoryId],
-                   let lmCategory = trnCategory.lm_category {
-                    transaction.lm_category_id = lmCategory.id
-                    transaction.lm_category_name = lmCategory.name
+                   !trnCategory.lm_id.isEmpty {
+                    transaction.lm_category_id = trnCategory.lm_id
+                    transaction.lm_category_name = trnCategory.lm_name
                 }
                 
                 wallet.replaceTransaction(newTrans: transaction)
