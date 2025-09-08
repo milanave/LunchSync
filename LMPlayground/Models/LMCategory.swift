@@ -52,4 +52,12 @@ final class TrnCategory {
         self.exclude_from_budget = exclude_from_budget
         self.exclude_from_totals = exclude_from_totals
     }
+    
+    public func clear_lm_category(){
+        self.lm_id = ""
+        self.lm_name = ""
+        self.lm_descript = ""
+        self.exclude_from_budget = false
+        self.exclude_from_totals = false
+    }
 }

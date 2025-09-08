@@ -11,6 +11,7 @@ import SwiftData
 struct CategorySelect: View {
     @Binding var category: TrnCategory
     @Query(sort: \LMCategory.name) private var lmCategories: [LMCategory]
+    @Query(sort: \TrnCategory.name) private var trnCategories: [TrnCategory]
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @State private var isLoadingCategories = false
@@ -336,6 +337,25 @@ struct CategorySelect: View {
             
             try modelContext.save()
             print("Successfully loaded \(categoriesAPI.count) categories from LunchMoney")
+            
+            // Validate existing TrnCategory mappings against the newly loaded categories
+            let validCategoryIds = Set(categoriesAPI.map { String($0.id) } + ["0"]) // include Skip Mapping
+            var clearedCount = 0
+            for trn in trnCategories {
+                if !trn.lm_id.isEmpty && !validCategoryIds.contains(trn.lm_id) {
+                    trn.clear_lm_category()
+                    clearedCount += 1
+                }
+            }
+            if clearedCount > 0 {
+                do { try modelContext.save() } catch {
+                    // If save fails, surface error
+                    errorMessage = "Failed to update category mappings: \(error.localizedDescription)"
+                }
+            }
+            if clearedCount > 1 {
+                errorMessage = "\(clearedCount) categories no longer exists in LunchMoney, please review category mappings"
+            }
             
         } catch {
             errorMessage = "Failed to load categories: \(error.localizedDescription)"
