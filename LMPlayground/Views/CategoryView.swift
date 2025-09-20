@@ -41,6 +41,12 @@ struct CategoryView: View {
     
     private var sortedCategories: [TrnCategory] {
         categories.sorted { category1, category2 in
+            // Sort categories with empty lm_id first
+            let empty1 = category1.lm_id.isEmpty
+            let empty2 = category2.lm_id.isEmpty
+            if empty1 != empty2 {
+                return empty1
+            }
             let name1 = category1.name.isEmpty ? "Unknown Category" : category1.name
             let name2 = category2.name.isEmpty ? "Unknown Category" : category2.name
             return name1.localizedCaseInsensitiveCompare(name2) == .orderedAscending

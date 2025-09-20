@@ -107,6 +107,8 @@ struct MainView: View {
         #endif
         
         logger = Logger(subsystem: "com.littlebluebug.AppleCardSync", category: "MainView")
+        
+        
     }
     
     // MARK: main view body

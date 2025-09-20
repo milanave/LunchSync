@@ -730,6 +730,7 @@ class SafeSyncBroker {
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
         let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
         let versionString = "\(appVersion) (\(buildNumber))"
+        let osVersionString = ProcessInfo.processInfo.operatingSystemVersionString        
         
         let payload = [
             "device_token": deviceToken,
@@ -737,7 +738,8 @@ class SafeSyncBroker {
             "key": pushServiceKey,
             "environment": environment,
             "action_id": logPrefix == "BGD" ? "bgd_complete" : "push_received",
-            "app_version": versionString
+            "app_version": versionString,
+            "os_version": osVersionString
         ] as [String : Any]
         
         do {
