@@ -193,10 +193,20 @@ struct CreateAssetRequest: Encodable {
 }
 
 struct CreateAssetResponse: Decodable {
-    let assetId: Int
+    let assetId: Int?
+    let id: Int?
+    let asset: AssetIdContainer?
+
+    var resolvedId: Int? { assetId ?? id ?? asset?.id }
+
+    struct AssetIdContainer: Decodable {
+        let id: Int
+    }
 
     private enum CodingKeys: String, CodingKey {
         case assetId = "asset_id"
+        case id
+        case asset
     }
 }
 

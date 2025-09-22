@@ -83,17 +83,17 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             */
             
             let pendingCount = 0
-            addLog( prefix: logPrefix, message: "finished, found \(pendingCount) new transactions", level: 2)
+            self.addLog( prefix: logPrefix, message: "finished, found \(pendingCount) new transactions", level: 1)
 
         } catch {
-            addLog( prefix: "BGD", message: "Error processing background delivery: \(error)", level: 1)
+            self.addLog( prefix: "BGD", message: "Error processing background delivery: \(error)", level: 1)
             //await addNotification(time: 0.5, title: "BDG LunchSync Error", subtitle: "", body: "Error processing background delivery: \(error)")
         }
         print(" LunchSyncBackgroundHandlerBGD finished")
     }
 
     func willTerminate() async {
-        addLog( prefix: logPrefix, message: "calling willTerminate", level: 1)
+        self.addLog( prefix: logPrefix, message: "calling willTerminate", level: 1)
     }
     
     public func addLog(prefix: String, message: String, level: Int = 1) {

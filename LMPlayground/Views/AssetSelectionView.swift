@@ -7,6 +7,10 @@ struct AssetSelectionView: View {
     @State private var assets: [Asset] = []
     @State private var isLoading = true
     @State private var error: String?
+    @State private var isPresentingCreateSheet = false
+    @State private var newAssetName: String = ""
+    @State private var createError: String?
+    @State private var createdAssetId: Int?
     
     
     var body: some View {
@@ -60,30 +64,80 @@ struct AssetSelectionView: View {
                     
                     Section {
                         Button(action: {
-                            Task{
-                                do{
-                                    if(await wallet.createAsset(name:account.name, institutionName:account.institution_name, note: account.id)){
-                                        await loadAssets()
-                                    }else{
-                                        print("Create failed")
-                                    }
-                                    
-                                }
-                            }
-                                }) {
+                            newAssetName = account.name
+                            createError = nil
+                            createdAssetId = nil
+                            isPresentingCreateSheet = true
+                        }) {
                             Label("Create New Asset", systemImage: "plus.circle.fill")
                         }
                     }
                 }
             }
             .navigationTitle("Link Asset")
-            .alert("Error", isPresented: .constant(error != nil)) {
-                Button("OK") {
-                    error = nil
-                }
-            } message: {
-                if let error = error {
-                    Text(error)
+            .alert("Error", isPresented: Binding(
+                  get: { error != nil },
+                  set: { if !$0 { error = nil } }
+              )) { Button("OK") { error = nil } } message: {
+                  if let error { Text(error) }
+              }
+            .sheet(isPresented: $isPresentingCreateSheet) {
+                NavigationStack {
+                    Form {
+                        Section(header: Text("Asset Name")) {
+                            TextField("Name", text: $newAssetName)
+                        }
+                        Section {
+                            Button("Create") {
+                                Task {
+                                    createError = nil
+                                    createdAssetId = nil
+                                    let id = await wallet.createAsset(name: newAssetName.isEmpty ? account.name : newAssetName,
+                                                                      institutionName: account.institution_name,
+                                                                      note: account.id)
+                                    if let id {
+                                        createdAssetId = id
+                                        await loadAssets()
+                                    } else {
+                                        createError = "Failed to create asset. Please try again."
+                                    }
+                                }
+                            }
+                            .disabled(createdAssetId != nil || newAssetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        }
+                        if let createError {
+                            Section {
+                                Text(createError)
+                                    .foregroundColor(.red)
+                            }
+                        }
+                        if let createdAssetId {
+                            Section(footer: Text("Asset created successfully: ID \(createdAssetId)")) {
+                                Button("Link Asset") {
+                                    if let asset = assets.first(where: { $0.id == createdAssetId }) {
+                                        linkAsset(asset)
+                                    } else {
+                                        // Fallback: reload assets to find it, then link
+                                        Task {
+                                            await loadAssets()
+                                            if let asset = assets.first(where: { $0.id == createdAssetId }) {
+                                                linkAsset(asset)
+                                            } else {
+                                                // If still not found, just dismiss
+                                                dismiss()
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .navigationTitle("Create Asset")
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel") { isPresentingCreateSheet = false }
+                        }
+                    }
                 }
             }
             .task {
@@ -92,6 +146,7 @@ struct AssetSelectionView: View {
         }
     }
     
+    @MainActor
     private func loadAssets() async {
         do {
             let keychain = Keychain()

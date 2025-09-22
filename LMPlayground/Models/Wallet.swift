@@ -438,7 +438,7 @@ class Wallet :ObservableObject {
         }
     }
     
-    func createAsset(name:String, institutionName:String, note:String) async -> Bool{
+    func createAsset(name:String, institutionName:String, note:String) async -> Int?{
         let assetRequest = CreateAssetRequest(
             typeName: "cash", // cash, credit, investment, other, real estate, loan, vehicle, cryptocurrency, employee compensation
             balance: 0.0,
@@ -450,13 +450,12 @@ class Wallet :ObservableObject {
         )
 
         do {
-            _ = try await API.createAsset(requestBody: assetRequest)
-            //print("Asset created with ID: \(assetResponse.assetId)")
-            return true
+            let assetResponse = try await API.createAsset(requestBody: assetRequest)
+            return assetResponse.resolvedId
         } catch {
             print("Error creating asset: \(error)")
         }
-        return false
+        return nil
     }
     
     /*

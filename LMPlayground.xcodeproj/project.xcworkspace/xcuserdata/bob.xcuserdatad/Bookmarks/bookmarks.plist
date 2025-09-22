@@ -168,16 +168,16 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>    func getTransactions(request: GetTransactionsRequest? = nil) async throws -&gt; [LMTransaction] {
+				<string>    func getAssets() async throws -&gt; [Asset] {
 </string>
 				<key>leading</key>
 				<string>    }
     
 </string>
 				<key>trailing</key>
-				<string>            // Pass `nil` for requestBody if request is not provided
-            let response = try await call(path: "/transactions", responseType: GetTransactionsResponse.self, requestBody: request, method: "GET")
-            return response.transactions
+				<string>        let response = try await call(path: "/assets", responseType: GetAssetsResponse.self)
+        return response.assets
+    }
 </string>
 			</dict>
 			<key>type</key>
