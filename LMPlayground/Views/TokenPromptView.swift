@@ -53,6 +53,13 @@ struct TokenPromptView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .disableAutocorrection(true)
+                        .onChange(of: apiToken) { _, newValue in
+                            let withoutNewlines = newValue.replacingOccurrences(of: "\\R", with: "", options: .regularExpression)
+                            let filtered = withoutNewlines.trimmingCharacters(in: .whitespaces)
+                            if filtered != newValue {
+                                apiToken = filtered
+                            }
+                        }
                         .onAppear {
                             UITextView.appearance().textContainer.lineBreakMode = .byTruncatingTail
                         }

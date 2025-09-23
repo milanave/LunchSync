@@ -65,7 +65,7 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             let transactions = try await FinanceStore.shared.transactions(query: query)
             for transaction in transactions {
                 let amount = (transaction.transactionAmount.amount as NSDecimalNumber).doubleValue
-                addLog(prefix: logPrefix, message: "T: \(transaction.transactionDescription) \(amount) \(transaction.transactionDate)", level: 2)
+                self.addLog(prefix: logPrefix, message: "T: \(transaction.transactionDescription) \(amount) \(transaction.transactionDate)", level: 2)
             }
             
             
