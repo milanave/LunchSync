@@ -4,6 +4,8 @@ Automatically sync your Apple Wallet transactions to Lunch Money. LunchSync is a
 
 Official site: https://littlebluebug.com/wallet/index.html
 
+Lunch Sync is now available on the App Store: https://apps.apple.com/us/app/lunch-sync/id6739702427
+
 Lunch Sync is available for testing through Test Flight here: https://testflight.apple.com/join/mF8JEHqk
 
 ## Features

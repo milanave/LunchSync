@@ -24,6 +24,10 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
     var container: ModelContainer!
     var modelContext: ModelContext!
     var logPrefix: String = "BGD"
+
+    // add this when I'm ready to debug on the device
+    //private let bgdLogger = Logger(subsystem: "com.your.bundleid", category: "BGD")
+    //bgdLogger.info("didReceiveData types: \(String(describing: types))")
     
     required init() {
         // Set up any resources or storage used by the extension
@@ -44,7 +48,7 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
         do{
             container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self, LMCategory.self, TrnCategory.self)
             modelContext = ModelContext(container)
-            self.addLog(prefix: "BGD", message: "LunchSyncBackgroundHandlerBGD didReceiveData", level: 1)
+            await self.addLog(prefix: "BGD", message: "LunchSyncBackgroundHandlerBGD didReceiveData", level: 1)
 
             /*
             // try the sample code
@@ -55,19 +59,26 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             
             // try to fetch directly
             let calendar = Calendar.current
+            await self.addLog(prefix: "BGD", message: "got calendar", level: 1)
             let endDate = Date()
             let startDate = calendar.date(byAdding: .day, value: -7, to: endDate)!
+            await self.addLog(prefix: "BGD", message: "got dates", level: 1)
             let sortDescriptor = SortDescriptor(\FinanceKit.Transaction.transactionDate, order: .reverse)
+            await self.addLog(prefix: "BGD", message: "got SortDescriptor", level: 1)
             let query = TransactionQuery(sortDescriptors: [sortDescriptor], predicate: #Predicate<FinanceKit.Transaction>{transaction in
                 transaction.transactionDate >= startDate &&
                 transaction.transactionDate <= endDate
             })
+            await self.addLog(prefix: "BGD", message: "got TransactionQuery", level: 1)
             let transactions = try await FinanceStore.shared.transactions(query: query)
+            await self.addLog(prefix: "BGD", message: "got \(transactions.count) transactions", level: 1)
+            
+            /*
             for transaction in transactions {
                 let amount = (transaction.transactionAmount.amount as NSDecimalNumber).doubleValue
-                self.addLog(prefix: logPrefix, message: "T: \(transaction.transactionDescription) \(amount) \(transaction.transactionDate)", level: 2)
+                await self.addLog(prefix: logPrefix, message: "T: \(transaction.transactionDescription) \(amount) \(transaction.transactionDate)", level: 2)
             }
-            
+            */
             
             /*
             // the normal code..
@@ -83,19 +94,20 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             */
             
             let pendingCount = 0
-            self.addLog( prefix: logPrefix, message: "finished, found \(pendingCount) new transactions", level: 1)
+            await self.addLog( prefix: logPrefix, message: "finished, found \(pendingCount) new transactions", level: 1)
 
         } catch {
-            self.addLog( prefix: "BGD", message: "Error processing background delivery: \(error)", level: 1)
+            await self.addLog( prefix: "BGD", message: "Error processing background delivery: \(error)", level: 1)
             //await addNotification(time: 0.5, title: "BDG LunchSync Error", subtitle: "", body: "Error processing background delivery: \(error)")
         }
         print(" LunchSyncBackgroundHandlerBGD finished")
     }
 
     func willTerminate() async {
-        self.addLog( prefix: logPrefix, message: "calling willTerminate", level: 1)
+        await self.addLog( prefix: logPrefix, message: "calling willTerminate", level: 1)
     }
     
+    @MainActor
     public func addLog(prefix: String, message: String, level: Int = 1) {
         do {
             let log = Log(message: "\(prefix): \(message)", level: level)

@@ -64,7 +64,7 @@ class SafeSyncBroker {
         let alert_after_import = sharedDefaults.object(forKey: "alert_after_import") == nil ? true : sharedDefaults.bool(forKey: "alert_after_import")
         
         do {
-            addLog(prefix: prefix, message: "Starting transaction fetch (importAsCleared: \(importAsCleared), transStatusInNotes: \(putTransStatusInNotes), autoSync: \(autoImportTransactions))", level: 1)
+            addLog(prefix: prefix, message: "Starting transaction fetch (importAsCleared: \(importAsCleared), transStatusInNotes: \(putTransStatusInNotes), autoSync: \(autoImportTransactions), categorize: \(categorize_incoming)", level: 1)
             
             if apiToken.isEmpty {
                 let keychain = Keychain()
@@ -119,6 +119,8 @@ class SafeSyncBroker {
                     }
                     replaceTransaction(newTrans: transaction)
                 }
+            }else{
+                print("Skipping MCC categories")
             }
             
 
@@ -153,21 +155,33 @@ class SafeSyncBroker {
             let uncategorizedCount = (try? modelContext.fetch(fetchDescriptor).count) ?? 0
             
             var body = ""
-            if(transactionsToSyncCount == 0 && uncategorizedCount == 0){
-                // no alert needed
-                
-            }else if(transactionsToSyncCount > 0 && uncategorizedCount == 0){
-                body = "\(transactionsToSyncCount) transaction\(transactionsToSyncCount == 1 ? "" : "s") synced"
-            }else if(transactionsToSyncCount > 0 && uncategorizedCount > 0){
-                body = "\(transactionsToSyncCount) transaction\(transactionsToSyncCount == 1 ? "" : "s") synced, \(uncategorizedCount) categories that need mapping"
-            }else if(transactionsToSyncCount == 0 && uncategorizedCount > 0){
-                body = "\(uncategorizedCount) categories that need mapping"
+            
+            if(categorize_incoming){
+                if(transactionsToSyncCount == 0 && uncategorizedCount == 0){
+                    // no alert needed
+                }else if(transactionsToSyncCount > 0 && uncategorizedCount == 0){
+                    body = "\(transactionsToSyncCount) transaction\(transactionsToSyncCount == 1 ? "" : "s") synced"
+                }else if(transactionsToSyncCount > 0 && uncategorizedCount > 0){
+                    body = "\(transactionsToSyncCount) transaction\(transactionsToSyncCount == 1 ? "" : "s") synced, \(uncategorizedCount) categories that need mapping"
+                }else if(transactionsToSyncCount == 0 && uncategorizedCount > 0){
+                    body = "\(uncategorizedCount) categories that need mapping"
+                }
+                // update the badge count
+                addLog(prefix: prefix, message: "Updating badge count to \(finalPendingCount+uncategorizedCount)", level: 2)
+                updateBadgeCounts(count:finalPendingCount+uncategorizedCount)
+
+            }else{
+                if(transactionsToSyncCount == 0 ){
+                    // no alert needed
+                }else if(transactionsToSyncCount > 0){
+                    body = "\(transactionsToSyncCount) transaction\(transactionsToSyncCount == 1 ? "" : "s") synced"
+                }
+                // update the badge count
+                addLog(prefix: prefix, message: "Updating badge count to \(finalPendingCount)", level: 2)
+                updateBadgeCounts(count:finalPendingCount)
             }
             
-            // update the badge count
-            addLog(prefix: prefix, message: "Updating badge count to \(finalPendingCount+uncategorizedCount)", level: 2)
-            updateBadgeCounts(count:finalPendingCount+uncategorizedCount)
-                    
+                        
             if( body.isEmpty ){
                 addLog(prefix: prefix, message: "Sync complete, pending=\(finalPendingCount), uncategorized=\(uncategorizedCount)", level: 2)
             }else{
@@ -178,8 +192,6 @@ class SafeSyncBroker {
                     }
                 }
             }
-            
-            
             
             if let storedDeviceToken = sharedDefaults.string(forKey: "deviceToken") {
                 await registerWalletCheck(deviceToken: storedDeviceToken)
@@ -236,6 +248,7 @@ class SafeSyncBroker {
     }
     
     private func updateBadgeCounts(count: Int){
+        print("updateBadgeCounts: \(count)")        
         UNUserNotificationCenter.current().setBadgeCount(count) { error in
             if let error = error {
                 print("Error setting badge count: \(error)")

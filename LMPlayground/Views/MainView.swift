@@ -776,7 +776,8 @@ struct MainView: View {
             predicate: #Predicate<TrnCategory> { $0.lm_id == "" }
         )
         let uncategorizedCount = (try? modelContext.fetch(fetchDescriptor).count) ?? 0
-        let count = finalPendingCount+uncategorizedCount
+        let count = finalPendingCount + (categorize_incoming ? uncategorizedCount : 0)
+        print("MainView: Setting badge count to \(count)")
         UNUserNotificationCenter.current().setBadgeCount(count) { error in
             if let error = error {
                 print("Error setting badge count: \(error)")
