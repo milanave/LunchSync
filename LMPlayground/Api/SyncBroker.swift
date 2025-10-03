@@ -8,8 +8,6 @@ import Foundation
 import SwiftData
 import SwiftUI
 
-
-
 class SyncBroker {
     private let modelContext: ModelContext
     private var apiToken: String
@@ -109,9 +107,13 @@ class SyncBroker {
                 addLog(prefix: prefix, message: "found \(newTransactions.count) transactions to sync", level: 2)
             }
             
+            // always import Apple MCC codes/categories, so we'll have them if the user enabled this feature later
+            let trnCategoryMap = try processMCCCategories(transactions: newTransactions, prefix: prefix)
+            
             // Process MCCs and create category mappings
             if(categorize_incoming){
-                let trnCategoryMap = try processMCCCategories(transactions: newTransactions, prefix: prefix)
+                print("categorize_incoming")
+                
                 addLog(prefix: prefix, message: "processing \(trnCategoryMap.count) mcc categories", level: 2)
                 
                 // Now process each transaction with the category mapping
@@ -621,7 +623,7 @@ class SyncBroker {
                             categoryId: transaction.lm_category_id != nil ? Int(transaction.lm_category_id!) : nil,
                             assetId: Int(transaction.lm_account),
                             notes: putTransStatusInNotes ? (transaction.notes.isEmpty ? nil : transaction.notes) : nil,
-                            status: importAsCleared ? "cleared" : "uncleared",
+                            status: nil, //importAsCleared ? "cleared" : "uncleared", no need to call this for updates
                             externalId: transaction.id,
                             isPending: false //transaction.isPending can't set to true b/c LM doesn't let you edit
                         )

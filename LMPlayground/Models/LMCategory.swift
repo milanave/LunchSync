@@ -4,9 +4,22 @@
 //
 //  Created by Bob Sanders on 10/26/24.
 //
-
+/*
+ Each time a unique MCC code is received from Apple Wallet, create a local TrnCategory
+ The user will select LunchMoney categories (as LMCategory objects) to assign to each one
+ */
 import Foundation
 import SwiftData
+
+struct CategoryMapping: Codable {
+    var mcc: String
+    var name: String
+    var lm_id: String
+    var lm_name: String
+    var lm_descript: String
+    var exclude_from_budget: Bool
+    var exclude_from_totals: Bool
+}
 
 @Model
 final class LMCategory {

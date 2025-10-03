@@ -43,24 +43,27 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
     func didReceiveData(for types: [FinanceStore.BackgroundDataType]) async {
         //print("BGD: Received background data types: \(types)")
         bgdLogger.info("LunchSyncBackgroundHandlerBGD didReceiveData types: \(String(describing: types))")
-        await self.addLog(prefix: "BGD", message: "LunchSyncBackgroundHandlerBGD didReceiveData", level: 1)
+        await self.addLog(prefix: "BGD", message: "LunchSyncBackgroundHandlerBGD didReceiveData types: \(String(describing: types))", level: 1)
         do{
             let calendar = Calendar.current
             let endDate = Date()
             let startDate = calendar.date(byAdding: .day, value: -7, to: endDate)!
-            let sortDescriptor = SortDescriptor(\FinanceKit.Transaction.transactionDate, order: .reverse)
+            //let sortDescriptor = SortDescriptor(\FinanceKit.Transaction.transactionDate, order: .reverse)
             let query = TransactionQuery(
-                sortDescriptors: [sortDescriptor],
-                predicate: #Predicate<FinanceKit.Transaction> { transaction in
-                    transaction.transactionDate >= startDate &&
-                    transaction.transactionDate <= endDate
+                //sortDescriptors: [sortDescriptor],
+                //predicate: #Predicate<FinanceKit.Transaction> { transaction in
+                //    transaction.transactionDate >= startDate &&
+                //    transaction.transactionDate <= endDate
+                //}
+                predicate: #Predicate {
+                    $0.transactionDate >= startDate
                 }
             )
             await self.addLog(prefix: "BGD", message: "starting query", level: 1)
             var transactions: [FinanceKit.Transaction]
             transactions = try await FinanceStore.shared.transactions(query: query)
-            bgdLogger.info("LunchSyncBackgroundHandlerBGD got \(transactions.count) transactions")
             await self.addLog(prefix: "BGD", message: "got \(transactions.count) transactions", level: 1)
+            bgdLogger.info("LunchSyncBackgroundHandlerBGD got \(transactions.count) transactions")
             /*
             // try to fetch directly
             let calendar = Calendar.current
@@ -103,7 +106,7 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             //await self.addLog( prefix: logPrefix, message: "finished, found \(pendingCount) new transactions", level: 1)
             await self.addNotification(time: 0.1, title: "BGD Complete", subtitle: "", body: "finished, found \(transactions.count) new transactions")
         } catch {
-            bgdLogger.info("Error processing background delivery: \(error)")
+            bgdLogger.error("Error processing background delivery: \(error)")
             await self.addLog( prefix: "BGD", message: "Error processing background delivery: \(error)", level: 1)
             await self.addNotification(time: 0.1, title: "BGD Sync Error", subtitle: "", body: "Error processing background delivery: \(error)")
         }

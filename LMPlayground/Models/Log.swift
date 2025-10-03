@@ -12,4 +12,5 @@ class Log {
         self.message = message
         self.level = level
     }
-} 
+    
+}

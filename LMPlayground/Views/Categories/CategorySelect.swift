@@ -284,7 +284,7 @@ struct CategorySelect: View {
         )
         do {
             try modelContext.save()
-            print("Successfully assigned mapping: \(category.name) -> \(lmCategory.name)")
+            print("Successfully assigned mapping: \(category.name) -> \(lmCategory.name)")            
             dismiss()
         } catch {
             errorMessage = "Failed to assign mapping: \(error.localizedDescription)"

@@ -1,7 +1,6 @@
 import Foundation
 import SwiftData
 import Combine
-import UserNotifications
 import os
 
 @MainActor
@@ -35,6 +34,7 @@ class Wallet :ObservableObject {
     }
     
     // Add this type to handle progress updates
+    /*
     struct SyncProgress {
         let current: Int
         let total: Int
@@ -119,6 +119,8 @@ class Wallet :ObservableObject {
         
         try modelContext.save()
     }
+     */
+    
     
     // all this does is take an array of Accounts (from Apple) and store/update each locally
     func syncAccountBalances(accounts: [Account]) async throws {
@@ -151,6 +153,7 @@ class Wallet :ObservableObject {
             try await group.waitForAll()
         }
     }
+     
     
     // add a transaction to the local store
     func addTransaction(id: String, account: String, payee: String, amount: Double, date: Date, lm_id: String, lm_account: String) {
@@ -164,7 +167,6 @@ class Wallet :ObservableObject {
         modelContext.insert(account)
         try? modelContext.save() // Save the new transaction
     }
-    
     
     func updateAccountBalance(accountId: String, balance: Double, lastUpdated: Date){
         let fetchDescriptor = FetchDescriptor<Account>(predicate: #Predicate { $0.id == accountId })
@@ -231,7 +233,7 @@ class Wallet :ObservableObject {
         }
         try? modelContext.save()
     }
-    
+    /*
     func addNotification(time: Double, title: String, subtitle: String, body: String) async {
         //print("addNotification \(title), \(body)")
         let center = UNUserNotificationCenter.current()
@@ -275,7 +277,7 @@ class Wallet :ObservableObject {
             print("Error scheduling notification: \(error)")
         }
     }
-    
+    */
     
     func replaceTransaction(newTrans: Transaction){
         // find a transaction in the local store
@@ -347,6 +349,7 @@ class Wallet :ObservableObject {
         try? modelContext.save() // Save after making updates
     }
     
+    /*
     func updateTransaction(id: String, account: String?, payee: String?, amount: Double?, date: Date?, lm_id: String?) {
         let fetchDescriptor = FetchDescriptor<Transaction>(predicate: #Predicate { $0.id == id })
         
@@ -375,6 +378,7 @@ class Wallet :ObservableObject {
             print("Failed to fetch transaction with id \(id): \(error)")
         }
     }
+    */
     
     func deleteTransaction(id: String) {
         let fetchDescriptor = FetchDescriptor<Transaction>(predicate: #Predicate { $0.id == id })
@@ -390,6 +394,7 @@ class Wallet :ObservableObject {
         }
     }
     
+    /*
     func getTransactions() -> [Transaction] {
         let fetchDescriptor = FetchDescriptor<Transaction>()
         
@@ -400,6 +405,7 @@ class Wallet :ObservableObject {
             return []
         }
     }
+     */
     
     func getAccounts() -> [Account] {
         let fetchDescriptor = FetchDescriptor<Account>()
@@ -411,6 +417,7 @@ class Wallet :ObservableObject {
             return []
         }
     }
+     
     
     func getTransactionsWithStatus(_ statuses: [Transaction.SyncStatus]) -> [Transaction] {
         let statusStrings = statuses.map { $0.rawValue }
@@ -472,6 +479,7 @@ class Wallet :ObservableObject {
     /*
      Takes a Transaction and attempts to sync it with the LM API
      */
+    /*
     func syncTransaction(transaction: Transaction) async throws -> Transaction {
         while true {
             do {
@@ -485,7 +493,8 @@ class Wallet :ObservableObject {
             }
         }
     }
-    
+     */
+    /*
     private func performSync(transaction: Transaction) async throws -> Transaction {
         //debug = true
         //print("syncTransaction \(transaction.id)")
@@ -627,6 +636,7 @@ class Wallet :ObservableObject {
             throw error
         }
     }
+     */
     
     func addLog(message: String, level: Int = 1) {
         let now = Date()
@@ -651,6 +661,7 @@ class Wallet :ObservableObject {
             print("Failed to save log: \(error)")
         }
     }
+     
     
     func getLogs(limit: Int = 100) -> [Log] {
         let sortDescriptor = SortDescriptor<Log>(\.date, order: .reverse)
@@ -677,6 +688,101 @@ class Wallet :ObservableObject {
             try modelContext.save()
         } catch {
             print("Failed to clear logs: \(error)")
+        }
+    }
+    
+    // MARK: save categories to user defaults
+
+    public func getTrnCategories() -> [TrnCategory] {
+        do{
+            let categories = try modelContext.fetch(FetchDescriptor<TrnCategory>())
+            return categories
+        }catch{
+            print("failed to fetch categories")
+        }
+        return []
+    }
+    
+    // serialize all TrnCategories to a json in the user defaults
+    public func backupCategories() {
+        do {
+            let categories = getTrnCategories()
+            var savedMappings: [CategoryMapping] = []
+            categories.forEach { category in
+                let catMap = CategoryMapping(
+                    mcc: category.mcc,
+                    name: category.name,
+                    lm_id: category.lm_id,
+                    lm_name: category.lm_name,
+                    lm_descript: category.lm_descript,
+                    exclude_from_budget: category.exclude_from_budget,
+                    exclude_from_totals: category.exclude_from_totals
+                )
+                savedMappings.append(catMap)
+            }
+            
+            print("Backing up \(savedMappings.count) category mappings")
+            let data = try JSONEncoder().encode(savedMappings)
+            let sharedDefaults = Utility.getUserDefaults()
+            sharedDefaults.set(data, forKey: "category_mappings")
+        } catch {
+            print("Failed to save menu bar items: \(error)")
+        }
+    }
+    
+    // retrieve stored TrnCategories from User defaults
+    public func clearTrnCategories(){
+        let fetchDescriptor = FetchDescriptor<TrnCategory>()
+        do {
+            let categories = try modelContext.fetch(fetchDescriptor)
+            for category in categories {
+                modelContext.delete(category)
+            }
+            try modelContext.save()
+        } catch {
+            print("Failed to clear logs: \(error)")
+        }
+    }
+    
+    public func getStoredCategories() -> [CategoryMapping] {
+        var savedMappings: [CategoryMapping] = []
+        do{
+            let sharedDefaults = Utility.getUserDefaults()
+            if let data = sharedDefaults.data(forKey: "category_mappings") {
+                savedMappings = try JSONDecoder().decode([CategoryMapping].self, from: data)
+            }
+        }catch{
+            print("Failed to save menu bar items: \(error)")
+        }
+        return savedMappings
+    }
+    
+    public func restoreCategories() {
+        do {
+            let savedMappings = getStoredCategories()
+            if(savedMappings.count>0){
+                print("Restoring \(savedMappings.count) category mappings")
+
+                clearTrnCategories() // delete all the existing mappings
+                savedMappings.forEach { category in
+                    //print(" -- \(category.name) (MCC: \(category.mcc)")
+                    let newTrnCategory = TrnCategory(
+                        mcc: category.mcc,
+                        name: category.name
+                    )
+                    newTrnCategory.set_lm_category(
+                        id: category.lm_id,
+                        name: category.lm_name,
+                        descript: category.lm_descript,
+                        exclude_from_budget: category.exclude_from_budget,
+                        exclude_from_totals: category.exclude_from_totals
+                    )
+                    modelContext.insert(newTrnCategory)
+                }
+                try modelContext.save()
+            }
+        } catch {
+            print("Failed to save menu bar items: \(error)")
         }
     }
 }

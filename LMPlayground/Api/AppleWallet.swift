@@ -299,7 +299,7 @@ class AppleWallet{
                 type: String(describing: transaction.transactionType),
                 accountID: transaction.accountID.uuidString,
                 status: "",
-                isPending: isPending,
+                isPending: transaction.status == .booked ? false : true,
                 sync: .pending,
                 lm_category_id: "",
                 lm_category_name: "",
@@ -335,6 +335,7 @@ class AppleWallet{
     }
     
     // this is a "safe" version meant to be the first thing that is called in the background extension
+    // it attempts to only fetch the FinanceKit data
     func getRecentTransactions() async throws -> [Transaction] {
         print("getRecentTransactions starting")
         
@@ -369,6 +370,8 @@ class AppleWallet{
                 amount = amount * -1
             }
             
+            let category_id = transaction.merchantCategoryCode.map { String(describing: $0) }
+            
             print("Recent transaction: \(transaction.transactionDescription), \(transaction.transactionAmount.amount), \(transaction.transactionDate)")
             
             let t = Transaction(
@@ -388,9 +391,10 @@ class AppleWallet{
                 sync: .pending,
                 lm_category_id: "",
                 lm_category_name: "",
-                category_id: "",
-                category_name: ""
+                category_id: category_id,
+                category_name: "" // leave this blank so we don't have to touch the MCC code file until these transactions are prepped in SyncBroker
             )
+            t.addHistory(note: "Created")
             transactionsFound.append(t)
         }
         print("returning \(transactionsFound.count) transactions")
@@ -495,9 +499,6 @@ class AppleWallet{
             }
             //print(transaction)
             let category_id = transaction.merchantCategoryCode.map { String(describing: $0) }
-            //print(" -- \(transaction.transactionDescription) \(amount) \(accountName) \(transaction.id.uuidString)")
-            
-            // Look up MCC description
             let category_name = category_id.flatMap { getMCCDescription(for: $0) }
             
             //print("refreshWalletTransactionsForAccounts \(payeeDescription) \(transaction.status)=\(isPending)")
@@ -523,6 +524,7 @@ class AppleWallet{
                 category_id: category_id,
                 category_name: category_name
             )
+            t.addHistory(note: "Created")
             transactionsFound.append(t)
         }
         print("returning \(transactionsFound.count) transactions")

@@ -506,8 +506,7 @@ class LunchMoneyAPI {
             checkForRecurring: checkForRecurring,
             skipBalanceUpdate: skipBalanceUpdate
         )
-        print("INSERT-----")
-        print(applyRules!, skipDuplicates!, checkForRecurring!, skipBalanceUpdate!)
+        //print(applyRules!, skipDuplicates!, checkForRecurring!, skipBalanceUpdate!)
         let response = try await call(path: "/transactions", responseType: CreateTransactionsResponse.self, requestBody: requestBody)
 
         if let errors = response.errors, !errors.isEmpty {

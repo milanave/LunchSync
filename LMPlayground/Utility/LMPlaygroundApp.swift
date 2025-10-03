@@ -150,7 +150,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         
         @AppStorage("backgroundJobFrequency", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) var backgroundJobFrequency: Int = 1
         
-        print("Device Token: \(token) freq=\(backgroundJobFrequency)")
+        //print("Device Token: \(token) freq=\(backgroundJobFrequency)")
         
         // Register the token with your server if background jobs are enabled
                         let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
@@ -192,7 +192,7 @@ struct LMPlaygroundApp: App {
                     await MainActor.run {
                         UIApplication.shared.registerForRemoteNotifications()
                     }
-                    print("Notification permission granted")
+                    //print("Notification permission granted")
                 } else {
                     print("Notification permission denied")
                 }

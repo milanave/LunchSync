@@ -84,15 +84,18 @@ struct MainView: View {
         }
         #if DEBUG
         if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
+            // running in the simulator
             let wallet = MockWallet(context: context, apiToken: "mock-token")
             _wallet = StateObject(wrappedValue: wallet)
             _appleWallet = State(initialValue: MockAppleWallet())
         } else {
+            // running on device, connected to Xcode
             let wallet = Wallet(context: context, apiToken: initialToken)
             _wallet = StateObject(wrappedValue: wallet)
             _appleWallet = State(initialValue: AppleWallet())
         }
         #else
+        // running in TestFlight/AppStore
         let wallet = Wallet(context: context, apiToken: initialToken)
         _wallet = StateObject(wrappedValue: wallet)
         _appleWallet = State(initialValue: AppleWallet())
@@ -205,7 +208,7 @@ struct MainView: View {
             }
             .sheet(isPresented: $showingCategorySheet) {
                 NavigationStack {
-                    CategoryView()
+                    CategoryView(context: modelContext, appDelegate: appDelegate)
                         .toolbar {
                             ToolbarItem(placement: .confirmationAction) {
                                 Button("Done") {
@@ -291,16 +294,7 @@ struct MainView: View {
         NavigationStack {
             List {
                 Section {
-                    if #available(iOS 26.0, *) {
-                        Toggle("Enable background delivery", isOn:$enableBackgroundDelivery.animation())
-                            .onChange(of:enableBackgroundDelivery){ _, newValue in
-                                if !newValue {
-                                    setBackgroundDelivery(enabled: false)
-                                }else{
-                                    setBackgroundDelivery(enabled: true)
-                                }
-                            }
-                    }
+                    
                     Toggle("Enable background sync", isOn: $enableBackgroundJob.animation())
                         .disabled(walletsConnected < 1)
                         .onChange(of: enableBackgroundJob) { _, newValue in
@@ -378,6 +372,24 @@ struct MainView: View {
                             "Registered failed with \(message.message). \(postText)").foregroundStyle(.secondary)
                     }
                 }
+                Section{
+                    if #available(iOS 26.0, *) {
+                        Toggle("Enable background delivery", isOn:$enableBackgroundDelivery.animation())
+                            .onChange(of:enableBackgroundDelivery){ _, newValue in
+                                if !newValue {
+                                    setBackgroundDelivery(enabled: false)
+                                }else{
+                                    setBackgroundDelivery(enabled: true)
+                                }
+                            }
+                    }
+                } header: {
+                    Text("iOS 26 only")
+                } footer: {
+                    Text("Background Delivery is under development,but available for testing. Please use with along with background sync")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                
                 
             }
             .navigationTitle("Background Sync")
@@ -808,7 +820,7 @@ struct MainView: View {
         )
         let uncategorizedCount = (try? modelContext.fetch(fetchDescriptor).count) ?? 0
         let count = finalPendingCount + (categorize_incoming ? uncategorizedCount : 0)
-        print("MainView: Setting badge count to \(count)")
+        //print("MainView: Setting badge count to \(count)")
         UNUserNotificationCenter.current().setBadgeCount(count) { error in
             if let error = error {
                 print("Error setting badge count: \(error)")
