@@ -14,6 +14,7 @@ class MockWallet: Wallet {
     var apiToken: String
     
     override required init(context: ModelContext, apiToken: String) {
+        print("-------- MockWallet --------")
         self.context = context
         self.apiToken = apiToken
         super.init(context: context, apiToken: apiToken)

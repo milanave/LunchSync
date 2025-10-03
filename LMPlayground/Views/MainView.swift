@@ -6,7 +6,7 @@ import SwiftData
 import FinanceKit
 import BackgroundTasks
 import os
-
+import StoreKit
 
 struct MainView: View {
     @Environment(\.modelContext) private var modelContext
@@ -30,7 +30,7 @@ struct MainView: View {
     @State private var appleWallet: AppleWallet
     @State private var showingPreviewTransactions = false
     @State private var transactions: [Transaction] = []
-    @State private var syncProgress: SafeSyncBroker.SafeSyncProgress?
+    @State private var syncProgress: SyncBroker.SafeSyncProgress?
     @State private var showingSyncProgress = false
     
     @State private var lastUpdated = Date() //.addingTimeInterval(-10*60) //(-365 * 24 * 60 * 60)
@@ -40,6 +40,7 @@ struct MainView: View {
     @AppStorage("backgroundJobFrequency", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var backgroundJobFrequency: Int = 1
     @AppStorage("enableBackgroundDelivery", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var enableBackgroundDelivery = false
     @AppStorage("categorize_incoming", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var categorize_incoming = true
+    @AppStorage("is_test_flight", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var is_test_flight = false
     
     @State private var showingAboutSheet = false
     @State private var showingJobSheet = false
@@ -89,7 +90,7 @@ struct MainView: View {
         } else {
             let wallet = Wallet(context: context, apiToken: initialToken)
             _wallet = StateObject(wrappedValue: wallet)
-            _appleWallet = State(initialValue: MockAppleWallet())
+            _appleWallet = State(initialValue: AppleWallet())
         }
         #else
         let wallet = Wallet(context: context, apiToken: initialToken)
@@ -130,6 +131,7 @@ struct MainView: View {
                     //checkApiToken()
                     refreshView()
                     //refreshWalletTransactions()
+                    await setIsTestFlight()
                 }
 
             }
@@ -275,8 +277,10 @@ struct MainView: View {
         if #available(iOS 26.0, *) {
             if enabled {
                 FinanceStore.shared.enableBackgroundDelivery(for: [.transactions, .accounts, .accountBalances], frequency: .hourly)
+                wallet.addLog(message: "MV: BackgroundDelivery enabled", level: 1)
             }else{
                 FinanceStore.shared.disableBackgroundDelivery(for: [.transactions, .accounts, .accountBalances])
+                wallet.addLog(message: "MV: BackgroundDelivery disabled", level: 1)
             }
         }else{
             wallet.addLog(message: "MV: setBackgroundDelivery not available on this OS \(enabled)", level: 1)
@@ -303,7 +307,7 @@ struct MainView: View {
                             if !newValue {
                                 if let token = appDelegate.notificationDelegate.currentDeviceToken {
                                     Task {
-                                        let response = await appDelegate.notificationDelegate.registerForPushNotifications(deviceToken: token, active: false, frequency: backgroundJobFrequency)
+                                        let response = await PushAPI.registerForPushNotifications(deviceToken: token, active: false, frequency: backgroundJobFrequency)
                                         await MainActor.run {
                                             registrationMessage = response
                                         }
@@ -317,7 +321,7 @@ struct MainView: View {
                             } else {
                                 if let token = appDelegate.notificationDelegate.currentDeviceToken {
                                     Task {
-                                        let response = await appDelegate.notificationDelegate.registerForPushNotifications(deviceToken: token, active: true, frequency: backgroundJobFrequency)
+                                        let response = await PushAPI.registerForPushNotifications(deviceToken: token, active: true, frequency: backgroundJobFrequency)
                                         await MainActor.run {
                                             registrationMessage = response
                                         }
@@ -330,8 +334,6 @@ struct MainView: View {
                         }
 
                     if enableBackgroundJob {
-
-                        
                         Picker("Check for transactions every", selection: $backgroundJobFrequency) {
                             Text("Hour").tag(1)
                             Text("2 hours").tag(5)
@@ -344,7 +346,7 @@ struct MainView: View {
 
                             if let token = appDelegate.notificationDelegate.currentDeviceToken {
                                 Task {
-                                    let response = await appDelegate.notificationDelegate.registerForPushNotifications(deviceToken: token, active: true, frequency: backgroundJobFrequency)
+                                    let response = await PushAPI.registerForPushNotifications(deviceToken: token, active: true, frequency: backgroundJobFrequency)
                                     await MainActor.run {
                                         registrationMessage = response
                                     }
@@ -661,6 +663,7 @@ struct MainView: View {
     }
     
     // MARK: import buttons
+    
     private func importButtons() -> some View {
         Section{
             
@@ -720,6 +723,27 @@ struct MainView: View {
         updateLastUpdated()
     }
     
+    private func setIsTestFlight() async{
+        
+        var isTestFlight: Bool {
+            get async {
+                do {
+                    let appTransaction = try await AppTransaction.shared
+                    switch appTransaction {
+                    case .verified(let transaction):
+                        // TestFlight builds will have a sandbox environment
+                        return transaction.environment == .sandbox
+                    case .unverified:
+                        return false
+                    }
+                } catch {
+                    return false
+                }
+            }
+        }
+        is_test_flight = await isTestFlight
+    }
+    
     // MARK: importPendingTransactions
     private func importPendingTransactions() async {
         guard !isSyncing else { return }
@@ -728,11 +752,11 @@ struct MainView: View {
             isSyncing = true
             syncError = nil
             showingSyncProgress = true
-            syncProgress = SafeSyncBroker.SafeSyncProgress(current: 0, total: pendingCount, status: "Starting sync...")
+            syncProgress = SyncBroker.SafeSyncProgress(current: 0, total: pendingCount, status: "Starting sync...")
         }
         
         do {
-            let syncBroker = SafeSyncBroker(context: modelContext, logPrefix: "MV")
+            let syncBroker = SyncBroker(context: modelContext, logPrefix: "MV")
             try await syncBroker.syncTransactions(prefix: "MV", shouldContinue: {
                 isSyncing
             }) { progress in
@@ -755,12 +779,19 @@ struct MainView: View {
     
     // MARK: refreshWalletTransactions
     private func refreshWalletTransactions() {
-        let syncBroker = SafeSyncBroker(context: modelContext)
+        let syncBroker = SyncBroker(context: modelContext)
         Task {
             do {
-                _ = try await syncBroker.fetchTransactions(prefix: "MV", showAlert: true) { progressMessage in
-                    //print("refreshWalletTransactions Progress: \(progressMessage)")
-                }
+                let preFetchedWalletData = try await appleWallet.getPreFetchedWalletData()
+                _ = try await syncBroker.fetchTransactions(
+                    prefix: "MV",
+                    showAlert: true,
+                    skipSync: true,
+                    progress: { progressMessage in
+                        //print("refreshWalletTransactions Progress: \(progressMessage)")
+                    },
+                    preFetchedWalletData: preFetchedWalletData
+                )
                 //print("refreshWalletTransactions Completed with \(pendingCount) pending transactions")
                 refreshView()
             } catch {

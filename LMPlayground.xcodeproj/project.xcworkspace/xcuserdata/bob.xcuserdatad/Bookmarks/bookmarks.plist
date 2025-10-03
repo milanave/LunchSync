@@ -236,13 +236,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>134</string>
+					<string>30</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>133</string>
+					<string>29</string>
 					<key>Timestamp</key>
-					<string>780077661.8426909</string>
+					<string>781145505.673579</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -281,13 +281,13 @@
 					<key>EndingColumnNumber</key>
 					<string>0</string>
 					<key>EndingLineNumber</key>
-					<string>168</string>
+					<string>64</string>
 					<key>StartingColumnNumber</key>
 					<string>0</string>
 					<key>StartingLineNumber</key>
-					<string>167</string>
+					<string>63</string>
 					<key>Timestamp</key>
-					<string>780077661.84271</string>
+					<string>781145505.673743</string>
 				</dict>
 				<key>rebasable-url</key>
 				<dict>
@@ -303,7 +303,7 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>        let syncBroker = SafeSyncBroker(context: context)
+				<string>        let syncBroker = SyncBroker(context: context)
 </string>
 				<key>leading</key>
 				<string>        let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)

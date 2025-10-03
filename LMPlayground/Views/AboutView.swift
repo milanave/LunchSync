@@ -4,7 +4,10 @@ struct AboutView: View {
     private var appVersion: String {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
-        return "\(version) (\(build))"
+        
+        let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
+        let is_test_flight = sharedDefaults.bool(forKey: "is_test_flight")
+        return "\(version) (\(build))\(is_test_flight ? " Test Flight" : "")"
     }
     
     var body: some View {
@@ -28,14 +31,15 @@ struct AboutView: View {
                     Text("1. Connect your Lunch Money account with your API token.\n2. Select Wallet accounts to sync, pair each one with a Lunch Money asset.\n3. Sync transactions manually, enable background sync, or install the shortcuts below to set your own schedule.")
                         .font(.body)
                         .fixedSize(horizontal: false, vertical: true)
+                    /*
                     Button {
-                        if let url = URL(string: "https://littlebluebug.com/wallet.php") {
+                        if let url = URL(string: "https://littlebluebug.com/wallet/index.html") {
                             UIApplication.shared.open(url)
                         }
                     } label: {
-                        Text("Release notes")
-                            
+                        Text("Release notes")                            
                     }
+                     */
                 }
                 .padding()
                 .frame(maxWidth: .infinity)

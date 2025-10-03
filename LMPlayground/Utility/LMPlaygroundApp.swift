@@ -8,115 +8,11 @@ extension Notification.Name {
     static let pendingTransactionsChanged = Notification.Name("pendingTransactionsChanged")
 }
 
-// Add this struct at the top level
-struct PushRegistrationResponse: Codable {
-    let status: Bool
-    let message: String
-    let frequency: Int?
-}
+
 
 // MARK: UNUserNotificationCenterDelegate
 class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
     public var currentDeviceToken: String?
-    
-    func registerWalletCheck(deviceToken: String) async {
-        guard let url = URL(string: "https://push.littlebluebug.com/register.php") else {
-            print("Invalid URL for wallet check")
-            return
-        }
-        
-        #if DEBUG
-        let environment = "Test"
-        #else
-        let environment = "Production"
-        #endif
-        
-        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
-        let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
-        let versionString = "\(appVersion) (\(buildNumber))"
-        let osVersionString = ProcessInfo.processInfo.operatingSystemVersionString
-        
-        
-        let payload = [
-            "device_token": deviceToken,
-            "app_id": "WalletSync",
-            "key": Configuration.shared.pushServiceKey,
-            "environment": environment,
-            "action_id": "push_received",
-            "app_version": versionString,
-            "os_version": osVersionString
-        ] as [String : Any]
-        
-        do {
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-            
-            let (data, _) = try await URLSession.shared.data(for: request)
-            let response = try JSONDecoder().decode(PushRegistrationResponse.self, from: data)
-            print("Wallet check registration status: \(response.status)")
-        } catch {
-            print("Error in wallet check registration: \(error.localizedDescription)")
-        }
-    }
-    
-    func registerForPushNotifications(deviceToken: String, active: Bool = true, frequency: Int = 1) async -> PushRegistrationResponse {
-        guard let url = URL(string: "https://push.littlebluebug.com/register.php") else {
-            return PushRegistrationResponse(status: false, message: "Invalid URL", frequency: nil)
-        }
-        
-        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
-        let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
-        let versionString = "\(appVersion) (\(buildNumber))"
-        let osVersionString = ProcessInfo.processInfo.operatingSystemVersionString
-        
-        var frequencyHour = 1
-        switch frequency {
-            case 0: frequencyHour = 1
-            case 1: frequencyHour = 1
-            case 2: frequencyHour = 6
-            case 3: frequencyHour = 12
-            case 4: frequencyHour = 24
-            case 5: frequencyHour = 2
-            case 6: frequencyHour = 3
-        default:
-            frequencyHour = 1
-        }
-        
-        #if DEBUG
-        let environment = "Test"
-        #else
-        let environment = "Production"
-        #endif
-        
-        let payload = [
-            "device_token": deviceToken,
-            "active": active,
-            "app_id" : "WalletSync",
-            "frequency": frequencyHour,
-            "key": Configuration.shared.pushServiceKey,
-            "environment": environment,
-            "app_version": versionString,
-            "action_id": "register",
-            "os_version": osVersionString
-        ] as [String : Any]
-        
-        do {
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-            
-            let (data, _) = try await URLSession.shared.data(for: request)
-            let response = try JSONDecoder().decode(PushRegistrationResponse.self, from: data)
-            //print("Push registration status: \(response.status) hour=\(frequencyHour)")
-            
-            return response
-        } catch {
-            return PushRegistrationResponse(status: false, message: "Error: \(error.localizedDescription)", frequency: nil)
-        }
-    }
     
     func checkNotificationStatus() {
         UNUserNotificationCenter.current().getNotificationSettings { settings in
@@ -125,7 +21,7 @@ class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
                 // User has disabled notifications, unregister if we have a token
                 if let token = self.currentDeviceToken {
                     Task {
-                        await self.registerForPushNotifications(deviceToken: token, active: false)
+                        await PushAPI.registerForPushNotifications(deviceToken: token, active: false)
                     }
                 }
             default:
@@ -165,7 +61,7 @@ struct CheckTransactionsIntent: AppIntent {
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
         let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
         let context = container.mainContext
-        let syncBroker = SafeSyncBroker(context: context)
+        let syncBroker = SyncBroker(context: context)
         
         let pendingCount = try await syncBroker.fetchTransactions(prefix: "SC", showAlert: true, skipSync: true) { progressMessage in
             print("Check Transactions Progress: \(progressMessage)")
@@ -186,7 +82,7 @@ struct SyncTransactionsIntent: AppIntent {
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
         let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
         let context = container.mainContext
-        let syncBroker = SafeSyncBroker(context: context)
+        let syncBroker = SyncBroker(context: context)
         
         _ = try await syncBroker.fetchTransactions(prefix: "SC", showAlert: true) { progressMessage in
             print("Check Transactions Progress: \(progressMessage)")
@@ -211,14 +107,27 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             do {
                 let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self, LMCategory.self, TrnCategory.self)
                 let context = container.mainContext
-                let syncBroker = SafeSyncBroker(context: context, logPrefix: "BN")
+                let syncBroker = SyncBroker(context: context, logPrefix: "BN")
                 
+                /*
                 _ = try await syncBroker.fetchTransactions(
                     prefix: "BN",
                     showAlert: true
                 ) { progressMessage in
                     print("Silent Notification Progress: \(progressMessage)")
                 }
+                */
+                
+                let appleWallet = AppleWallet()
+                let preFetchedWalletData = try await appleWallet.getPreFetchedWalletData()
+                _ = try await syncBroker.fetchTransactions(
+                    prefix: "BN",
+                    showAlert: true,
+                    progress: { progressMessage in
+                        //print("refreshWalletTransactions Progress: \(progressMessage)")
+                    },
+                    preFetchedWalletData: preFetchedWalletData
+                )
                 
                 //completionHandler(pendingCount > 0 ? .newData : .noData)
                 completionHandler(.newData) // send this all the time to try to get more executions
@@ -247,7 +156,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                         let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
                 if sharedDefaults.bool(forKey: "enableBackgroundJob") {
             Task {
-                await notificationDelegate.registerForPushNotifications(deviceToken: token, active: true, frequency: backgroundJobFrequency)
+                await PushAPI.registerForPushNotifications(deviceToken: token, active: true, frequency: backgroundJobFrequency)
             }
         }
     }

@@ -286,16 +286,25 @@ class Wallet :ObservableObject {
             let transactions = try modelContext.fetch(fetchDescriptor)
             
             if let transaction = transactions.first {
-                //print("replaceTransaction matched \(transaction.lm_id)")
+                // Only treat string fields as changes if the incoming value is non-empty (or non-nil and non-empty for optionals)
+                let payeeChanged = (!newTrans.payee.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) && (newTrans.payee != transaction.payee)
+                let amountChanged = newTrans.amount != transaction.amount
+                let dateChanged = newTrans.date != transaction.date
+                let notesChanged = (!newTrans.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) && (newTrans.notes != transaction.notes)
+                let pendingChanged = newTrans.isPending != transaction.isPending
+                let categoryIdChanged = (newTrans.category_id?.isEmpty == false) && (newTrans.category_id != transaction.category_id)
+                let categoryNameChanged = (newTrans.category_name?.isEmpty == false) && (newTrans.category_name != transaction.category_name)
+                let lmCategoryIdChanged = (newTrans.lm_category_id?.isEmpty == false) && (newTrans.lm_category_id != transaction.lm_category_id)
+
                 if(
-                    newTrans.payee != transaction.payee ||
-                    newTrans.amount != transaction.amount ||
-                    newTrans.date != transaction.date ||
-                    newTrans.notes != transaction.notes ||
-                    newTrans.isPending != transaction.isPending ||
-                    newTrans.category_id != transaction.category_id ||
-                    newTrans.category_name != transaction.category_name ||
-                    newTrans.lm_category_id != transaction.lm_category_id
+                    payeeChanged ||
+                    amountChanged ||
+                    dateChanged ||
+                    notesChanged ||
+                    pendingChanged ||
+                    categoryIdChanged ||
+                    categoryNameChanged ||
+                    lmCategoryIdChanged
                 ){
                     /*
                     print(" -- \(transaction.lm_id) has changes in payee, amount or date")
@@ -304,18 +313,20 @@ class Wallet :ObservableObject {
                     print(" -- -- \(newTrans.date) != \(transaction.date) \(newTrans.date != transaction.date)")
                      */
                     //print(" -- -- \(newTrans.category_id ?? "n/a") != \(transaction.category_id ?? "n/a") \(newTrans.category_name ?? "n/a" != transaction.category_name ?? "n/a")")
-                    transaction.payee = newTrans.payee
-                    transaction.amount = newTrans.amount
-                    transaction.date = newTrans.date
-                    transaction.notes = newTrans.notes
+                    if payeeChanged { transaction.payee = newTrans.payee }
+                    if amountChanged { transaction.amount = newTrans.amount }
+                    if dateChanged { transaction.date = newTrans.date }
+                    if notesChanged { transaction.notes = newTrans.notes }
                     transaction.lm_id = newTrans.lm_id
                     transaction.lm_account = newTrans.lm_account
                     transaction.sync = .pending
-                    transaction.isPending = newTrans.isPending
-                    transaction.category_id = newTrans.category_id
-                    transaction.category_name = newTrans.category_name
-                    transaction.lm_category_id = newTrans.lm_category_id
-                    transaction.lm_category_name = newTrans.lm_category_name
+                    if pendingChanged { transaction.isPending = newTrans.isPending }
+                    if categoryIdChanged { transaction.category_id = newTrans.category_id }
+                    if categoryNameChanged { transaction.category_name = newTrans.category_name }
+                    if lmCategoryIdChanged { transaction.lm_category_id = newTrans.lm_category_id }
+                    if (newTrans.lm_category_name?.isEmpty == false) && (newTrans.lm_category_name != transaction.lm_category_name) {
+                        transaction.lm_category_name = newTrans.lm_category_name
+                    }
                 }
                 //else{
                     //print(" -- \(transaction.payee) \(transaction.amount) has no changes: \(transaction.id)")

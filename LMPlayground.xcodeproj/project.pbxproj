@@ -65,7 +65,7 @@
 				Api/LunchMoneyAPI.swift,
 				Api/MockAppleWallet.swift,
 				Api/MockWallet.swift,
-				Api/SafeSyncBroker.swift,
+				Api/PushAPI.swift,
 				Api/SyncBroker.swift,
 				Models/Account.swift,
 				Models/Item.swift,
@@ -279,10 +279,11 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = LunchSyncBackgroundHandler/LunchSyncBackgroundHandler.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 21;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LunchSyncBackgroundHandler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LunchSyncBackgroundHandler;
+				INFOPLIST_KEY_NSFinancialDataUsageDescription = "Loading ApplePay transactions to Lunch Money";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -308,10 +309,11 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = LunchSyncBackgroundHandler/LunchSyncBackgroundHandler.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 21;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LunchSyncBackgroundHandler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LunchSyncBackgroundHandler;
+				INFOPLIST_KEY_NSFinancialDataUsageDescription = "Loading ApplePay transactions to Lunch Money";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -463,7 +465,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = LMPlayground/LMPlayground.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 21;
 				DEVELOPMENT_ASSET_PATHS = "\"LMPlayground/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -504,7 +506,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = LMPlayground/LMPlayground.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 21;
 				DEVELOPMENT_ASSET_PATHS = "\"LMPlayground/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;

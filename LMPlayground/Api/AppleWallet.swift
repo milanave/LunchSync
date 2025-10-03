@@ -8,6 +8,11 @@ struct MCCCode: Codable {
     let description: String
 }
 
+struct PreFetchedWalletData {
+    let transactions: [Transaction]
+    let accounts: [Account]
+}
+
 class AppleWallet{
  
     var authStatus: AuthorizationStatus = .notDetermined
@@ -46,7 +51,7 @@ class AppleWallet{
         }
     }
     
-    private func getMCCDescription(for mccCode: String) -> String? {
+    public func getMCCDescription(for mccCode: String) -> String? {
         loadMCCCodes() // Ensure codes are loaded
         return mccCodes.first { $0.mcc == mccCode }?.description
     }
@@ -102,10 +107,11 @@ class AppleWallet{
     }
     
     func getWalletAccounts() async throws -> [Account] {
+        print("getWalletAccounts starting")
         var accounts: [Account] = []
         let walletAccounts: [FinanceKit.Account] = try await fetchAccounts()
         for acct in walletAccounts {
-            //print("getWalletAccounts \(acct.displayName) \(acct.id)")
+            print("getWalletAccounts \(acct.displayName) \(acct.id)")
             
             do {
                 let balance = try await fetchBalances(accountId: UUID(uuidString: acct.id.uuidString)!)
@@ -128,7 +134,7 @@ class AppleWallet{
                     print("got some weird balance type")
                 }
 
-
+                print("getWalletAccounts: \(acct.displayName) \(acct.id) \(balanceAmount)")
                 let newAccount = Account(
                     id: acct.id.uuidString,
                     name: acct.displayName,
@@ -147,6 +153,7 @@ class AppleWallet{
                 print("Authorization request error: \(error.localizedDescription)")
             }
         }
+        print("getWalletAccounts returning \(accounts.count) accounts")
         return accounts
     }
     
@@ -245,7 +252,7 @@ class AppleWallet{
     
     /*
      this fetches ALL transactions from the Wallet. Could be a lot.
-     TODO: put a limit here?
+     this is only used for importing transactions?
      */
     func fetchhWalletTransactionsForAccounts(accounts:[Account]) async throws -> [Transaction]{
         var transactionsFound: [Transaction] = []
@@ -306,8 +313,94 @@ class AppleWallet{
         return transactionsFound
     }
     
+    func getPreFetchedWalletData() async throws -> PreFetchedWalletData{
+        print("getPreFetchedWalletData starting")
+        do{
+            print("getPreFetchedWalletData fetching transactions")
+            let transactions = try await self.getRecentTransactions()
+            print("getPreFetchedWalletData got \(transactions.count) transactions")
+            let accounts = try await self.getWalletAccounts()
+            print("getPreFetchedWalletData got \(accounts.count) accounts")
+            
+            let pfwd: PreFetchedWalletData = .init(
+                transactions: transactions,
+                accounts: accounts
+            )
+            return pfwd
+        } catch {
+            print("getRecentTransactions failed to fetch transactions from FinanceStore: \(error.localizedDescription)")
+            throw NSError(domain: "AppleWallet", code: -2, userInfo: [NSLocalizedDescriptionKey: "getRecentTransactions failed to fetch transactions from FinanceStore: \(error.localizedDescription)"])
+        }
+
+    }
+    
+    // this is a "safe" version meant to be the first thing that is called in the background extension
+    func getRecentTransactions() async throws -> [Transaction] {
+        print("getRecentTransactions starting")
+        
+        // pick a date one month in the past
+        let calendar = Calendar.current
+        let endDate = Date()
+        let startDate = calendar.date(byAdding: .day, value: -7, to: endDate)!
+        let sortDescriptor = SortDescriptor(\FinanceKit.Transaction.transactionDate, order: .reverse)
+        let query = TransactionQuery(
+            sortDescriptors: [sortDescriptor],
+            predicate: #Predicate<FinanceKit.Transaction> { transaction in
+                transaction.transactionDate >= startDate &&
+                transaction.transactionDate <= endDate
+            }
+        )
+        
+        print("Executing FinanceStore query for date range \(startDate) to \(endDate)")
+        var transactions: [FinanceKit.Transaction]
+        do {
+            transactions = try await FinanceStore.shared.transactions(query: query)
+            print("getRecentTransactions got \(transactions.count) transactions")
+        } catch {
+            print("getRecentTransactions failed to fetch transactions from FinanceStore: \(error.localizedDescription)")
+            throw NSError(domain: "AppleWallet", code: -2, userInfo: [NSLocalizedDescriptionKey: "getRecentTransactions failed to fetch transactions from FinanceStore: \(error.localizedDescription)"])
+        }
+
+        var transactionsFound: [Transaction] = []
+        
+        for transaction in transactions {
+            var amount = (transaction.transactionAmount.amount as NSDecimalNumber).doubleValue
+            if transaction.creditDebitIndicator == .credit {
+                amount = amount * -1
+            }
+            
+            print("Recent transaction: \(transaction.transactionDescription), \(transaction.transactionAmount.amount), \(transaction.transactionDate)")
+            
+            let t = Transaction(
+                id: transaction.id.uuidString,
+                account: "",
+                payee: transaction.transactionDescription,
+                amount: amount,
+                date: transaction.transactionDate,
+                lm_id: "",
+                lm_account: "",
+                notes: transaction.status == .booked ? "booked" : "pending",
+                category: "",
+                type: String(describing: transaction.transactionType),
+                accountID: transaction.accountID.uuidString,
+                status: "",
+                isPending: transaction.status == .booked ? false : true,
+                sync: .pending,
+                lm_category_id: "",
+                lm_category_name: "",
+                category_id: "",
+                category_name: ""
+            )
+            transactionsFound.append(t)
+        }
+        print("returning \(transactionsFound.count) transactions")
+        
+        return transactionsFound
+    }
+    
     /*
      this is meant to fetch the latest transactions
+     called only from SyncBroker
      */
     func refreshWalletTransactionsForAccounts(accounts:[Account]) async throws -> [Transaction] {
         print("refreshWalletTransactionsForAccounts called with \(accounts.count) accounts, isBackgroundExtension: \(isBackgroundExtension)")
