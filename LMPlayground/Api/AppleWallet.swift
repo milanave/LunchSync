@@ -280,7 +280,6 @@ class AppleWallet{
                 amount = amount * -1
             }
             
-            let isPending = transaction.status == .booked ? false : true
             //print("fetchhWalletTransactionsForAccounts \(payeeDescription) \(transaction.status)=\(isPending)")
             
             let category_id = transaction.merchantCategoryCode.map { String(describing: $0) }

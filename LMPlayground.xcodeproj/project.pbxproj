@@ -7,12 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C40812A02E1FD35000121F0C /* LunchSyncBackgroundHandler.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = C40812982E1FD35000121F0C /* LunchSyncBackgroundHandler.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		C45CA58E2E91DE8C00C55948 /* LunchSyncBackgroundHandler.appex in CopyFiles */ = {isa = PBXBuildFile; fileRef = C40812982E1FD35000121F0C /* LunchSyncBackgroundHandler.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C4D328642CCD1DA900B638AB /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = C4D328632CCD1DA900B638AB /* README.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		C408129E2E1FD35000121F0C /* PBXContainerItemProxy */ = {
+		C45CA58F2E91DEC100C55948 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = C4D328392CCD137200B638AB /* Project object */;
 			proxyType = 1;
@@ -22,15 +22,14 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		C40812A12E1FD35000121F0C /* Embed ExtensionKit Extensions */ = {
+		C45CA58C2E91DE3400C55948 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
-			dstSubfolderSpec = 16;
+			dstPath = Extensions;
+			dstSubfolderSpec = 1;
 			files = (
-				C40812A02E1FD35000121F0C /* LunchSyncBackgroundHandler.appex in Embed ExtensionKit Extensions */,
+				C45CA58E2E91DE8C00C55948 /* LunchSyncBackgroundHandler.appex in CopyFiles */,
 			);
-			name = "Embed ExtensionKit Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -176,12 +175,12 @@
 				C4D3283D2CCD137200B638AB /* Sources */,
 				C4D3283E2CCD137200B638AB /* Frameworks */,
 				C4D3283F2CCD137200B638AB /* Resources */,
-				C40812A12E1FD35000121F0C /* Embed ExtensionKit Extensions */,
+				C45CA58C2E91DE3400C55948 /* CopyFiles */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				C408129F2E1FD35000121F0C /* PBXTargetDependency */,
+				C45CA5902E91DEC100C55948 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				C4D328432CCD137200B638AB /* LMPlayground */,
@@ -267,10 +266,10 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		C408129F2E1FD35000121F0C /* PBXTargetDependency */ = {
+		C45CA5902E91DEC100C55948 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = C40812972E1FD35000121F0C /* LunchSyncBackgroundHandler */;
-			targetProxy = C408129E2E1FD35000121F0C /* PBXContainerItemProxy */;
+			targetProxy = C45CA58F2E91DEC100C55948 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -280,11 +279,11 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = LunchSyncBackgroundHandler/LunchSyncBackgroundHandler.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LunchSyncBackgroundHandler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LunchSyncBackgroundHandler;
-				INFOPLIST_KEY_NSFinancialDataUsageDescription = "Loading ApplePay transactions to Lunch Money";
+				INFOPLIST_KEY_NSFinancialDataUsageDescription = "Loading iOS Wallet transactions to Lunch Money";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -292,7 +291,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.7;
+				MARKETING_VERSION = 1.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.littlebluebug.AppleCardSync.LunchSyncBackgroundHandler;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -310,11 +309,11 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = LunchSyncBackgroundHandler/LunchSyncBackgroundHandler.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LunchSyncBackgroundHandler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LunchSyncBackgroundHandler;
-				INFOPLIST_KEY_NSFinancialDataUsageDescription = "Loading ApplePay transactions to Lunch Money";
+				INFOPLIST_KEY_NSFinancialDataUsageDescription = "Loading iOS Wallet transactions to Lunch Money";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -322,7 +321,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.7;
+				MARKETING_VERSION = 1.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.littlebluebug.AppleCardSync.LunchSyncBackgroundHandler;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -466,7 +465,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = LMPlayground/LMPlayground.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"LMPlayground/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -474,7 +473,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Lunch Sync";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
-				INFOPLIST_KEY_NSFinancialDataUsageDescription = "Loading ApplePay transactions to Lunch Money";
+				INFOPLIST_KEY_NSFinancialDataUsageDescription = "Loading iOS Wallet transactions to Lunch Money";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -485,7 +484,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.7;
+				MARKETING_VERSION = 1.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.littlebluebug.AppleCardSync;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PUSH_SERVICE_KEY = "$(PUSH_SERVICE_KEY)";
@@ -507,7 +506,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = LMPlayground/LMPlayground.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 22;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"LMPlayground/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -515,7 +514,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "Lunch Sync";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.finance";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
-				INFOPLIST_KEY_NSFinancialDataUsageDescription = "Loading ApplePay transactions to Lunch Money";
+				INFOPLIST_KEY_NSFinancialDataUsageDescription = "Loading iOS Wallet transactions to Lunch Money";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -526,7 +525,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.7;
+				MARKETING_VERSION = 1.8;
 				PRODUCT_BUNDLE_IDENTIFIER = com.littlebluebug.AppleCardSync;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PUSH_SERVICE_KEY = "$(PUSH_SERVICE_KEY)";

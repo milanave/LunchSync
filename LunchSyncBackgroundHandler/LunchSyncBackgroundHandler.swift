@@ -13,9 +13,6 @@ import SwiftUI
 import os
 import UserNotifications
 
-
-
-
 @main
 class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
     var container: ModelContainer!
@@ -28,6 +25,8 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
     //bgdLogger.info("didReceiveData types: \(String(describing: types))")
     
     required init() {
+        
+        /*
         do{
             bgdLogger = Logger(subsystem: "com.littlebluebug.AppleCardSync.LunchSyncBackgroundHandler", category: "BGD")
             bgdLogger.info("LunchSyncBackgroundHandlerBGD init")
@@ -38,9 +37,33 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             //print("LunchSyncBackgroundHandlerBGD init failed: \(error)")
             self.addLog(prefix: logPrefix, message: "LunchSyncBackgroundHandlerBGD init failed: \(error)", level: 1)
         }
+        */
     }
 
     func didReceiveData(for types: [FinanceStore.BackgroundDataType]) async {
+        
+        do{
+            let calendar = Calendar.current
+            let endDate = Date()
+            let startDate = calendar.date(byAdding: .day, value: -7, to: endDate)!
+            let query = TransactionQuery(
+                predicate: #Predicate {
+                    $0.transactionDate >= startDate
+                }
+            )
+            var transactions: [FinanceKit.Transaction]
+            transactions = try await FinanceStore.shared.transactions(query: query)
+            await self.addNotification(time: 0.1, title: "BGD Complete", subtitle: "", body: "finished, found \(transactions.count) new transactions")
+            
+            container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self, LMCategory.self, TrnCategory.self)
+            modelContext = ModelContext(container)
+            await self.addLog(prefix: "BGD", message: "didReceiveData got \(transactions.count) transactions", level: 1)
+
+        }catch {
+            await self.addNotification(time: 0.1, title: "BGD Sync Error", subtitle: "", body: "Error processing background delivery: \(error)")
+        }
+        
+        /*
         //print("BGD: Received background data types: \(types)")
         bgdLogger.info("LunchSyncBackgroundHandlerBGD didReceiveData types: \(String(describing: types))")
         await self.addLog(prefix: "BGD", message: "LunchSyncBackgroundHandlerBGD didReceiveData types: \(String(describing: types))", level: 1)
@@ -111,6 +134,7 @@ class LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             await self.addNotification(time: 0.1, title: "BGD Sync Error", subtitle: "", body: "Error processing background delivery: \(error)")
         }
         print(" LunchSyncBackgroundHandlerBGD finished")
+         */
     }
 
     func willTerminate() async {
