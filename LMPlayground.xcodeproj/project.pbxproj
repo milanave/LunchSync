@@ -60,12 +60,11 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Api/AppleWallet.swift,
-				Api/FinanceUtilities.swift,
 				Api/LunchMoneyAPI.swift,
-				Api/MockAppleWallet.swift,
-				Api/MockWallet.swift,
 				Api/PushAPI.swift,
 				Api/SyncBroker.swift,
+				"BGD Test/FinanceUtilities.swift",
+				"BGD Test/Storage.swift",
 				Models/Account.swift,
 				Models/Item.swift,
 				Models/LMCategory.swift,
@@ -78,7 +77,6 @@
 				Utility/Configuration.swift,
 				Utility/CurrencyFormatter.swift,
 				Utility/Keychain.swift,
-				Utility/LastUpdatedEnvironment.swift,
 				Utility/Utility.swift,
 			);
 			target = C40812972E1FD35000121F0C /* LunchSyncBackgroundHandler */;

@@ -9,6 +9,7 @@ struct AboutView: View {
         let is_test_flight = sharedDefaults.bool(forKey: "is_test_flight")
         return "\(version) (\(build))\(is_test_flight ? " Test Flight" : "")"
     }
+    private let storage = Storage()
     
     var body: some View {
         NavigationStack {
@@ -31,6 +32,15 @@ struct AboutView: View {
                     Text("1. Connect your Lunch Money account with your API token.\n2. Select Wallet accounts to sync, pair each one with a Lunch Money asset.\n3. Sync transactions manually, enable background sync, or install the shortcuts below to set your own schedule.")
                         .font(.body)
                         .fixedSize(horizontal: false, vertical: true)
+                    Text("Weekly Spending: \(niceAmount(NSDecimalNumber(decimal: storage.getWeeklySpending()).doubleValue))")
+                        .font(.footnote)
+                    if let last = storage.getLastCheck() {
+                        Text("Last Checked: \(last.formatted(date: .abbreviated, time: .shortened))")
+                            .font(.footnote)
+                    } else {
+                        Text("Last Checked: never")
+                            .font(.footnote)
+                    }
                     /*
                     Button {
                         if let url = URL(string: "https://littlebluebug.com/wallet/index.html") {
