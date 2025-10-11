@@ -19,8 +19,10 @@ struct LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
     }
     
     func didReceiveData(for types: [FinanceStore.BackgroundDataType]) async {
+        self.storage.setLastCheck()
+        /*
         // Skip accounts and account balances.
-        if types.contains(.transactions) {
+        //if types.contains(.transactions) {
             do {
                 // Calculate the total spending over the past week.
                 let total: Decimal = try await FinanceUtilities.calculateWeeklySpendingTotal()
@@ -31,10 +33,13 @@ struct LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             } catch {
                 print("Error updating transaction total: \(error)")
             }
-        }
+        //}
+         */
     }
     
-    func willTerminate() async {}
+    func willTerminate() async {
+        self.storage.setLastTerminate()
+    }
     
     
 }

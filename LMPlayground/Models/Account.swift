@@ -3,17 +3,17 @@ import Foundation
 
 @Model
 class Account {
-    var id: String // Just a regular property, SwiftData will handle object IDs automatically
-    var name: String
-    var lm_id: String
-    var lm_name: String
-    var balance: Double
-    var available: Double
-    var currency: String
-    var institution_name: String
-    var institution_id: String
-    var lastUpdated: Date
-    var sync: Bool
+    var id: String = "" // Just a regular property, SwiftData will handle object IDs automatically
+    var name: String = ""
+    var lm_id: String = ""
+    var lm_name: String = ""
+    var balance: Double = 0.0
+    var available: Double = 0.0
+    var currency: String = "USD"
+    var institution_name: String = ""
+    var institution_id: String = ""
+    var lastUpdated: Date = Date()
+    var sync: Bool = true
     
     init(id: String,
          name: String,

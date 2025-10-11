@@ -306,7 +306,7 @@
 				<string>        let syncBroker = SyncBroker(context: context)
 </string>
 				<key>leading</key>
-				<string>        let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
+				<string>        let container = (try? Persistence.makeContainer()) ?? (try! Persistence.makeLocalContainer())
         let context = container.mainContext
 </string>
 				<key>trailing</key>

@@ -23,11 +23,12 @@ struct CategoryMapping: Codable {
 
 @Model
 final class LMCategory {
-    var id: String
-    var name: String
-    var descript: String
-    var exclude_from_budget: Bool
-    var exclude_from_totals: Bool
+    var id: String = ""
+    var name: String = ""
+    var descript: String = ""
+    var exclude_from_budget: Bool = false
+    var exclude_from_totals: Bool = false
+    @Relationship(inverse: \TrnCategory.lm_category) var trn_categories: [TrnCategory]?
     
     init(id: String, name: String, descript: String, exclude_from_budget: Bool, exclude_from_totals: Bool) {
         self.id = id
@@ -40,8 +41,8 @@ final class LMCategory {
 
 @Model
 final class TrnCategory {
-    var mcc: String
-    var name: String
+    var mcc: String = ""
+    var name: String = ""
     var lm_category: LMCategory?
     
     // the properties of an LMCategory

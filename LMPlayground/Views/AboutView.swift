@@ -41,6 +41,20 @@ struct AboutView: View {
                         Text("Last Checked: never")
                             .font(.footnote)
                     }
+                    if let lastInit = storage.getLastInit() {
+                        Text("Last Init: \(lastInit.formatted(date: .abbreviated, time: .shortened))")
+                            .font(.footnote)
+                    } else {
+                        Text("Last Init: never")
+                            .font(.footnote)
+                    }
+                    if let lastTerminate = storage.getLastTerminate() {
+                        Text("Last Term: \(lastTerminate.formatted(date: .abbreviated, time: .shortened))")
+                            .font(.footnote)
+                    } else {
+                        Text("Last Term: never")
+                            .font(.footnote)
+                    }
                     /*
                     Button {
                         if let url = URL(string: "https://littlebluebug.com/wallet/index.html") {

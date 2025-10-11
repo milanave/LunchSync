@@ -280,13 +280,13 @@ struct MainView: View {
         if #available(iOS 26.0, *) {
             if enabled {
                 FinanceStore.shared.enableBackgroundDelivery(for: [.transactions, .accounts, .accountBalances], frequency: .hourly)
-                wallet.addLog(message: "MV: BackgroundDelivery enabled", level: 1)
+                //wallet.addLog(message: "MV: BackgroundDelivery enabled", level: 1)
             }else{
                 FinanceStore.shared.disableBackgroundDelivery(for: [.transactions, .accounts, .accountBalances])
                 wallet.addLog(message: "MV: BackgroundDelivery disabled", level: 1)
             }
         }else{
-            wallet.addLog(message: "MV: setBackgroundDelivery not available on this OS \(enabled)", level: 1)
+            //wallet.addLog(message: "MV: setBackgroundDelivery not available on this OS \(enabled)", level: 1)
         }
     }
     

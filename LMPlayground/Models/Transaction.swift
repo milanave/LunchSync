@@ -10,25 +10,25 @@ class Transaction: Identifiable {
         case complete = "complete"
     }
     
-    var id: String
-    var account: String
-    var accountID: String
-    var payee: String
-    var amount: Double
-    var date: Date
-    var lm_id: String
-    var lm_account: String
-    var notes: String
-    var category: String
-    var type: String
-    var status: String
-    var isPending: Bool
-    @Attribute(originalName: "sync") var syncStatus: String
+    var id: String = ""
+    var account: String = ""
+    var accountID: String = ""
+    var payee: String = ""
+    var amount: Double = 0.0
+    var date: Date = Date()
+    var lm_id: String = ""
+    var lm_account: String = ""
+    var notes: String = ""
+    var category: String = ""
+    var type: String = ""
+    var status: String = ""
+    var isPending: Bool = false
+    @Attribute(originalName: "sync") var syncStatus: String = SyncStatus.pending.rawValue
     var lm_category_id: String?
     var lm_category_name: String?
     var category_id: String?
     var category_name: String?
-    @Relationship(deleteRule: .cascade, inverse: \TransactionHistory.transaction) var histories: [TransactionHistory] = []
+    @Relationship(deleteRule: .cascade, inverse: \TransactionHistory.transaction) var histories: [TransactionHistory]?
 
     var sync: SyncStatus {
         get {
@@ -83,6 +83,7 @@ class Transaction: Identifiable {
     func addHistory(note: String) {
         let history = TransactionHistory(date: Date(), note: note)
         history.transaction = self
-        histories.append(history)
+        if histories == nil { histories = [] }
+        histories?.append(history)
     }
 }

@@ -59,7 +59,7 @@ struct CheckTransactionsIntent: AppIntent {
     
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
-        let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
+        let container = (try? Persistence.makeContainer()) ?? (try! Persistence.makeLocalContainer())
         let context = container.mainContext
         let syncBroker = SyncBroker(context: context)
         
@@ -80,7 +80,7 @@ struct SyncTransactionsIntent: AppIntent {
     
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<String> {
-        let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self)
+        let container = (try? Persistence.makeContainer()) ?? (try! Persistence.makeLocalContainer())
         let context = container.mainContext
         let syncBroker = SyncBroker(context: context)
         
@@ -105,7 +105,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         
         Task {
             do {
-                let container = try ModelContainer(for: Transaction.self, Account.self, Log.self, Item.self, LMCategory.self, TrnCategory.self)
+                let container = (try? Persistence.makeContainer()) ?? (try! Persistence.makeLocalContainer())
                 let context = container.mainContext
                 let syncBroker = SyncBroker(context: context, logPrefix: "BN")
                 
@@ -212,26 +212,23 @@ struct LMPlaygroundApp: App {
     }
     
     var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-            Transaction.self,
-            Account.self,
-            Log.self,
-            LMCategory.self,
-            TrnCategory.self,
-            TransactionHistory.self
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
         do {
-            let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
-            // One-time, minimal setup to backfill TrnCategory.lm_* from lm_category and clear link
+            let container = try Persistence.makeContainer()
             Task { @MainActor in
                 runTrnCategorySetupOnce(context: container.mainContext)
             }
             return container
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            // Fallback to local store if CloudKit/App Group is unavailable
+            do {
+                let container = try Persistence.makeLocalContainer()
+                Task { @MainActor in
+                    runTrnCategorySetupOnce(context: container.mainContext)
+                }
+                return container
+            } catch {
+                fatalError("Could not create ModelContainer: \(error)")
+            }
         }
     }()
 

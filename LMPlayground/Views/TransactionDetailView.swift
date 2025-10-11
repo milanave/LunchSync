@@ -98,11 +98,11 @@ struct TransactionDetailView: View {
             }
             
             Section {
-                if transaction.histories.isEmpty {
+                if (transaction.histories ?? []).isEmpty {
                     Text("No transaction history")
                         .foregroundColor(.secondary)
                 } else {
-                    ForEach(Array(transaction.histories.sorted { $0.date < $1.date }.enumerated()), id: \.offset) { _, history in
+                    ForEach(Array((transaction.histories ?? []).sorted { $0.date < $1.date }.enumerated()), id: \.offset) { _, history in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(history.note)
                             Text(history.date.formatted(date: .abbreviated, time: .shortened))

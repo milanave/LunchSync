@@ -87,7 +87,7 @@ class SyncBroker {
                 addLog(prefix: prefix, message: "token was blank, but successfully retrieved", level: 2)
             }
             
-            addLog(prefix: prefix, message: "token rertrieved", level: 2)
+            //addLog(prefix: prefix, message: "token retrieved", level: 2)
             
             //let initialPendingCount = getTransactionsWithStatus(.pending).count
             //addLog(prefix: prefix, message: "got initialPendingCount: \(initialPendingCount)", level: 2)
@@ -114,7 +114,7 @@ class SyncBroker {
             if(categorize_incoming){
                 print("categorize_incoming")
                 
-                addLog(prefix: prefix, message: "processing \(trnCategoryMap.count) mcc categories", level: 2)
+                addLog(prefix: prefix, message: "processing \(trnCategoryMap.count) MCC categories", level: 2)
                 
                 // Now process each transaction with the category mapping
                 newTransactions.forEach { transaction in
@@ -139,7 +139,7 @@ class SyncBroker {
             
 
             let transactionsToSyncCount = getTransactionsWithStatus(.pending).count
-            addLog(prefix: prefix, message: "\(transactionsToSyncCount) transactions ready to sync", level: 2)
+            //addLog(prefix: prefix, message: "\(transactionsToSyncCount) transactions ready to sync", level: 2)
             
             if(autoImportTransactions){
                 addLog(prefix: prefix, message: "starting import for \(transactionsToSyncCount) transactions", level: 2)
@@ -168,7 +168,7 @@ class SyncBroker {
             }
             
             // get number of unmapped categories
-            addLog(prefix: prefix, message: "Updating badge counts", level: 2)
+            //addLog(prefix: prefix, message: "Updating badge counts", level: 2)
             let fetchDescriptor = FetchDescriptor<TrnCategory>(
                 predicate: #Predicate<TrnCategory> { $0.lm_id == "" }
             )

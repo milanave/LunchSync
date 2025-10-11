@@ -14,6 +14,8 @@ struct Storage {
     private static var appGroupIdentifier = "group.com.littlebluebug.AppleCardSync"
     private static var weeklySpendingKey = "WeeklySpending"
     private static var lastCheckKey = "lastCheck"
+    private static var lastInitKey = "lastInit"
+    private static var lastTerminateKey = "lastTerminate"
     
     private let defaults: UserDefaults
     
@@ -23,6 +25,7 @@ struct Storage {
         }
         
         self.defaults = defaults
+        defaults.set(Date(), forKey: Self.lastInitKey)
     }
     
     var weeklySpending: Decimal {
@@ -49,5 +52,22 @@ struct Storage {
     func getLastCheck() -> Date? {
         // Return the last time weekly spending was updated.
         defaults.object(forKey: Self.lastCheckKey) as? Date
+    }
+    func setLastCheck()  {
+        // Return the last time weekly spending was updated.
+        defaults.set(Date(), forKey: Self.lastCheckKey)
+    }
+
+    func getLastInit() -> Date? {
+        // Return the last time weekly spending was updated.
+        defaults.object(forKey: Self.lastInitKey) as? Date
+    }
+    func getLastTerminate() -> Date? {
+        // Return the last time weekly spending was updated.
+        defaults.object(forKey: Self.lastTerminateKey) as? Date
+    }
+    func setLastTerminate() {
+        // Return the last time weekly spending was updated.
+        defaults.set(Date(), forKey: Self.lastTerminateKey)
     }
 }
