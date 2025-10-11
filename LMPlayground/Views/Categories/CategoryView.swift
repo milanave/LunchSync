@@ -64,34 +64,11 @@ struct CategoryView: View {
                             .padding(.vertical, 2)
                         }
                     }
-                }
-                
-                Button(role: .destructive, action: {
-                    showingAlert = true
-                }) {
-                    Text("Restore \(storedCategories.count) Categories")
-                }.alert(Text("Restore your category mappings?"),
-                    isPresented: $showingAlert,
-                    actions: {
-                        Button("Yes", role: .destructive) {
-                            wallet.restoreCategories()
-                            categories = wallet.getTrnCategories()
-                        }
-                        Button("Cancel", role: .cancel) { }
-                    }, message: {
-                        if(sortedCategories.count==0){
-                            Text("There are \(storedCategories.count) category mappings stored. Would you like to restore them?")
-                        }else{
-                            Text("There are \(storedCategories.count) category mappings stored. Delete the current \(sortedCategories.count) mappings and replace with these?")
-                        }
-                    }
-                )
+                }                
             }
             .navigationTitle("Wallet Categories")
         }.onAppear {
-            wallet.backupCategories()
             categories = wallet.getTrnCategories()
-            storedCategories = wallet.getStoredCategories()            
         }
     }
     

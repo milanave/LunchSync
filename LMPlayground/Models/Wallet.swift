@@ -703,33 +703,6 @@ class Wallet :ObservableObject {
         return []
     }
     
-    // serialize all TrnCategories to a json in the user defaults
-    public func backupCategories() {
-        do {
-            let categories = getTrnCategories()
-            var savedMappings: [CategoryMapping] = []
-            categories.forEach { category in
-                let catMap = CategoryMapping(
-                    mcc: category.mcc,
-                    name: category.name,
-                    lm_id: category.lm_id,
-                    lm_name: category.lm_name,
-                    lm_descript: category.lm_descript,
-                    exclude_from_budget: category.exclude_from_budget,
-                    exclude_from_totals: category.exclude_from_totals
-                )
-                savedMappings.append(catMap)
-            }
-            
-            print("Backing up \(savedMappings.count) category mappings")
-            let data = try JSONEncoder().encode(savedMappings)
-            let sharedDefaults = Utility.getUserDefaults()
-            sharedDefaults.set(data, forKey: "category_mappings")
-        } catch {
-            print("Failed to save menu bar items: \(error)")
-        }
-    }
-    
     // retrieve stored TrnCategories from User defaults
     public func clearTrnCategories(){
         let fetchDescriptor = FetchDescriptor<TrnCategory>()
@@ -744,45 +717,5 @@ class Wallet :ObservableObject {
         }
     }
     
-    public func getStoredCategories() -> [CategoryMapping] {
-        var savedMappings: [CategoryMapping] = []
-        do{
-            let sharedDefaults = Utility.getUserDefaults()
-            if let data = sharedDefaults.data(forKey: "category_mappings") {
-                savedMappings = try JSONDecoder().decode([CategoryMapping].self, from: data)
-            }
-        }catch{
-            print("Failed to save menu bar items: \(error)")
-        }
-        return savedMappings
-    }
     
-    public func restoreCategories() {
-        do {
-            let savedMappings = getStoredCategories()
-            if(savedMappings.count>0){
-                print("Restoring \(savedMappings.count) category mappings")
-
-                clearTrnCategories() // delete all the existing mappings
-                savedMappings.forEach { category in
-                    //print(" -- \(category.name) (MCC: \(category.mcc)")
-                    let newTrnCategory = TrnCategory(
-                        mcc: category.mcc,
-                        name: category.name
-                    )
-                    newTrnCategory.set_lm_category(
-                        id: category.lm_id,
-                        name: category.lm_name,
-                        descript: category.lm_descript,
-                        exclude_from_budget: category.exclude_from_budget,
-                        exclude_from_totals: category.exclude_from_totals
-                    )
-                    modelContext.insert(newTrnCategory)
-                }
-                try modelContext.save()
-            }
-        } catch {
-            print("Failed to save menu bar items: \(error)")
-        }
-    }
 }
