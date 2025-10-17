@@ -115,6 +115,8 @@ struct MainView: View {
         
     }
     
+    private let storage = Storage()
+    
     // MARK: main view body
     var body: some View {
         NavigationStack() {
@@ -276,11 +278,11 @@ struct MainView: View {
     }
     
     // MARK: setBackgroundDelivery
-    private func setBackgroundDelivery(enabled: Bool){
+    private func setBackgroundDelivery(enabled: Bool){        
         if #available(iOS 26.0, *) {
             if enabled {
                 FinanceStore.shared.enableBackgroundDelivery(for: [.transactions, .accounts, .accountBalances], frequency: .hourly)
-                //wallet.addLog(message: "MV: BackgroundDelivery enabled", level: 1)
+                wallet.addLog(message: "MV: BackgroundDelivery enabled", level: 2)
             }else{
                 FinanceStore.shared.disableBackgroundDelivery(for: [.transactions, .accounts, .accountBalances])
                 wallet.addLog(message: "MV: BackgroundDelivery disabled", level: 1)
@@ -383,11 +385,36 @@ struct MainView: View {
                                 }
                             }
                     }
-                } header: {
-                    Text("iOS 26 only")
                 } footer: {
-                    Text("Background Delivery is under development,but available for testing. Please use with along with background sync")
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    if enableBackgroundDelivery{
+                        VStack{
+                            Text("Background Delivery is under development,but available for testing. Please use with along with background sync")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Text("Weekly Spending (test): \(niceAmount(NSDecimalNumber(decimal: storage.getWeeklySpending()).doubleValue))")
+                                .font(.footnote)
+                            if let last = storage.getLastCheck() {
+                                Text("Last Checked: \(last.formatted(date: .abbreviated, time: .shortened))")
+                                    .font(.footnote)
+                            } else {
+                                Text("Last Checked: never")
+                                    .font(.footnote)
+                            }
+                            if let lastInit = storage.getLastInit() {
+                                Text("Last Init: \(lastInit.formatted(date: .abbreviated, time: .shortened))")
+                                    .font(.footnote)
+                            } else {
+                                Text("Last Init: never")
+                                    .font(.footnote)
+                            }
+                            if let lastTerminate = storage.getLastTerminate() {
+                                Text("Last Term: \(lastTerminate.formatted(date: .abbreviated, time: .shortened))")
+                                    .font(.footnote)
+                            } else {
+                                Text("Last Term: never")
+                                    .font(.footnote)
+                            }
+                        }
+                    }
                 }
                 
                 
@@ -433,7 +460,7 @@ struct MainView: View {
                                 Text("Verifying Token...")
                             } else {
                                 apiConnected ?
-                                Text("Connected"):
+                                Text("Connected as \(userName)"):
                                 Text("Not Connected")
                             }
                             Spacer()
@@ -458,12 +485,14 @@ struct MainView: View {
             */
         } header: {
             Text("Lunch Money API")
-        } footer: {
+        }
+        /*footer: {
             if(apiConnected) {
                 Text("Connected as \(userName)")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+         */
     }
     
     // MARK: appleWalletSection

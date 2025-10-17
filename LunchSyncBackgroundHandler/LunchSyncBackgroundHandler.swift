@@ -8,18 +8,43 @@
 import ExtensionFoundation
 import FinanceKit
 import Foundation
-
+import SwiftData
 
 @main
 struct LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
     let storage: Storage
+    var container: ModelContainer!
+    var modelContext: ModelContext!
+    var logPrefix: String = "BGD"
     
     init() {
         self.storage = Storage()
+        container = (try? Persistence.makeContainer()) ?? (try! Persistence.makeLocalContainer())
+        modelContext = container.mainContext
+        self.addLog(prefix: logPrefix, message: "LunchSyncBackgroundHandlerBGD init", level: 1)
     }
     
     func didReceiveData(for types: [FinanceStore.BackgroundDataType]) async {
         self.storage.setLastCheck()
+        
+        do{
+            let calendar = Calendar.current
+            let endDate = Date()
+            let startDate = calendar.date(byAdding: .day, value: -7, to: endDate)!
+            let query = TransactionQuery(
+                predicate: #Predicate {
+                    $0.transactionDate >= startDate
+                }
+            )
+            var transactions: [FinanceKit.Transaction]
+            transactions = try await FinanceStore.shared.transactions(query: query)
+            await self.addLog(prefix: "BGD", message: "didReceiveData got \(transactions.count) transactions", level: 1)
+
+        }catch {
+            await self.addLog(prefix: "BGD", message: "Error processing background delivery: \(error)", level: 1)
+        }
+        
+        await self.addLog(prefix: logPrefix, message: "didReceiveData finished", level: 1)
         /*
         // Skip accounts and account balances.
         //if types.contains(.transactions) {
@@ -41,6 +66,16 @@ struct LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
         self.storage.setLastTerminate()
     }
     
+    @MainActor
+    public func addLog(prefix: String, message: String, level: Int = 1) {
+        do {
+            let log = Log(message: "\(prefix): \(message)", level: level)
+            modelContext.insert(log)
+            try modelContext.save()
+        } catch {
+            print("Failed to save log: \(error)")
+        }
+    }
     
 }
 

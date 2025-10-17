@@ -32,11 +32,21 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C4887FE22EA263AF002EA3E3 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		C40812982E1FD35000121F0C /* LunchSyncBackgroundHandler.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = LunchSyncBackgroundHandler.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		C4475ACB2D19A7E900ED73DF /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
+		C4887FE42EA263AF002EA3E3 /* LunchSyncCLI */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = LunchSyncCLI; sourceTree = BUILT_PRODUCTS_DIR; };
 		C4D328412CCD137200B638AB /* LMPlayground.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LMPlayground.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C4D328632CCD1DA900B638AB /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -48,6 +58,13 @@
 				Info.plist,
 			);
 			target = C40812972E1FD35000121F0C /* LunchSyncBackgroundHandler */;
+		};
+		C4887FEC2EA26409002EA3E3 /* Exceptions for "LMPlayground" folder in "LunchSyncCLI" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Api/LunchMoneyAPI.swift,
+			);
+			target = C4887FE32EA263AF002EA3E3 /* LunchSyncCLI */;
 		};
 		C4A5CCA02CE375AD00F3F372 /* Exceptions for "LMPlayground" folder in "LMPlayground" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -92,11 +109,17 @@
 			path = LunchSyncBackgroundHandler;
 			sourceTree = "<group>";
 		};
+		C4887FE52EA263AF002EA3E3 /* LunchSyncCLI */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = LunchSyncCLI;
+			sourceTree = "<group>";
+		};
 		C4D328432CCD137200B638AB /* LMPlayground */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				C4A5CCA02CE375AD00F3F372 /* Exceptions for "LMPlayground" folder in "LMPlayground" target */,
 				C4AEADFA2E34F22E00ECB40A /* Exceptions for "LMPlayground" folder in "LunchSyncBackgroundHandler" target */,
+				C4887FEC2EA26409002EA3E3 /* Exceptions for "LMPlayground" folder in "LunchSyncCLI" target */,
 			);
 			path = LMPlayground;
 			sourceTree = "<group>";
@@ -105,6 +128,13 @@
 
 /* Begin PBXFrameworksBuildPhase section */
 		C40812952E1FD35000121F0C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C4887FE12EA263AF002EA3E3 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -128,6 +158,7 @@
 				C4D328632CCD1DA900B638AB /* README.md */,
 				C4D328432CCD137200B638AB /* LMPlayground */,
 				C40812992E1FD35000121F0C /* LunchSyncBackgroundHandler */,
+				C4887FE52EA263AF002EA3E3 /* LunchSyncCLI */,
 				C4D328422CCD137200B638AB /* Products */,
 			);
 			sourceTree = "<group>";
@@ -137,6 +168,7 @@
 			children = (
 				C4D328412CCD137200B638AB /* LMPlayground.app */,
 				C40812982E1FD35000121F0C /* LunchSyncBackgroundHandler.appex */,
+				C4887FE42EA263AF002EA3E3 /* LunchSyncCLI */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -165,6 +197,28 @@
 			productName = LunchSyncBackgroundHandler;
 			productReference = C40812982E1FD35000121F0C /* LunchSyncBackgroundHandler.appex */;
 			productType = "com.apple.product-type.extensionkit-extension";
+		};
+		C4887FE32EA263AF002EA3E3 /* LunchSyncCLI */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C4887FE82EA263AF002EA3E3 /* Build configuration list for PBXNativeTarget "LunchSyncCLI" */;
+			buildPhases = (
+				C4887FE02EA263AF002EA3E3 /* Sources */,
+				C4887FE12EA263AF002EA3E3 /* Frameworks */,
+				C4887FE22EA263AF002EA3E3 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				C4887FE52EA263AF002EA3E3 /* LunchSyncCLI */,
+			);
+			name = LunchSyncCLI;
+			packageProductDependencies = (
+			);
+			productName = LunchSyncCLI;
+			productReference = C4887FE42EA263AF002EA3E3 /* LunchSyncCLI */;
+			productType = "com.apple.product-type.tool";
 		};
 		C4D328402CCD137200B638AB /* LMPlayground */ = {
 			isa = PBXNativeTarget;
@@ -203,6 +257,9 @@
 					C40812972E1FD35000121F0C = {
 						CreatedOnToolsVersion = 26.0;
 					};
+					C4887FE32EA263AF002EA3E3 = {
+						CreatedOnToolsVersion = 26.0.1;
+					};
 					C4D328402CCD137200B638AB = {
 						CreatedOnToolsVersion = 16.0;
 					};
@@ -224,6 +281,7 @@
 			targets = (
 				C4D328402CCD137200B638AB /* LMPlayground */,
 				C40812972E1FD35000121F0C /* LunchSyncBackgroundHandler */,
+				C4887FE32EA263AF002EA3E3 /* LunchSyncCLI */,
 			);
 		};
 /* End PBXProject section */
@@ -254,6 +312,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C4887FE02EA263AF002EA3E3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C4D3283D2CCD137200B638AB /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -277,7 +342,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = LunchSyncBackgroundHandler/LunchSyncBackgroundHandler.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LunchSyncBackgroundHandler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LunchSyncBackgroundHandler;
@@ -307,7 +372,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = LunchSyncBackgroundHandler/LunchSyncBackgroundHandler.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LunchSyncBackgroundHandler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LunchSyncBackgroundHandler;
@@ -329,6 +394,36 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		C4887FE92EA263AF002EA3E3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MF7QJ9TF5S;
+				ENABLE_HARDENED_RUNTIME = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C4887FEA2EA263AF002EA3E3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = MF7QJ9TF5S;
+				ENABLE_HARDENED_RUNTIME = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
 		};
@@ -463,7 +558,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = LMPlayground/LMPlayground.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_ASSET_PATHS = "\"LMPlayground/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -504,7 +599,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = LMPlayground/LMPlayground.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 4;
 				DEVELOPMENT_ASSET_PATHS = "\"LMPlayground/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -545,6 +640,15 @@
 			buildConfigurations = (
 				C40812A22E1FD35000121F0C /* Debug */,
 				C40812A32E1FD35000121F0C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C4887FE82EA263AF002EA3E3 /* Build configuration list for PBXNativeTarget "LunchSyncCLI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C4887FE92EA263AF002EA3E3 /* Debug */,
+				C4887FEA2EA263AF002EA3E3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

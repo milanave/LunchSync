@@ -457,13 +457,17 @@ class Wallet :ObservableObject {
     }
     
     func createAsset(name:String, institutionName:String, note:String) async -> Int?{
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withFullDate]
+        let today = dateFormatter.string(from: Date())
+        
         let assetRequest = CreateAssetRequest(
             typeName: "cash", // cash, credit, investment, other, real estate, loan, vehicle, cryptocurrency, employee compensation
             balance: 0.0,
             currency: "usd",
             name: name,
             institutionName: institutionName,
-            createdAt: "2024-10-27",
+            createdAt: today,
             note: note
         )
 

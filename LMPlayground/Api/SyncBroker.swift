@@ -428,7 +428,7 @@ class SyncBroker {
                 //}
             }else{
                 print("replaceTransaction insert new \(newTrans.payee)")
-                newTrans.addHistory(note: "Created")
+                //newTrans.addHistory(note: "Created")
                 modelContext.insert(newTrans)
             }
         } catch {
