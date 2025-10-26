@@ -7,7 +7,8 @@ struct AboutView: View {
         
         let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
         let is_test_flight = sharedDefaults.bool(forKey: "is_test_flight")
-        return "\(version) (\(build))\(is_test_flight ? " Test Flight" : "")"
+        let runStateString = Utility.getRunState()?.description ?? "unknown"
+        return "\(version) (\(build)) (\(runStateString))"
     }
     private let storage = Storage()
     

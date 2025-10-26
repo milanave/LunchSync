@@ -463,9 +463,19 @@ struct MainView: View {
                         HStack {
                             if isVerifyingToken {
                                 Text("Verifying Token...")
+                            }else if(apiConnected){
+                                VStack{
+                                    HStack{
+                                        Text("\(user?.userName ?? "Not authenticated")")
+                                        Spacer()
+                                    }
+                                    HStack{
+                                        Text("\(user?.budgetName ?? "")").font(.caption)
+                                        Spacer()
+                                    }
+                                }
+                                
                             } else {
-                                apiConnected ?
-                                Text("\(user?.userName ?? "Not authenticated"), \(user?.budgetName ?? "")"):
                                 Text("Not Connected")
                             }
                             Spacer()
