@@ -58,6 +58,10 @@ class MockWallet: Wallet {
     override func getAPIAccountName() async throws -> String {
         return "Account Holder"
     }
+    override func getAPIAccount() async throws -> User {
+        return User(userName: "Account Holder", userEmail: "test@test.com", userId: 1234, accountId: 1234, budgetName: "Test Budget", primaryCurrency: "usd", apiKeyLabel: "api_key_label")
+    }
+    
     
     /*
     override func syncTransactions(progressCallback: @escaping (MockWallet.SyncProgress) -> Void) async throws {

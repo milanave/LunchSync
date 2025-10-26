@@ -21,7 +21,7 @@ struct LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
         self.storage = Storage()
         container = (try? Persistence.makeContainer()) ?? (try! Persistence.makeLocalContainer())
         modelContext = container.mainContext
-        self.addLog(prefix: logPrefix, message: "LunchSyncBackgroundHandlerBGD init", level: 1)
+        //self.addLog(prefix: logPrefix, message: "LunchSyncBackgroundHandlerBGD init", level: 1)
     }
     
     func didReceiveData(for types: [FinanceStore.BackgroundDataType]) async {
@@ -38,13 +38,16 @@ struct LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             )
             var transactions: [FinanceKit.Transaction]
             transactions = try await FinanceStore.shared.transactions(query: query)
-            await self.addLog(prefix: "BGD", message: "didReceiveData got \(transactions.count) transactions", level: 1)
+            storage.setWeeklySpending(Decimal(transactions.count))
+            
+            self.addLog(prefix: "BGD", message: "didReceiveData got \(transactions.count) transactions", level: 1)
 
         }catch {
-            await self.addLog(prefix: "BGD", message: "Error processing background delivery: \(error)", level: 1)
+            self.storage.setLastError()
+            self.addLog(prefix: "BGD", message: "Error processing background delivery: \(error)", level: 1)
         }
         
-        await self.addLog(prefix: logPrefix, message: "didReceiveData finished", level: 1)
+        self.addLog(prefix: logPrefix, message: "didReceiveData finished", level: 1)
         /*
         // Skip accounts and account balances.
         //if types.contains(.transactions) {
@@ -66,13 +69,14 @@ struct LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
         self.storage.setLastTerminate()
     }
     
-    @MainActor
+    //@MainActor
     public func addLog(prefix: String, message: String, level: Int = 1) {
         do {
             let log = Log(message: "\(prefix): \(message)", level: level)
             modelContext.insert(log)
             try modelContext.save()
         } catch {
+            self.storage.setLastError()
             print("Failed to save log: \(error)")
         }
     }

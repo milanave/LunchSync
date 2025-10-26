@@ -31,7 +31,7 @@ class Keychain {
                        let account = item[kSecAttrAccount as String] as? String,
                        let data = item[kSecValueData as String] as? Data,
                        let value = String(data: data, encoding: .utf8) {
-                        print("Service: \(service), Account: \(account), Value: \(value)")
+                        //print("Service: \(service), Account: \(account), Value: \(value)")
                     }
                 }
             }
@@ -62,7 +62,7 @@ class Keychain {
         ] as CFDictionary)
 
         if deleteStatus == errSecSuccess {
-            print("🔄 Successfully deleted existing Keychain item.")
+            //print("🔄 Successfully deleted existing Keychain item.")
         } else if deleteStatus == errSecItemNotFound {
             print("ℹ️ No existing Keychain item found to delete.")
         } else {
@@ -72,7 +72,7 @@ class Keychain {
         // Add the new item to the Keychain
         let addStatus = SecItemAdd(query as CFDictionary, nil)
         if addStatus == errSecSuccess {
-            print("✅ Keychain item successfully added.")
+            //print("✅ Keychain item successfully added.")
         } else {
             print("❌ Failed to add Keychain item: \(String(describing: SecCopyErrorMessageString(addStatus, nil)))")
         }

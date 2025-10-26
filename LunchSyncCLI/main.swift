@@ -52,11 +52,10 @@ func printSideBySide(original: LMTransaction, updated: LMTransaction) {
 
 
 private let statusValues = ["uncleared", "cleared"]
-private let externalIds = ["ExtId1", "ExtId2"]
 
 private let API: LunchMoneyAPI = {
     let token = "a1c31d3ecabc0d0b55c4285317c150a4cc13d6001fc912fe3d"
-    return LunchMoneyAPI(apiToken: token, debug: false)
+    return LunchMoneyAPI(apiToken: token, debug: true)
 }()
 
 private var firstTwoCategoryIdsCache: [Int]? = nil
@@ -117,6 +116,7 @@ func runCreateFetchUpdateDemo() async throws {
     let dateFormatter = ISO8601DateFormatter()
     dateFormatter.formatOptions = [.withFullDate]
     let today = dateFormatter.string(from: Date())
+    let uniqueExternalId = "cli-\(UUID().uuidString)"
 
     print("Creating transaction with status: \(statusValues[0]) and categoryId: \(String(describing: categoryIds.first))")
 
@@ -129,7 +129,7 @@ func runCreateFetchUpdateDemo() async throws {
 		assetId: assetId,
         notes: "Created from CLI script",
         status: statusValues[0],
-        externalId: externalIds.first,
+        externalId: uniqueExternalId,
         isPending: false
     )
     let createResp: CreateTransactionsResponse
@@ -139,7 +139,7 @@ func runCreateFetchUpdateDemo() async throws {
         throw CLIError.api("createTransactions failed: \(error.localizedDescription)")
     }
     if let errs = createResp.errors, !errs.isEmpty { throw CLIError.api(errs.joined(separator: ", ")) }
-    guard let id = createResp.transactionIds?.first else { throw CLIError.api("Create did not return an id") }
+    guard let id = createResp.transactionIds?.first else { throw CLIError.api("Create did not return an id, \(createResp)") }
 
     // Fetch original
     let original: LMTransaction
@@ -166,13 +166,6 @@ func runCreateFetchUpdateDemo() async throws {
             return categoryIds.first
         }
     }()
-    let toggledExtId: String? = {
-        if externalIds.count >= 2 {
-            return (original.externalId == externalIds.first) ? externalIds[1] : externalIds.first
-        } else {
-            return externalIds.first
-        }
-    }()
     
 
     let updateReq = UpdateTransactionRequest(transaction: .init(
@@ -180,11 +173,11 @@ func runCreateFetchUpdateDemo() async throws {
         payee: "CLI Updated Payee",
         amount: incrementedAmount,
         currency: nil,
-        categoryId: toggledCategoryId,
-        assetId: assetId,
+        categoryId: nil, //toggledCategoryId,
+        assetId: nil, //assetId,
         notes: "Updated from CLI script",
-        status: toggledStatus,
-        externalId: toggledExtId,
+        status: nil, //toggledStatus,
+        externalId: nil,
         isPending: nil
     ))
     let updateResp: UpdateTransactionResponse

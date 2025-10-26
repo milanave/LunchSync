@@ -33,6 +33,11 @@ class Wallet :ObservableObject {
         return userInfo.userName
     }
     
+    func getAPIAccount() async throws -> User{
+        let userInfo = try await API.getUser()
+        return userInfo
+    }
+
     // Add this type to handle progress updates
     /*
     struct SyncProgress {

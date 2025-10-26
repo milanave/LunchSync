@@ -25,7 +25,10 @@ struct MainView: View {
     @State private var isSyncing = false
     @State private var syncError: String?
     
-    @State private var userName: String = "Loading..."
+    @State private var user: User?
+    //@State private var userName: String = "Loading..."
+    //@State private var budgetName: String = ""
+    
     private let keychain = Keychain()
     @State private var appleWallet: AppleWallet
     @State private var showingPreviewTransactions = false
@@ -413,6 +416,13 @@ struct MainView: View {
                                 Text("Last Term: never")
                                     .font(.footnote)
                             }
+                            if let lastError = storage.getLastError() {
+                                Text("Last Error: \(lastError.formatted(date: .abbreviated, time: .shortened))")
+                                    .font(.footnote)
+                            } else {
+                                Text("Last Error: never")
+                                    .font(.footnote)
+                            }
                         }
                     }
                 }
@@ -444,6 +454,9 @@ struct MainView: View {
                     },
                     allowDismissal: true
                 )
+                .onDisappear {
+                    handleTokenPromptDismiss()
+                }
             } label: {
                 HStack {
                     if isVerifyingToken {
@@ -460,7 +473,7 @@ struct MainView: View {
                                 Text("Verifying Token...")
                             } else {
                                 apiConnected ?
-                                Text("Connected as \(userName)"):
+                                Text("\(user?.userName ?? "Not authenticated"), \(user?.budgetName ?? "")"):
                                 Text("Not Connected")
                             }
                             Spacer()
@@ -865,7 +878,6 @@ struct MainView: View {
     }
     
     private func checkApiToken() {
-        //print("checkApiToken")
         if apiConnected {
             return
         }
@@ -874,18 +886,38 @@ struct MainView: View {
                 isVerifyingToken = true
             }
             do {
-                userName = try await wallet.getAPIAccountName()
+                user = try await wallet.getAPIAccount()
                 await MainActor.run {
                     apiConnected = true
                     isVerifyingToken = false
                 }
             } catch {
                 await MainActor.run {
-                    userName = "Not Authenticated"
+                    //userName = "Not Authenticated"
                     isVerifyingToken = false
                 }
             }
         }
+    }
+    
+    private func handleTokenPromptDismiss() {
+        print("handleTokenPromptDismiss")
+        // Re-verify token and refresh counts when returning from TokenPromptView
+        
+        let keychain = Keychain()
+        var initialToken = ""
+        do{
+           initialToken = try keychain.retrieveTokenFromKeychain()
+        } catch {
+           initialToken = ""
+        }        
+        wallet.updateAPIToken(initialToken)
+        apiConnected = false
+        user = nil
+        checkApiToken()
+        refreshView()
+        // Nudge any dependent views to refresh
+        refreshTrigger = UUID()
     }
     
     private func updateLastUpdated() {
@@ -927,3 +959,4 @@ struct MainView: View {
     MainView(context: context, appDelegate: AppDelegate())
         .modelContainer(container)
 }
+

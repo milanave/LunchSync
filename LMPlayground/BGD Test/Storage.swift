@@ -16,6 +16,7 @@ struct Storage {
     private static var lastCheckKey = "lastCheck"
     private static var lastInitKey = "lastInit"
     private static var lastTerminateKey = "lastTerminate"
+    private static var lastErrorKey = "lastError"
     
     private let defaults: UserDefaults
     
@@ -56,6 +57,14 @@ struct Storage {
     func setLastCheck()  {
         // Return the last time weekly spending was updated.
         defaults.set(Date(), forKey: Self.lastCheckKey)
+    }
+    func getLastError() -> Date? {
+        // Return the last time weekly spending was updated.
+        defaults.object(forKey: Self.lastErrorKey) as? Date
+    }
+    func setLastError()  {
+        // Return the last time weekly spending was updated.
+        defaults.set(Date(), forKey: Self.lastErrorKey)
     }
 
     func getLastInit() -> Date? {

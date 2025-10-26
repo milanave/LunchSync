@@ -20,6 +20,8 @@ struct TokenPromptView: View {
     @State private var verificationError: String?
     @State private var statusText: String = ""
     @State private var verifiedUsername: String?
+    @State private var verifiedBudgetname: String?
+    
     
     private let keychain = Keychain()
     
@@ -90,7 +92,7 @@ struct TokenPromptView: View {
                         }
                         .disabled(apiToken.isEmpty || isVerifying)
                         
-                        
+                        /*
                         if let username = verifiedUsername {
                             Spacer()
                             Image(systemName: "checkmark.circle.fill")
@@ -98,8 +100,30 @@ struct TokenPromptView: View {
                             Text(username)
                                 .foregroundColor(.secondary)
                         }
+                        */
+                        
                     }
                     
+                    if let username = verifiedUsername {
+                        HStack{
+                            Text("    Account:")
+                            Spacer()
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text(username)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    if let budgetName = verifiedBudgetname {
+                        HStack{
+                            Text("    Budget:")
+                            Spacer()
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.green)
+                            Text(budgetName)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                     Button("Save") {
                         keychain.storeTokenInKeychain(token: apiToken)
                         onSave()
@@ -135,8 +159,9 @@ struct TokenPromptView: View {
         verificationError = nil
         isTokenValid = false
         verifiedUsername = nil
+        verifiedBudgetname = nil
         
-        print("Verifying token: \(apiToken)")
+        //print("Verifying token: \(apiToken)")
         let api = LunchMoneyAPI(apiToken: apiToken, debug: false)
         
         Task {
@@ -146,6 +171,7 @@ struct TokenPromptView: View {
                     isVerifying = false
                     isTokenValid = true
                     verifiedUsername = user.userName
+                    verifiedBudgetname = user.budgetName
                 }
             } catch {
                 DispatchQueue.main.async {
@@ -153,6 +179,7 @@ struct TokenPromptView: View {
                     verificationError = "Verification failed: \(error.localizedDescription)"
                     isTokenValid = false
                     verifiedUsername = nil
+                    verifiedBudgetname = nil
                 }
             }
         }

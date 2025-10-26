@@ -49,7 +49,7 @@ func printSideBySide(original: LMTransaction, updated: LMTransaction) {
 // MARK: - Orchestrator
 
 func runCreateFetchUpdateDemo() async throws {
-    guard let token = "a1c31d3ecabc0d0b55c4285317c150a4cc13d6001fc912fe3d"
+    let token = "a1c31d3ecabc0d0b55c4285317c150a4cc13d6001fc912fe3d"
 
     let api = LunchMoneyAPI(apiToken: token, debug: false)
 
@@ -99,7 +99,7 @@ func runCreateFetchUpdateDemo() async throws {
 }
 
 // MARK: - Entry point for command-line execution
-
+/*
 Task {
     do {
         try await runCreateFetchUpdateDemo()
@@ -114,3 +114,4 @@ Task {
 dispatchMain()
 
 
+*/
