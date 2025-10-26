@@ -41,6 +41,8 @@ struct PushAPI {
     }
     
     private static func basePayload(deviceToken: String) -> [String: Any] {
+        
+        let runStateString = Utility.getRunState()?.description ?? "unknown"
         return [
             "device_token": deviceToken,
             "app_id": "WalletSync",
@@ -48,7 +50,7 @@ struct PushAPI {
             "environment": currentEnvironment(),
             "app_version": appVersionString(),
             "os_version": ProcessInfo.processInfo.operatingSystemVersionString,
-            "is_test_flight": isTestFlightBuild()
+            "run_state": runStateString
         ]
     }
     

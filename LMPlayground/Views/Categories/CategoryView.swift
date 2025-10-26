@@ -28,18 +28,14 @@ struct CategoryView: View {
             apiToken = ""
         }
         
-        #if DEBUG
-        if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
+        if( Utility.isMockEnvironment() ){
             let wallet = MockWallet(context: context, apiToken: "mock-token")
             _wallet = StateObject(wrappedValue: wallet)
-        } else {
+        }else{
             let wallet = Wallet(context: context, apiToken: apiToken)
             _wallet = StateObject(wrappedValue: wallet)
         }
-        #else
-        let wallet = Wallet(context: context, apiToken: apiToken)
-        _wallet = StateObject(wrappedValue: wallet)
-        #endif
+
     }
     
     var body: some View {

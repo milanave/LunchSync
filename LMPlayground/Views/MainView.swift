@@ -85,24 +85,16 @@ struct MainView: View {
         } catch {
            initialToken = ""
         }
-        #if DEBUG
-        if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
-            // running in the simulator
+        
+        if( Utility.isMockEnvironment() ){
             let wallet = MockWallet(context: context, apiToken: "mock-token")
             _wallet = StateObject(wrappedValue: wallet)
             _appleWallet = State(initialValue: MockAppleWallet())
-        } else {
-            // running on device, connected to Xcode
+        }else{
             let wallet = Wallet(context: context, apiToken: initialToken)
             _wallet = StateObject(wrappedValue: wallet)
             _appleWallet = State(initialValue: AppleWallet())
         }
-        #else
-        // running in TestFlight/AppStore
-        let wallet = Wallet(context: context, apiToken: initialToken)
-        _wallet = StateObject(wrappedValue: wallet)
-        _appleWallet = State(initialValue: AppleWallet())
-        #endif
         
         _apiToken = State(initialValue: initialToken)
         _transactions = State(initialValue: [])
@@ -285,10 +277,10 @@ struct MainView: View {
         if #available(iOS 26.0, *) {
             if enabled {
                 FinanceStore.shared.enableBackgroundDelivery(for: [.transactions, .accounts, .accountBalances], frequency: .hourly)
-                wallet.addLog(message: "MV: BackgroundDelivery enabled", level: 2)
+                //wallet.addLog(message: "MV: BackgroundDelivery enabled", level: 2)
             }else{
                 FinanceStore.shared.disableBackgroundDelivery(for: [.transactions, .accounts, .accountBalances])
-                wallet.addLog(message: "MV: BackgroundDelivery disabled", level: 1)
+                //wallet.addLog(message: "MV: BackgroundDelivery disabled", level: 1)
             }
         }else{
             //wallet.addLog(message: "MV: setBackgroundDelivery not available on this OS \(enabled)", level: 1)
@@ -312,7 +304,7 @@ struct MainView: View {
                                         }
                                     }
                                 } else {
-                                    print("Device token not yet available")
+                                    print("Device token not yet available (Enable background sync)")
                                     DispatchQueue.main.async {
                                         UIApplication.shared.registerForRemoteNotifications()
                                     }
@@ -351,7 +343,7 @@ struct MainView: View {
                                     }
                                 }
                             } else {
-                                print("Device token not yet available")
+                                print("Device token not yet available (enableBackgroundJob)")
                                 DispatchQueue.main.async {
                                     UIApplication.shared.registerForRemoteNotifications()
                                 }
@@ -901,9 +893,7 @@ struct MainView: View {
     }
     
     private func handleTokenPromptDismiss() {
-        print("handleTokenPromptDismiss")
         // Re-verify token and refresh counts when returning from TokenPromptView
-        
         let keychain = Keychain()
         var initialToken = ""
         do{

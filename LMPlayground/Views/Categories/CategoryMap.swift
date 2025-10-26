@@ -158,16 +158,12 @@ struct CategoryMap: View {
             apiToken = ""
         }
         
-        #if DEBUG
         let wallet: Wallet
-        if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
+        if( Utility.isMockEnvironment() ){
             wallet = MockWallet(context: modelContext, apiToken: "mock-token")
-        } else {
+        }else{
             wallet = Wallet(context: modelContext, apiToken: apiToken)
         }
-        #else
-        let wallet = Wallet(context: modelContext, apiToken: apiToken)
-        #endif
         
         // Iterate through each matching transaction and update it
         for transaction in allMatchingTransactions {

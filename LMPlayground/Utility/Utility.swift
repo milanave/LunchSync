@@ -7,11 +7,62 @@
 import Foundation
 import UserNotifications
 
+enum RunState: String {
+    case canvas = "canvas"
+    case simulator = "simulator"
+    case connected = "connected"
+    case testFlight = "testFlight"
+    case appStore = "appStore"
+}
+
 struct Utility {
     private init() {}
     
     public static func getUserDefaults() -> UserDefaults{
         return UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
+    }
+    
+    public static func isTestFlight() -> Bool {
+        guard let url = Bundle.main.appStoreReceiptURL else { return false }
+        return url.lastPathComponent == "sandboxReceipt"
+    }
+    
+    public static func getRunState() -> RunState? {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
+            return .canvas
+        } else {
+            #if targetEnvironment(simulator)
+            return .simulator
+            #else
+            return .connected
+            #endif
+        }
+        #else
+        if self.isTestFlight() {
+            return .testFlight
+        } else {
+            return .appStore
+        }
+        #endif
+    }
+    
+    public static func isSimulator() -> Bool {
+        #if targetEnvironment(simulator)
+                return true
+        #else
+                return false
+        #endif
+    }
+    
+    // states: .canvas .simulator .connected .testFlight .appStore
+    public static func isMockEnvironment() -> Bool {
+        let runState = self.getRunState()
+        //if(runState == .canvas || runState == .simulator){
+        if(runState == .canvas){
+            return true
+        }
+        return false
     }
     
     public static func addNotification(time: Double, title: String, subtitle: String, body: String) async {
@@ -59,4 +110,16 @@ struct Utility {
     }
     
     
+}
+
+extension RunState: CustomStringConvertible {
+    var description: String {
+        switch self {
+        case .canvas:     return "Debug"
+        case .simulator:  return "Simulator"
+        case .connected:  return "Connected"
+        case .testFlight: return "TestFlight"
+        case .appStore:   return "AppStore"
+        }
+    }
 }

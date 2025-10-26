@@ -12,7 +12,11 @@ extension Notification.Name {
 
 // MARK: UNUserNotificationCenterDelegate
 class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
-    public var currentDeviceToken: String?
+    #if targetEnvironment(simulator)
+        public var currentDeviceToken: String? = "sim219e67a3f4c0f8a3d6cb98e452a71cf03b3a1b6e8d59e0c4f73ac91d24f6b"
+    #else
+        public var currentDeviceToken: String?
+    #endif
     
     func checkNotificationStatus() {
         UNUserNotificationCenter.current().getNotificationSettings { settings in
@@ -140,6 +144,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     
     
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        print("didRegisterForRemoteNotificationsWithDeviceToken")
         let tokenParts = deviceToken.map { data in String(format: "%02.2hhx", data) }
         let token = tokenParts.joined()
         notificationDelegate.currentDeviceToken = token

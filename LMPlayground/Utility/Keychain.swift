@@ -31,7 +31,7 @@ class Keychain {
                        let account = item[kSecAttrAccount as String] as? String,
                        let data = item[kSecValueData as String] as? Data,
                        let value = String(data: data, encoding: .utf8) {
-                        //print("Service: \(service), Account: \(account), Value: \(value)")
+                        print("Service: \(service), Account: \(account), Value: \(value)")
                     }
                 }
             }

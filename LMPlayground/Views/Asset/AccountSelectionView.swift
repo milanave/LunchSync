@@ -27,15 +27,11 @@ struct AccountSelectionView: View {
         self.allowDismissal = allowDismissal
         self._viewModel = StateObject(wrappedValue: AccountSelectionViewModel(wallet: wallet))
         
-        #if DEBUG
-        if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1" {
+        if( Utility.isMockEnvironment() ){
             _appleWallet = State(initialValue: MockAppleWallet())
         } else {
             _appleWallet = State(initialValue: AppleWallet())
         }
-        #else
-        _appleWallet = State(initialValue: AppleWallet())
-        #endif
     }
     
     var body: some View {
