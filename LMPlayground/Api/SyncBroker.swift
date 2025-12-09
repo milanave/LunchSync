@@ -389,13 +389,14 @@ class SyncBroker {
                 ){
                     var changes: [String] = []
                     
-                    if payeeChanged { changes.append("payee = \(newTrans.payee)") }
-                    if amountChanged { changes.append("amount = \(CurrencyFormatter.shared.format(newTrans.amount))") }
+                    if payeeChanged { changes.append("payee: \(transaction.payee) -> \(newTrans.payee)") }
+                    if amountChanged { changes.append("amount: \(CurrencyFormatter.shared.format(transaction.amount)) -> \(CurrencyFormatter.shared.format(newTrans.amount))") }
                     let noteDate = dateFormatter.string(from: newTrans.date)
-                    if dateChanged { changes.append("date = \(noteDate)") }
-                    if notesChanged { changes.append("notes = \(newTrans.notes)") }
-                    if pendingChanged { changes.append("pending = \(newTrans.isPending)") }
-                    if categoryNameChanged { changes.append("category = \(newTrans.category_name ?? "nil")") }
+                    let oldNoteDate = dateFormatter.string(from: transaction.date)
+                    if dateChanged { changes.append("date: \(oldNoteDate) -> \(noteDate)") }
+                    if notesChanged { changes.append("notes: \(transaction.notes) -> \(newTrans.notes)") }
+                    if pendingChanged { changes.append("pending: \(transaction.isPending) -> \(newTrans.isPending)") }
+                    if categoryNameChanged { changes.append("category: \(transaction.category_name ?? "nil") -> \(newTrans.category_name ?? "nil")") }
                     
                     let changeSummary = changes.joined(separator: ", ")
                     if !changeSummary.isEmpty {
@@ -648,6 +649,7 @@ class SyncBroker {
                             transaction.lm_account = ""
                         }
                         transaction.sync = .complete
+                        transaction.addHistory(note: "Synced to LM (updated)")
                         return transaction
                     }
                 }

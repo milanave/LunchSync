@@ -290,6 +290,7 @@ struct MainView: View {
     private func backgroundSyncSheet() -> some View {
         NavigationStack {
             List {
+                
                 Section {
                     
                     Toggle("Enable background sync", isOn: $enableBackgroundJob.animation())
@@ -323,7 +324,7 @@ struct MainView: View {
                             }
                             
                         }
-
+                    
                     if enableBackgroundJob {
                         Picker("Check for transactions every", selection: $backgroundJobFrequency) {
                             Text("Hour").tag(1)
@@ -334,7 +335,7 @@ struct MainView: View {
                             Text("24 hours").tag(4)
                         }
                         .onChange(of: backgroundJobFrequency) { _, newValue in
-
+                            
                             if let token = appDelegate.notificationDelegate.currentDeviceToken {
                                 Task {
                                     let response = await PushAPI.registerForPushNotifications(deviceToken: token, active: true, frequency: backgroundJobFrequency)
@@ -350,27 +351,32 @@ struct MainView: View {
                             }
                         }
                     }
-
-                    Toggle("Import Transactions Automatically", isOn: $autoImportTransactions)
-                        .disabled(walletsConnected < 1)
+                    
+                    
+                
                 } footer: {
-                    if let message = registrationMessage {
-                        let fullToken = appDelegate.notificationDelegate.currentDeviceToken ?? "Not found"
-                        let shortToken: String = String(fullToken.suffix(4))
-                        #if DEBUG
-                        let environment = "Test"
-                        #else
-                        let environment = "Production"
-                        #endif
+                    
+                    VStack{
+                        Text("Background Sync sends a push notification to trigger a sync, at a frequency you select.")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        if let message = registrationMessage {
+                            let fullToken = appDelegate.notificationDelegate.currentDeviceToken ?? "Not found"
+                            let shortToken: String = String(fullToken.suffix(4))
+                            #if DEBUG
+                            let environment = "Test"
+                            #else
+                            let environment = "Production"
+                            #endif
 
-                        let postText = "Device *\(shortToken), env \(environment)"
-                        Text(message.status ?
-                             "Registered successfully with frequency of ^[\(message.frequency ?? 1) hour](inflect:true). \(postText)" :
-                            "Registered failed with \(message.message). \(postText)").foregroundStyle(.secondary)
+                            let postText = "Device *\(shortToken), env \(environment)"
+                            Text(message.status ?
+                                 "Registered successfully with frequency of ^[\(message.frequency ?? 1) hour](inflect:true). \(postText)" :
+                                "Registered failed with \(message.message). \(postText)").frame(maxWidth: .infinity, alignment: .leading)
+                        }
                     }
                 }
-                Section{
-                    if #available(iOS 26.0, *) {
+                if #available(iOS 26.0, *) {
+                    Section{
                         Toggle("Enable background delivery", isOn:$enableBackgroundDelivery.animation())
                             .onChange(of:enableBackgroundDelivery){ _, newValue in
                                 if !newValue {
@@ -379,44 +385,18 @@ struct MainView: View {
                                     setBackgroundDelivery(enabled: true)
                                 }
                             }
+                    } footer: {
+                        Text("Background Delivery syncs when a transaction happens in real time, up to once per hour.")
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                } footer: {
-                    if enableBackgroundDelivery{
-                        VStack{
-                            Text("Background Delivery is under development,but available for testing. Please use with along with background sync")
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            Text("Weekly Spending (test): \(niceAmount(NSDecimalNumber(decimal: storage.getWeeklySpending()).doubleValue))")
-                                .font(.footnote)
-                            if let last = storage.getLastCheck() {
-                                Text("Last Checked: \(last.formatted(date: .abbreviated, time: .shortened))")
-                                    .font(.footnote)
-                            } else {
-                                Text("Last Checked: never")
-                                    .font(.footnote)
-                            }
-                            if let lastInit = storage.getLastInit() {
-                                Text("Last Init: \(lastInit.formatted(date: .abbreviated, time: .shortened))")
-                                    .font(.footnote)
-                            } else {
-                                Text("Last Init: never")
-                                    .font(.footnote)
-                            }
-                            if let lastTerminate = storage.getLastTerminate() {
-                                Text("Last Term: \(lastTerminate.formatted(date: .abbreviated, time: .shortened))")
-                                    .font(.footnote)
-                            } else {
-                                Text("Last Term: never")
-                                    .font(.footnote)
-                            }
-                            if let lastError = storage.getLastError() {
-                                Text("Last Error: \(lastError.formatted(date: .abbreviated, time: .shortened))")
-                                    .font(.footnote)
-                            } else {
-                                Text("Last Error: never")
-                                    .font(.footnote)
-                            }
-                        }
-                    }
+                }
+                
+                Section{
+                    Toggle("Import Transactions Automatically", isOn: $autoImportTransactions)
+                        .disabled(walletsConnected < 1)
+                }footer: {
+                    Text("Send transactions to LunchMoney after a sync. Leave off to import manually.")
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 
                 
@@ -431,7 +411,7 @@ struct MainView: View {
                 }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.fraction(0.7), .large])
     }
     
     // MARK: lunchMoneyApiSection
@@ -498,9 +478,10 @@ struct MainView: View {
                 }
             }
             */
-        } header: {
-            Text("Lunch Money API")
         }
+        /*header: {
+            Text("Lunch Money Account")
+        }*/
         /*footer: {
             if(apiConnected) {
                 Text("Connected as \(userName)")
@@ -512,7 +493,7 @@ struct MainView: View {
     
     // MARK: appleWalletSection
     private func appleWalletSection() -> some View {
-        Section("Apple Wallet Accounts") {
+        Section("Wallet Accounts") {
             NavigationLink {
                 AccountSelectionView(
                     isPresented: $isShowingAccountSelectionDialog,

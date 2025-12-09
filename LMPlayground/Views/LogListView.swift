@@ -11,6 +11,9 @@ struct LogListView: View {
     @State private var sourceFilter: LogSourceFilter = .all
     let wallet: Wallet
     
+    @AppStorage("enableBackgroundDelivery", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var enableBackgroundDelivery = false
+    private let storage = Storage()
+    
     private var filteredLogs: [Log] {
         let levelFiltered = showAllLogs ? logs : logs.filter { $0.level == 1 }
 
@@ -123,6 +126,10 @@ struct LogListView: View {
             //Toggle("Detailed Logs", isOn: $detailedLogging)
             //   .toggleStyle(.switch)
             
+            if sourceFilter == .backgroundDelivery{
+                backgroundDeliveryDebugInfo()
+            }
+            
             ForEach(filteredLogs) { log in
                 let (cleanMessage, sourceLabel, labelColor) = parseLogMessage(log.message)
                 
@@ -191,7 +198,56 @@ struct LogListView: View {
                 }
             }
         }
+        
     }
+    private func backgroundDeliveryDebugInfo() -> some View {
+        
+        VStack{
+            Text("Background Delivery is \(enableBackgroundDelivery ? "enabled":"disabled")")
+                .frame(maxWidth: .infinity, alignment: .leading)
+            if let lastInit = storage.getLastInit() {
+                Text("Last Initialized: \(lastInit.formatted(date: .abbreviated, time: .shortened))")
+                    .font(.footnote)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Text("Last Initialized: never")
+                    .font(.footnote)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if let last = storage.getLastCheck() {
+                Text("Last Data received: \(last.formatted(date: .abbreviated, time: .shortened))")
+                    .font(.footnote)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Text("Last Data received: never")
+                    .font(.footnote)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            Text("Last sync count: \(niceNumber(NSDecimalNumber(decimal: storage.getWeeklySpending()).doubleValue))")
+                .font(.footnote)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if let lastTerminate = storage.getLastTerminate() {
+                Text("Last Terminated: \(lastTerminate.formatted(date: .abbreviated, time: .shortened))")
+                    .font(.footnote)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Text("Last Terminated: never")
+                    .font(.footnote)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if let lastError = storage.getLastError() {
+                Text("Last Error: \(lastError.formatted(date: .abbreviated, time: .shortened))")
+                    .font(.footnote)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Text("Last Error: never")
+                    .font(.footnote)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+    
 }
 
 #Preview {

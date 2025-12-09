@@ -5,8 +5,7 @@ struct AboutView: View {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown"
         
-        let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
-        let is_test_flight = sharedDefaults.bool(forKey: "is_test_flight")
+        //let is_test_flight = sharedDefaults.bool(forKey: "is_test_flight")
         let runStateString = Utility.getRunState()?.description ?? "unknown"
         return "\(version) (\(build)) (\(runStateString))"
     }
@@ -22,7 +21,7 @@ struct AboutView: View {
                         .frame(width: 50, height: 50)
                         .cornerRadius(22) // Added to match iOS app icon style
                     
-                    Text("Wallet Sync")
+                    Text("Lunch Sync")
                         .font(.title)
                         .bold()
                 }
@@ -33,38 +32,11 @@ struct AboutView: View {
                     Text("1. Connect your Lunch Money account with your API token.\n2. Select Wallet accounts to sync, pair each one with a Lunch Money asset.\n3. Sync transactions manually, enable background sync, or install the shortcuts below to set your own schedule.")
                         .font(.body)
                         .fixedSize(horizontal: false, vertical: true)
-                    Text("Weekly Spending: \(niceAmount(NSDecimalNumber(decimal: storage.getWeeklySpending()).doubleValue))")
-                        .font(.footnote)
-                    if let last = storage.getLastCheck() {
-                        Text("Last Checked: \(last.formatted(date: .abbreviated, time: .shortened))")
-                            .font(.footnote)
-                    } else {
-                        Text("Last Checked: never")
-                            .font(.footnote)
-                    }
-                    if let lastInit = storage.getLastInit() {
-                        Text("Last Init: \(lastInit.formatted(date: .abbreviated, time: .shortened))")
-                            .font(.footnote)
-                    } else {
-                        Text("Last Init: never")
-                            .font(.footnote)
-                    }
-                    if let lastTerminate = storage.getLastTerminate() {
-                        Text("Last Term: \(lastTerminate.formatted(date: .abbreviated, time: .shortened))")
-                            .font(.footnote)
-                    } else {
-                        Text("Last Term: never")
-                            .font(.footnote)
-                    }
-                    /*
-                    Button {
-                        if let url = URL(string: "https://littlebluebug.com/wallet/index.html") {
-                            UIApplication.shared.open(url)
-                        }
-                    } label: {
-                        Text("Release notes")                            
-                    }
-                     */
+                    
+                    Text("\nBackground delivery is now availble with iOS 26. Enable it to sync transactions in real-time, up to once per hour. ")
+                        .font(.body)
+                        .fixedSize(horizontal: false, vertical: true)
+
                 }
                 .padding()
                 .frame(maxWidth: .infinity)

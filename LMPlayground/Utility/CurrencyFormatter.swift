@@ -47,3 +47,23 @@ struct CurrencyFormatter {
 func niceAmount(_ amount: Double) -> String {
     return CurrencyFormatter.shared.format(amount)
 }
+
+/// Formats a Double with grouping separators and a fixed number of decimals
+/// - Parameters:
+///   - value: The numeric value to format
+///   - decimals: The number of digits after the decimal point (default 0)
+/// - Returns: Formatted number string (e.g. "1,234", "1,234.50")
+func niceNumber(_ value: Double, decimals: Int = 0) -> String {
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .decimal
+    formatter.groupingSeparator = ","
+    formatter.groupingSize = 3
+    formatter.minimumFractionDigits = max(0, decimals)
+    formatter.maximumFractionDigits = max(0, decimals)
+    
+    if let result = formatter.string(from: NSNumber(value: value)) {
+        return result
+    }
+    // Fallback formatting if NumberFormatter fails for any reason
+    return String(format: "%.\(max(0, decimals))f", value)
+}
