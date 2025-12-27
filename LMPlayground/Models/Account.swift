@@ -14,7 +14,7 @@ class Account {
     var institution_id: String = ""
     var lastUpdated: Date = Date()
     var sync: Bool = true
-    
+    var syncBalanceOnly: Bool = false
     
     init(id: String,
          name: String,
@@ -26,7 +26,8 @@ class Account {
          institution_name: String = "",
          institution_id: String = "",
          lastUpdated: Date = Date(),
-         sync: Bool = true) {
+         sync: Bool = true,
+         syncBalanceOnly: Bool = false) {
         self.id = id
         self.name = name
         self.balance = balance
@@ -38,5 +39,6 @@ class Account {
         self.institution_id = institution_id
         self.lastUpdated = lastUpdated
         self.sync = sync
+        self.syncBalanceOnly = syncBalanceOnly
     }
 }

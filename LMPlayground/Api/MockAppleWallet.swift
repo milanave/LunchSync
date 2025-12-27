@@ -29,7 +29,7 @@ class MockAppleWallet: AppleWallet {
         ]
     }
     
-    override func fetchhWalletTransactionsForAccounts(accounts: [Account]) async throws -> [Transaction] {
+    override func fetchhWalletTransactionsForAccounts(accounts: [Account], logPrefix: String? = nil) async throws -> [Transaction] {
         return [
             Transaction(id: UUID().uuidString, account: "Mock Account", payee: "Mock Store", amount: 42.0, date: Date(), lm_id: "", lm_account: "", sync: .pending),
             Transaction(id: UUID().uuidString, account: "Mock Account", payee: "Mock Shop", amount: 24.0, date: Date(), lm_id: "", lm_account: "", sync: .pending)

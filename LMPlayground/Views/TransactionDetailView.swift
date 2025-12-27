@@ -105,9 +105,15 @@ struct TransactionDetailView: View {
                     ForEach(Array((transaction.histories ?? []).sorted { $0.date < $1.date }.enumerated()), id: \.offset) { _, history in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(history.note)
-                            Text(history.date.formatted(date: .abbreviated, time: .shortened))
-                                .font(.footnote)
-                                .foregroundColor(.secondary)
+                            HStack{
+                                Text(history.date.formatted(date: .abbreviated, time: .shortened))
+                                    .font(.footnote)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text(history.source)
+                                    .font(.footnote)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
                 }
@@ -244,8 +250,8 @@ struct DetailRow: View {
         category_id: "200",
         category_name: "Restaurants"
     )
-    sample.addHistory(note: "Queued for sync")
-    sample.addHistory(note: "amount = $1,000.23, payee = Acme Corp")
+    sample.addHistory(note: "Queued for sync", source: "BGD")
+    sample.addHistory(note: "amount = $1,000.23, payee = Acme Corp", source: "BGD")
 
     return NavigationStack {
         TransactionDetailView(transaction: sample, wallet: wallet)

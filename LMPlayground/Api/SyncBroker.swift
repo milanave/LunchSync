@@ -97,6 +97,8 @@ class SyncBroker {
             
             addLog(prefix: prefix, message: "got accounts: \(accounts.count) to sync", level: 2)
             
+            
+            
             var newTransactions: [Transaction] = []
             if let _ = preFetchedWalletData {
                 addLog(prefix: prefix, message: "preFetchedWalletData provided, (transactions:  \(preFetchedWalletData!.transactions.count), accounts: \(preFetchedWalletData!.accounts.count))", level: 2)
@@ -246,7 +248,11 @@ class SyncBroker {
         print("Filtered to \(filteredTransactions.count) transactions for \(accountIdSet.count) accounts")
 
         for transaction in filteredTransactions {
-            let accountName = accounts.first(where: { $0.id == transaction.accountID })?.name ?? ""
+            let account = accounts.first(where: { $0.id == transaction.accountID })
+            let accountName = account?.name ?? ""
+            let syncBalanceOnly = account?.syncBalanceOnly ?? false
+            print("refreshWalletTransactionsForAccounts: \(accountName) = \(syncBalanceOnly)")
+            
             let category_id = transaction.category_id
             let category_name = category_id.flatMap { appleWallet.getMCCDescription(for: $0) }
             
@@ -400,7 +406,7 @@ class SyncBroker {
                     
                     let changeSummary = changes.joined(separator: ", ")
                     if !changeSummary.isEmpty {
-                        transaction.addHistory(note: changeSummary)
+                        transaction.addHistory(note: changeSummary, source: logPrefix)
                     }
                     /*
                     print(" -- \(transaction.lm_id) has changes in payee, amount or date")
@@ -649,7 +655,7 @@ class SyncBroker {
                             transaction.lm_account = ""
                         }
                         transaction.sync = .complete
-                        transaction.addHistory(note: "Synced to LM (updated)")
+                        transaction.addHistory(note: "Synced to LM (updated)", source: logPrefix)
                         return transaction
                     }
                 }
@@ -681,7 +687,7 @@ class SyncBroker {
             if let transactionIds = response.transactionIds, !transactionIds.isEmpty {
                 transaction.lm_id = String(transactionIds[0])
                 transaction.sync = .complete
-                transaction.addHistory(note: "Synced to LM")
+                transaction.addHistory(note: "Synced to LM", source: logPrefix)
                 //print("Inserted \(transaction.lm_id) -> \(transaction.sync)")
                 addLog(message: "syncTransaction, synced to LM for \(transaction.id), status=\(importAsCleared ? "cleared" : "uncleared")", level: 2)
             } else {
@@ -693,7 +699,7 @@ class SyncBroker {
             return transaction
         } catch {
             print("Error in syncTransaction: \(error)")
-            transaction.addHistory(note: "Error syncing to LM: \(error)")
+            transaction.addHistory(note: "Error syncing to LM: \(error)", source: logPrefix)
             addLog(message: "syncTransaction, error \(error) for \(transaction.id)", level: 2)
             transaction.sync = .never
             throw error

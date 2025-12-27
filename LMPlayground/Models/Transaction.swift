@@ -80,8 +80,8 @@ class Transaction: Identifiable {
         self.histories = histories
     }
 
-    func addHistory(note: String) {
-        let history = TransactionHistory(date: Date(), note: note)
+    func addHistory(note: String, source: String? = nil) {
+        let history = TransactionHistory(date: Date(), note: note, source: source ?? "")
         history.transaction = self
         if histories == nil { histories = [] }
         histories?.append(history)

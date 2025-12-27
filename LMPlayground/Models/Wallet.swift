@@ -212,6 +212,8 @@ class Wallet :ObservableObject {
                             account.lm_name = newAccount.lm_name
                         case "sync":
                             account.sync = newAccount.sync
+                        case "syncBalanceOnly":
+                            account.syncBalanceOnly = newAccount.syncBalanceOnly
                         case "lastUpdated":
                             account.lastUpdated = newAccount.lastUpdated
                         default:
@@ -226,6 +228,7 @@ class Wallet :ObservableObject {
                     account.lm_id = newAccount.lm_id
                     account.lm_name = newAccount.lm_name
                     account.sync = newAccount.sync
+                    account.syncBalanceOnly = newAccount.syncBalanceOnly
                     account.lastUpdated = newAccount.lastUpdated
                     //print("Updated all properties for account \(account.id)")
                 }

@@ -709,7 +709,7 @@ struct MainView: View {
                     // Disable the button while loading
                     showingPreviewTransactions = false
                     let accounts = wallet.getSyncedAccounts()
-                    transactions = try await appleWallet.fetchhWalletTransactionsForAccounts(accounts: accounts)
+                    transactions = try await appleWallet.fetchhWalletTransactionsForAccounts(accounts: accounts, logPrefix:"MV")
                     
                     // Show preview only after transactions are loaded
                     showingPreviewTransactions = true

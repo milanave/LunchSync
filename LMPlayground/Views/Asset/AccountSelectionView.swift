@@ -44,7 +44,11 @@ struct AccountSelectionView: View {
                 List {
                     ForEach(viewModel.wallet.getAccounts(), id: \.id) { account in
                         NavigationLink {
-                            AssetSelectionView(account: account, wallet: viewModel.wallet)
+                            if account.sync {
+                                AccountDetailView(account: account, wallet: viewModel.wallet)
+                            } else {
+                                AssetSelectionView(account: account, wallet: viewModel.wallet)
+                            }
                         } label: {
                             AccountRowView(account: account)
                         }
@@ -114,7 +118,7 @@ struct AccountSelectionView: View {
                     // Disable the button while loading
                     showingPreviewTransactions = false
                     let accounts = viewModel.wallet.getSyncedAccounts()
-                    transactions = try await appleWallet.fetchhWalletTransactionsForAccounts(accounts: accounts)
+                    transactions = try await appleWallet.fetchhWalletTransactionsForAccounts(accounts: accounts, logPrefix: "MV")
                     
                     // Show preview only after transactions are loaded
                     showingPreviewTransactions = true
@@ -170,6 +174,11 @@ struct AccountRowView: View {
                         .font(.footnote)
                 }
                 Spacer()
+                if account.syncBalanceOnly {
+                    Text("Syncing balance Only")
+                        .font(.footnote)
+                        .italic(true)
+                }
             }
         }
     }

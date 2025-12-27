@@ -254,7 +254,7 @@ class AppleWallet{
      this fetches ALL transactions from the Wallet. Could be a lot.
      this is only used for importing transactions?
      */
-    func fetchhWalletTransactionsForAccounts(accounts:[Account]) async throws -> [Transaction]{
+    func fetchhWalletTransactionsForAccounts(accounts:[Account], logPrefix:String = "") async throws -> [Transaction]{
         var transactionsFound: [Transaction] = []
         let sortDescriptor = SortDescriptor(\FinanceKit.Transaction.transactionDate, order: .reverse)
         
@@ -305,7 +305,7 @@ class AppleWallet{
                 category_id: category_id,
                 category_name: category_name
             )
-            t.addHistory(note: "Created")
+            t.addHistory(note: "Created", source:logPrefix)
             transactionsFound.append(t)
         }
         
@@ -486,12 +486,15 @@ class AppleWallet{
         
         // Filter the fetched transactions by the allowed accounts
         let filteredTransactions = transactions.filter { accountUUIDSet.contains($0.accountID) }
-        print("Filtered to \(filteredTransactions.count) transactions for \(accountUUIDSet.count) accounts")
+        print("Filtered[x] to \(filteredTransactions.count) transactions for \(accountUUIDSet.count) accounts")
 
         var transactionsFound: [Transaction] = []
         
         for transaction in filteredTransactions {
-            let accountName = accounts.first(where: { $0.id == transaction.accountID.uuidString })?.name ?? ""
+            let account = accounts.first(where: { $0.id == transaction.accountID.uuidString })
+            let accountName = account?.name ?? ""
+            let syncBalanceOnly = account?.syncBalanceOnly ?? false
+            print("refreshWalletTransactionsForAccounts: \(accountName) = \(syncBalanceOnly)")
             var amount = (transaction.transactionAmount.amount as NSDecimalNumber).doubleValue
             if transaction.creditDebitIndicator == .credit {
                 amount = amount * -1
@@ -502,29 +505,33 @@ class AppleWallet{
             
             //print("refreshWalletTransactionsForAccounts \(payeeDescription) \(transaction.status)=\(isPending)")
             //print("refreshWalletTransactionsForAccounts \(transaction.transactionDescription) cat_id=\(category_id ?? "n/a"), cat_name=\(category_name ?? "n/a")")
-            
-            let t = Transaction(
-                id: transaction.id.uuidString,
-                account: accountName,
-                payee: transaction.transactionDescription,
-                amount: amount,
-                date: transaction.transactionDate,
-                lm_id: "",
-                lm_account: "",
-                notes: transaction.status == .booked ? "booked" : "pending",
-                category: "",
-                type: String(describing: transaction.transactionType),
-                accountID: transaction.accountID.uuidString,
-                status: "",
-                isPending: transaction.status == .booked ? false : true,
-                sync: .pending,
-                lm_category_id: "",
-                lm_category_name: "",
-                category_id: category_id,
-                category_name: category_name
-            )
-            t.addHistory(note: "Created")
-            transactionsFound.append(t)
+            if(!syncBalanceOnly){
+                print("Sync balance and transaction")
+                let t = Transaction(
+                    id: transaction.id.uuidString,
+                    account: accountName,
+                    payee: transaction.transactionDescription,
+                    amount: amount,
+                    date: transaction.transactionDate,
+                    lm_id: "",
+                    lm_account: "",
+                    notes: transaction.status == .booked ? "booked" : "pending",
+                    category: "",
+                    type: String(describing: transaction.transactionType),
+                    accountID: transaction.accountID.uuidString,
+                    status: "",
+                    isPending: transaction.status == .booked ? false : true,
+                    sync: .pending,
+                    lm_category_id: "",
+                    lm_category_name: "",
+                    category_id: category_id,
+                    category_name: category_name
+                )
+                t.addHistory(note: "Created")
+                transactionsFound.append(t)
+            }else{
+                print("Sync balance only")
+            }
         }
         print("returning \(transactionsFound.count) transactions")
         

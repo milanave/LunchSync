@@ -11,6 +11,7 @@ struct AssetSelectionView: View {
     @State private var newAssetName: String = ""
     @State private var createError: String?
     @State private var createdAssetId: Int?
+    @State private var shouldDismissCallerAfterSheet = false
     
     
     var body: some View {
@@ -140,6 +141,12 @@ struct AssetSelectionView: View {
                     }
                 }
             }
+            .onChange(of: isPresentingCreateSheet) { oldValue, newValue in
+                if oldValue == true && newValue == false && shouldDismissCallerAfterSheet {
+                    shouldDismissCallerAfterSheet = false
+                    dismiss()
+                }
+            }
             .task {
                 await loadAssets()
             }
@@ -168,7 +175,13 @@ struct AssetSelectionView: View {
         account.lm_name = String(asset.name)
         account.sync = true
         wallet.replaceAccount(newAccount: account, propertiesToUpdate: ["lm_id", "lm_name", "sync"])
-        dismiss()
+        if isPresentingCreateSheet {
+            // First close the sheet, then pop this view on close
+            shouldDismissCallerAfterSheet = true
+            isPresentingCreateSheet = false
+        } else {
+            dismiss()
+        }
     }
     
     private func unLinkAsset() {
@@ -176,7 +189,12 @@ struct AssetSelectionView: View {
         account.lm_name = ""
         account.sync = false
         wallet.replaceAccount(newAccount: account, propertiesToUpdate: ["lm_id", "lm_name", "sync"])
-        dismiss()
+        if isPresentingCreateSheet {
+            shouldDismissCallerAfterSheet = true
+            isPresentingCreateSheet = false
+        } else {
+            dismiss()
+        }
     }
 }
 
