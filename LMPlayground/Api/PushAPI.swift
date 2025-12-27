@@ -82,7 +82,8 @@ struct PushAPI {
     
     static func registerWalletCheck(deviceToken: String, logPrefix: String="") async {
         var payload = basePayload(deviceToken: deviceToken)
-        payload["action_id"] = (logPrefix == "BGD") ? "bgd_complete" : "push_received"
+        payload["action_id"] = "push_received"
+        payload["log_prefix"] = logPrefix
         do {
             let response = try await sendRequest(payload: payload)
             print("Wallet check registration status: \(response.status)")

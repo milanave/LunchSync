@@ -28,11 +28,11 @@ struct LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
         self.storage.setLastCheck()
         
         do{
-            self.addLog(prefix: "BGD", message: "didReceiveData starting", level: 1)
+            self.addLog(prefix: logPrefix, message: "didReceiveData starting", level: 1)
             let syncBroker = SyncBroker(context: modelContext, logPrefix: logPrefix)
             let appleWallet = AppleWallet()
             let preFetchedWalletData = try await appleWallet.getPreFetchedWalletData()
-            self.addLog(prefix: "BGD", message: "didReceiveData syncing", level: 1)
+            self.addLog(prefix: logPrefix, message: "didReceiveData syncing", level: 1)
             let syncCount = try await syncBroker.fetchTransactions(
                 prefix: logPrefix,
                 showAlert: false,
@@ -44,11 +44,11 @@ struct LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
 
             storage.setWeeklySpending(Decimal(syncCount))
             
-            self.addLog(prefix: "BGD", message: "didReceiveData got \(syncCount) transactions", level: 1)
+            self.addLog(prefix: logPrefix, message: "didReceiveData got \(syncCount) transactions", level: 1)
 
         }catch {
             self.storage.setLastError()
-            self.addLog(prefix: "BGD", message: "Error processing background delivery: \(error)", level: 1)
+            self.addLog(prefix: logPrefix, message: "Error processing background delivery: \(error)", level: 1)
         }
         
         self.addLog(prefix: logPrefix, message: "didReceiveData finished", level: 1)

@@ -15,6 +15,7 @@ class Account {
     var lastUpdated: Date = Date()
     var sync: Bool = true
     
+    
     init(id: String,
          name: String,
          balance: Double,
