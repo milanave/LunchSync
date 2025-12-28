@@ -36,7 +36,7 @@ class MockAppleWallet: AppleWallet {
         ]
     }
     
-    override func refreshWalletTransactionsForAccounts(accounts: [Account]) async throws -> [Transaction] {
+    override func refreshWalletTransactionsForAccounts(accounts: [Account], logPrefix: String? = nil) async throws -> [Transaction] {
         return [
             Transaction(id: UUID().uuidString, account: "Mock Account", payee: "New Store", amount: 15.0, date: Date(), lm_id: "", lm_account: "", sync: .pending)
         ]

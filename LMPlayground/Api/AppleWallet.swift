@@ -335,7 +335,7 @@ class AppleWallet{
     
     // this is a "safe" version meant to be the first thing that is called in the background extension
     // it attempts to only fetch the FinanceKit data
-    func getRecentTransactions() async throws -> [Transaction] {
+    func getRecentTransactions(logPrefix: String="") async throws -> [Transaction] {
         print("getRecentTransactions starting")
         
         // pick a date one month in the past
@@ -393,7 +393,7 @@ class AppleWallet{
                 category_id: category_id,
                 category_name: "" // leave this blank so we don't have to touch the MCC code file until these transactions are prepped in SyncBroker
             )
-            t.addHistory(note: "Created")
+            t.addHistory(note: "Created", source: logPrefix)
             transactionsFound.append(t)
         }
         print("returning \(transactionsFound.count) transactions")
@@ -405,7 +405,7 @@ class AppleWallet{
      this is meant to fetch the latest transactions
      called only from SyncBroker
      */
-    func refreshWalletTransactionsForAccounts(accounts:[Account]) async throws -> [Transaction] {
+    func refreshWalletTransactionsForAccounts(accounts:[Account], logPrefix: String="") async throws -> [Transaction] {
         print("refreshWalletTransactionsForAccounts called with \(accounts.count) accounts, isBackgroundExtension: \(isBackgroundExtension)")
         
         // Check if we have authorization to access FinanceKit data
@@ -527,7 +527,7 @@ class AppleWallet{
                     category_id: category_id,
                     category_name: category_name
                 )
-                t.addHistory(note: "Created")
+                t.addHistory(note: "Created", source: logPrefix)
                 transactionsFound.append(t)
             }else{
                 print("Sync balance only")

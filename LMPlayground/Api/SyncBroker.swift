@@ -105,7 +105,7 @@ class SyncBroker {
                 // The passed transactions won't have account/category set; handling to be added next
                 newTransactions = self.prepPrefetchedTransactions(transactions: preFetchedWalletData!.transactions, accounts: accounts)
             } else {
-                newTransactions = try await appleWallet.refreshWalletTransactionsForAccounts(accounts: accounts)
+                newTransactions = try await appleWallet.refreshWalletTransactionsForAccounts(accounts: accounts, logPrefix: prefix)
                 addLog(prefix: prefix, message: "found \(newTransactions.count) transactions to sync", level: 2)
             }
             
