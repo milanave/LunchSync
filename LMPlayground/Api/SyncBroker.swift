@@ -251,16 +251,16 @@ class SyncBroker {
             let account = accounts.first(where: { $0.id == transaction.accountID })
             let accountName = account?.name ?? ""
             let syncBalanceOnly = account?.syncBalanceOnly ?? false
-            print("refreshWalletTransactionsForAccounts: \(accountName) = \(syncBalanceOnly)")
             
             let category_id = transaction.category_id
             let category_name = category_id.flatMap { appleWallet.getMCCDescription(for: $0) }
             
-            print("prepPrefetchedTransactions: \(transaction.payee), \(transaction.amount), \(transaction.date) cat_id=\(category_id ?? "n/a"), cat_name=\(category_name ?? "n/a")")
+            print("prepPrefetchedTransactions: \(transaction.payee), \(transaction.amount), \(transaction.date) cat_id=\(category_id ?? "n/a"), cat_name=\(category_name ?? "n/a"), balance_only=\(syncBalanceOnly)")
             if( accountName != ""){
                 transaction.account = accountName
                 transaction.category_id = category_id
                 transaction.category_name = category_name
+                transaction.sync = syncBalanceOnly ? .never : .pending
                 returnedTransactions.append(transaction)
             }else{
                 print("prepPrefetchedTransactions account name is empty, skipping")

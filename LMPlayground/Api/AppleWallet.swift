@@ -274,7 +274,10 @@ class AppleWallet{
             //print(transaction)
             
             // Find matching account name from accounts array
-            let accountName = accounts.first(where: { $0.id == transaction.accountID.uuidString })?.name ?? ""
+            let account = accounts.first(where: { $0.id == transaction.accountID.uuidString })
+            let accountName = account?.name ?? ""
+            let syncBalanceOnly = account?.syncBalanceOnly ?? false
+            
             var amount = (transaction.transactionAmount.amount as NSDecimalNumber).doubleValue
             if transaction.creditDebitIndicator == .credit {
                 amount = amount * -1
@@ -299,28 +302,23 @@ class AppleWallet{
                 accountID: transaction.accountID.uuidString,
                 status: "",
                 isPending: transaction.status == .booked ? false : true,
-                sync: .pending,
+                sync: syncBalanceOnly ? .never : .pending,
                 lm_category_id: "",
                 lm_category_name: "",
                 category_id: category_id,
                 category_name: category_name
             )
-            t.addHistory(note: "Created", source:logPrefix)
+            t.addHistory(note: syncBalanceOnly ? "Created from fetch, skipping sync" : "Created from fetch", source:logPrefix)
             transactionsFound.append(t)
         }
         
         return transactionsFound
     }
     
-    func getPreFetchedWalletData() async throws -> PreFetchedWalletData{
-        print("getPreFetchedWalletData starting")
+    func getPreFetchedWalletData(logPrefix: String = "") async throws -> PreFetchedWalletData{
         do{
-            print("getPreFetchedWalletData fetching transactions")
-            let transactions = try await self.getRecentTransactions()
-            print("getPreFetchedWalletData got \(transactions.count) transactions")
+            let transactions = try await self.getRecentTransactions(logPrefix: logPrefix)
             let accounts = try await self.getWalletAccounts()
-            print("getPreFetchedWalletData got \(accounts.count) accounts")
-            
             let pfwd: PreFetchedWalletData = .init(
                 transactions: transactions,
                 accounts: accounts
@@ -330,7 +328,6 @@ class AppleWallet{
             print("getRecentTransactions failed to fetch transactions from FinanceStore: \(error.localizedDescription)")
             throw NSError(domain: "AppleWallet", code: -2, userInfo: [NSLocalizedDescriptionKey: "getRecentTransactions failed to fetch transactions from FinanceStore: \(error.localizedDescription)"])
         }
-
     }
     
     // this is a "safe" version meant to be the first thing that is called in the background extension
@@ -393,7 +390,7 @@ class AppleWallet{
                 category_id: category_id,
                 category_name: "" // leave this blank so we don't have to touch the MCC code file until these transactions are prepped in SyncBroker
             )
-            t.addHistory(note: "Created", source: logPrefix)
+            t.addHistory(note: "Created from recent", source: logPrefix)
             transactionsFound.append(t)
         }
         print("returning \(transactionsFound.count) transactions")
@@ -521,13 +518,13 @@ class AppleWallet{
                     accountID: transaction.accountID.uuidString,
                     status: "",
                     isPending: transaction.status == .booked ? false : true,
-                    sync: .pending,
+                    sync: syncBalanceOnly ? .never : .pending,
                     lm_category_id: "",
                     lm_category_name: "",
                     category_id: category_id,
                     category_name: category_name
                 )
-                t.addHistory(note: "Created", source: logPrefix)
+                t.addHistory(note: syncBalanceOnly ? "Created from refresh, skipping sync" : "Created from refresh", source:logPrefix)
                 transactionsFound.append(t)
             }else{
                 print("Sync balance only")

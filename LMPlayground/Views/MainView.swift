@@ -819,7 +819,7 @@ struct MainView: View {
         let syncBroker = SyncBroker(context: modelContext)
         Task {
             do {
-                let preFetchedWalletData = try await appleWallet.getPreFetchedWalletData()
+                let preFetchedWalletData = try await appleWallet.getPreFetchedWalletData(logPrefix: "MV")
                 _ = try await syncBroker.fetchTransactions(
                     prefix: "MV",
                     showAlert: true,

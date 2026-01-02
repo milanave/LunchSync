@@ -123,7 +123,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                 */
                 
                 let appleWallet = AppleWallet()
-                let preFetchedWalletData = try await appleWallet.getPreFetchedWalletData()
+                let preFetchedWalletData = try await appleWallet.getPreFetchedWalletData(logPrefix: "BN")
                 _ = try await syncBroker.fetchTransactions(
                     prefix: "BN",
                     showAlert: true,

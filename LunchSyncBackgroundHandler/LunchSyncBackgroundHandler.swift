@@ -31,7 +31,7 @@ struct LunchSyncBackgroundHandlerExtension: BackgroundDeliveryExtension {
             self.addLog(prefix: logPrefix, message: "didReceiveData starting", level: 1)
             let syncBroker = SyncBroker(context: modelContext, logPrefix: logPrefix)
             let appleWallet = AppleWallet()
-            let preFetchedWalletData = try await appleWallet.getPreFetchedWalletData()
+            let preFetchedWalletData = try await appleWallet.getPreFetchedWalletData(logPrefix: logPrefix)
             self.addLog(prefix: logPrefix, message: "didReceiveData syncing", level: 1)
             let syncCount = try await syncBroker.fetchTransactions(
                 prefix: logPrefix,
