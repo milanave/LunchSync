@@ -26,138 +26,101 @@ struct SettingsView: View {
                 Section {
                     Toggle(isOn: $categorize_incoming) {
                         HStack {
-                            Image(systemName: categorize_incoming ? "checkmark.circle.fill" : "circle")
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(categorize_incoming ? .green : .gray)
                             Text("Categorize Transactions")
                         }
                     }
                     .listRowSeparator(.hidden)
-                    
+                } header: {
+                    Text("Import Settings")
+                } footer: {
                     Text("If true, map Wallet's MCC codes to Lunch Money categories")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.leading, 20)
-                        .listRowSeparator(.hidden)
-                    
+                        
+                }
+                Section {
                     Toggle(isOn: $importTransactionsCleared) {
                         HStack {
-                            Image(systemName: importTransactionsCleared ? "checkmark.circle.fill" : "circle")
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(importTransactionsCleared ? .green : .gray)
                             Text("Import as \(importTransactionsCleared ? "Reviewed" : "Unreviewed")")
                         }
                     }
                     .listRowSeparator(.hidden)
-                    
+                } footer: {
                     Text("If true, transactions will be marked as 'reviewed' when imported.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.leading, 20)
-                        .listRowSeparator(.hidden)
-                    
+                }
+                Section{
                     Toggle(isOn: $putTransStatusInNotes) {
                         HStack {
-                            Image(systemName: putTransStatusInNotes ? "checkmark.circle.fill" : "circle")
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(putTransStatusInNotes ? .green : .gray)
                             Text("Transaction status in notes")
                         }
                     }
                     .listRowSeparator(.hidden)
-                    
+                } footer: {
                     Text("Put the Wallet transaction's latest status in the LunchMoney notes field.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.leading, 20)
-                        .listRowSeparator(.hidden)
-                    
+                }
+                Section{
                     Toggle(isOn: $alert_after_import) {
                         HStack {
-                            Image(systemName: alert_after_import ? "checkmark.circle.fill" : "circle")
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(alert_after_import ? .green : .gray)
                             Text("Alert after import")
                         }
                     }
                     .listRowSeparator(.hidden)
-                    
+                } footer: {
                     Text("Send an alert after an import finds new transactions.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.leading, 20)
-                        .listRowSeparator(.hidden)
-                } header: {
-                    Text("Transaction Import Settings")
                 }
+                
                 Section{
                     Toggle(isOn: $applyRules) {
                         HStack {
-                            Image(systemName: applyRules ? "checkmark.circle.fill" : "circle")
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(applyRules ? .green : .gray)
                             Text("Apply rules")
                         }
                     }
                     .listRowSeparator(.hidden)
-                    
+                } header: {
+                    Text("API Import Rules")
+                } footer: {
                     Text("If true, will apply account’s existing rules to the inserted transactions")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.leading, 20)
-                        .listRowSeparator(.hidden)
-                    
+                }
+                Section{
                     Toggle(isOn: $skipDuplicates) {
                         HStack {
-                            Image(systemName: skipDuplicates ? "checkmark.circle.fill" : "circle")
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(skipDuplicates ? .green : .gray)
                             Text("Skip duplicates")
                         }
                     }
                     .listRowSeparator(.hidden)
-                    
+                } footer: {
                     Text("If true, the system will automatically dedupe based on transaction date, payee and amount.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.leading, 20)
-                        .listRowSeparator(.hidden)
-                    
+                }
+                Section{
                     Toggle(isOn: $checkForRecurring) {
                         HStack {
-                            Image(systemName: checkForRecurring ? "checkmark.circle.fill" : "circle")
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(checkForRecurring ? .green : .gray)
                             Text("Check for recurring")
                         }
                     }
                     .listRowSeparator(.hidden)
-                    
+                } footer: {
                     Text("If true, will check new transactions for occurrences of new monthly expenses.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.leading, 20)
-                        .listRowSeparator(.hidden)
-                    
+                }
+                Section{
                     Toggle(isOn: $skipBalanceUpdate) {
                         HStack {
-                            Image(systemName: skipBalanceUpdate ? "checkmark.circle.fill" : "circle")
-                                .symbolRenderingMode(.hierarchical)
-                                .foregroundStyle(skipBalanceUpdate ? .green : .gray)
                             Text("Skip balance update")
                         }
                     }
                     .listRowSeparator(.hidden)
-                    
+                } footer: {
                     Text("If true, will skip updating balance if an asset_id is present for any of the transactions.")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(.leading, 20)
-                        .listRowSeparator(.hidden)
-                } header: {
-                    Text("API Import Rules")
+                }
+                Section{
+                    
                 } footer: {
-                    Text("See LunchMoney API documentation for more information.").foregroundStyle(.secondary)
+                    Text(.init("See [LunchMoney API](https://lunchmoney.dev/#getting-started) documentation for more information.")).foregroundStyle(.secondary)
                 }
             }
             .navigationTitle("Settings")
