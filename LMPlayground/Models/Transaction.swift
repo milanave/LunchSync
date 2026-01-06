@@ -8,6 +8,7 @@ class Transaction: Identifiable {
         case yes = "yes"
         case never = "never"
         case complete = "complete"
+        case skipped = "skipped"
     }
     
     var id: String = ""

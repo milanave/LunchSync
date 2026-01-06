@@ -5,13 +5,22 @@ import SwiftData
 struct TransactionListView: View {
     @Environment(\.dismiss) private var dismiss
     let wallet: Wallet
-    let syncStatus: Transaction.SyncStatus
+    let syncStatuses: [Transaction.SyncStatus]
     @State private var transactions: [Transaction] = []
+    
+    init(wallet: Wallet, syncStatuses: [Transaction.SyncStatus]) {
+        self.wallet = wallet
+        self.syncStatuses = syncStatuses
+    }
+    
+    init(wallet: Wallet, syncStatus: Transaction.SyncStatus) {
+        self.init(wallet: wallet, syncStatuses: [syncStatus])
+    }
     
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 0) {
-                if syncStatus == .never {
+                if syncStatuses.count == 1 && syncStatuses.first == .never {
                     Button(action: {
                         transactions.forEach { transaction in
                             wallet.setSyncStatus(newTrans: transaction, newStatus: .pending)
@@ -30,7 +39,7 @@ struct TransactionListView: View {
                     }
                 }
             }
-            .navigationTitle("\(transactions.count) Transactions with status: \(syncStatus.rawValue)")
+            .navigationTitle("\(transactions.count) Transactions with status: \(syncStatuses.map { $0.rawValue }.joined(separator: ", "))")
             .navigationBarTitleDisplayMode(.inline)
         }
         .onAppear {
@@ -39,7 +48,7 @@ struct TransactionListView: View {
     }
     
     private func refreshTransactions() {
-        transactions = wallet.getTransactionsWithStatus(syncStatus)
+        transactions = wallet.getTransactionsWithStatus(syncStatuses)
     }
 }
 
@@ -68,13 +77,70 @@ struct TransactionRowView: View {
                     Text(transaction.account).font(.footnote)
                     Spacer()
                     if transaction.isPending {
-                        Text("Pending")
-                            .font(.footnote)
-                            .italic()
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock.fill")
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(.yellow)
+                                .font(.footnote)
+                            Text("Pending")
+                                .font(.footnote)
+                                .italic()
+                        }
+                    }else if transaction.sync == .complete {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(.green)
+                                .font(.footnote)
+                            Text("Synced")
+                                .font(.footnote)
+                                .italic()
+                        }
+                    }else if transaction.sync == .never {
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(.red)
+                                .font(.footnote)
+                            Text("Error")
+                                .font(.footnote)
+                                .italic()
+                        }
+                    }else if transaction.sync == .skipped {
+                        HStack(spacing: 4) {
+                            Image(systemName: "minus.circle.fill")
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(.gray)
+                                .font(.footnote)
+                            Text("Skipped")
+                                .font(.footnote)
+                                .italic()
+                        }
+                    }else if transaction.sync == .pending {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.triangle.2.circlepath")
+                                .symbolRenderingMode(.hierarchical)
+                                .foregroundStyle(.blue)
+                                .font(.footnote)
+                            Text("Pending Sync")
+                                .font(.footnote)
+                                .italic()
+                        }
                     }
                 }
             }
         }
     }
+}
+
+#Preview {
+    let container = try! ModelContainer(for: Transaction.self)
+    let context = container.mainContext
+    let wallet = MockWallet(context: context, apiToken: "mock-token")
+    
+    return NavigationStack {
+        TransactionListView(wallet: wallet, syncStatuses: [.complete, .skipped])
+    }
+    .modelContainer(container)
 }
 

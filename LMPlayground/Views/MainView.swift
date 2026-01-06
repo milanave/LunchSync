@@ -571,7 +571,7 @@ struct MainView: View {
             }
 
             NavigationLink {
-                TransactionListView(wallet: wallet, syncStatus: .complete)
+                TransactionListView(wallet: wallet, syncStatuses: [.complete, .skipped])
                     .onDisappear {
                         refreshTrigger = UUID()
                     }

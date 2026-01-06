@@ -42,14 +42,17 @@ struct TransactionDetailView: View {
                     titleVisibility: .automatic,
                     actions: {
                         if transaction.sync == .pending{
-                            Button("Mark completed") { wallet.setSyncStatus(newTrans: transaction, newStatus: .complete)   }
+                            Button("Mark as skipped") { wallet.setSyncStatus(newTrans: transaction, newStatus: .skipped)   }
                             Button("Mark as error", role: .destructive) {  wallet.setSyncStatus(newTrans: transaction, newStatus: .never) }
                         }else if transaction.sync == .never{
                             Button("Queue for Sync") { wallet.setSyncStatus(newTrans: transaction, newStatus: .pending) }
-                            Button("Mark completed") { wallet.setSyncStatus(newTrans: transaction, newStatus: .complete)   }
+                            Button("Mark as skipped") { wallet.setSyncStatus(newTrans: transaction, newStatus: .skipped)   }
                         }else if transaction.sync == .complete{
                             Button("Queue for Sync") { wallet.setSyncStatus(newTrans: transaction, newStatus: .pending) }
+                            Button("Queue for Sync") { wallet.setSyncStatus(newTrans: transaction, newStatus: .pending) }
                             Button("Mark as error", role: .destructive) { wallet.setSyncStatus(newTrans: transaction, newStatus: .never)   }
+                        }else if transaction.sync == .skipped{
+                            Button("Queue for Sync") { wallet.setSyncStatus(newTrans: transaction, newStatus: .pending) }
                         }
                         Button("Cancel", role: .cancel) { }
                     },

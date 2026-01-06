@@ -20,7 +20,7 @@ class MockWallet: Wallet {
         // Add some mock transactions
         self.transactions = [
             Transaction(id: UUID().uuidString, account: "Mock Account", payee: "Mock Store", amount: 42.0, date: Date(), lm_id: "", lm_account: "", sync: .pending),
-            Transaction(id: UUID().uuidString, account: "Mock Account", payee: "Mock Shop", amount: 24.0, date: Date(), lm_id: "", lm_account: "", sync: .complete)
+            Transaction(id: UUID().uuidString, account: "Mock Account", payee: "Mock Shop", amount: 24.0, date: Date(), lm_id: "", lm_account: "", sync: .skipped)
         ]
     }
     

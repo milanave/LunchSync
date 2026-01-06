@@ -34,6 +34,7 @@ class SyncBroker {
         let status: String
     }
  
+    //MARK: Logging functions
     public func addLog(message: String, level: Int = 1) {
         addLog(prefix: logPrefix, message: message, level: level)
     }
@@ -49,7 +50,7 @@ class SyncBroker {
         }
     }
     
-    // MARK main import function
+    // MARK: main import function
     public func fetchTransactions(prefix: String, showAlert: Bool = false, skipSync: Bool = false, progress: @escaping (String) -> Void, preFetchedWalletData: PreFetchedWalletData? = nil) async throws -> Int {
         
         logPrefix = prefix
@@ -60,6 +61,10 @@ class SyncBroker {
         
         let categorize_incoming = sharedDefaults.object(forKey: "categorize_incoming") == nil ? true : sharedDefaults.bool(forKey: "categorize_incoming")
         let alert_after_import = sharedDefaults.object(forKey: "alert_after_import") == nil ? true : sharedDefaults.bool(forKey: "alert_after_import")
+        
+        let remove_old_transactions = sharedDefaults.bool(forKey: "remove_old_transactions")
+        let remove_old_days = sharedDefaults.integer(forKey: "remove_old_days")
+        
         
         do {
             addLog(prefix: prefix, message: "Starting transaction fetch (importAsCleared: \(importAsCleared), transStatusInNotes: \(putTransStatusInNotes), autoSync: \(autoImportTransactions), categorize: \(categorize_incoming)", level: 1)
@@ -223,6 +228,12 @@ class SyncBroker {
             }
             
             addLog(prefix: prefix, message: "Sync complete with \(finalPendingCount) imported", level: 1)
+            
+            if(remove_old_transactions){
+                let deletedTransactions = try await getTransactionsOlderThanDays(remove_old_days, andDelete: true)
+                addLog(prefix: prefix, message: "Deleted \(deletedTransactions.count) transactions older than \(remove_old_days) days", level: 1)
+            }
+            
             return finalPendingCount
         } catch {
             addLog(prefix: prefix, message: "Sync failed with error: \(error.localizedDescription)", level: 1)
@@ -260,7 +271,7 @@ class SyncBroker {
                 transaction.account = accountName
                 transaction.category_id = category_id
                 transaction.category_name = category_name
-                transaction.sync = syncBalanceOnly ? .never : .pending
+                transaction.sync = syncBalanceOnly ? .skipped : .pending
                 returnedTransactions.append(transaction)
             }else{
                 print("prepPrefetchedTransactions account name is empty, skipping")
@@ -270,26 +281,7 @@ class SyncBroker {
         return returnedTransactions
     }
     
-    func getTransactionsWithStatus(_ status: Transaction.SyncStatus) -> [Transaction] {
-        return getTransactionsWithStatus([status])
-    }
     
-    func getTransactionsWithStatus(_ statuses: [Transaction.SyncStatus]) -> [Transaction] {
-        let statusStrings = statuses.map { $0.rawValue }
-        
-        let fetchDescriptor = FetchDescriptor<Transaction>(
-            predicate: #Predicate<Transaction> { transaction in
-                statusStrings.contains(transaction.syncStatus)
-            }
-        )
-        
-        do {
-            return try modelContext.fetch(fetchDescriptor)
-        } catch {
-            print("Failed to fetch transactions with statuses \(statuses): \(error)")
-            return []
-        }
-    }
     
     func getSyncedAccounts() -> [Account] {
         let fetchDescriptor = FetchDescriptor<Account>(
@@ -445,49 +437,7 @@ class SyncBroker {
            
     }
     
-    func addNotification(time: Double, title: String, subtitle: String, body: String) async {
-        //print("addNotification \(title), \(body)")
-        let center = UNUserNotificationCenter.current()
-        
-        // First check current authorization status
-        let settings = await center.notificationSettings()
-        //print("Notification settings: \(settings.authorizationStatus.rawValue)")
-        
-        guard settings.authorizationStatus == .authorized else {
-            print("Notifications not authorized")
-            return
-        }
-        
-        // Create and add notification
-        let content = UNMutableNotificationContent()
-        content.title = title
-        content.subtitle = subtitle
-        content.body = body
-        content.sound = UNNotificationSound.default
-        
-        // Add category identifier and increase interruption level
-        content.categoryIdentifier = "TRANSACTION_UPDATE"
-        content.interruptionLevel = .timeSensitive  // Makes notification more likely to appear
-        
-        // For debugging, use a shorter time interval
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, time), repeats: false)
-        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
-        
-        do {
-            try await center.add(request)
-            //print("Notification scheduled successfully for \(Date().addingTimeInterval(time))")
-            
-            // Debug: List pending notifications
-            _ = await center.pendingNotificationRequests()
-            //print("Pending notifications: \(pending.count)")
-            
-            // Debug: List delivered notifications
-            _ = await center.deliveredNotifications()
-            //print("Delivered notifications: \(delivered.count)")
-        } catch {
-            print("Error scheduling notification: \(error)")
-        }
-    }
+    
     
     public func syncTransactions(
         prefix: String,
@@ -794,6 +744,112 @@ class SyncBroker {
         }
         try? modelContext.save()
     }
+
+    //MARK: utility functions
+    public func countTransactionsOlderThanDays(_ days: Int) async throws -> Int {
+        let transactions = try await getTransactionsOlderThanDays(days)
+        return transactions.count
+    }
+    public func countAllTransactions() async throws -> Int {
+        let fetchDescriptor = FetchDescriptor<Transaction>()
+        do {
+            let transactions = try modelContext.fetch(fetchDescriptor)
+            return transactions.count
+        } catch {
+            addLog(prefix: logPrefix, message: "Failed to fetch all transactions count: \(error.localizedDescription)", level: 1)
+            throw error
+        }
+    }
+
+    public func getTransactionsOlderThanDays(_ days: Int, andDelete: Bool = false) async throws -> [Transaction] {
+        let calendar = Calendar.current
+        let now = Date()
+        guard let cutoffDate = calendar.date(byAdding: .day, value: -days, to: now) else {
+            return []
+        }
+        
+        let fetchDescriptor = FetchDescriptor<Transaction>(
+            predicate: #Predicate<Transaction> { transaction in
+                transaction.date < cutoffDate
+            }
+        )
+        
+        do {
+            let transactions = try modelContext.fetch(fetchDescriptor)
+            if andDelete {
+                transactions.forEach { modelContext.delete($0) }
+                try modelContext.save()
+            }
+            return transactions
+        } catch {
+            addLog(prefix: logPrefix, message: "Failed to fetch transactions older than \(days) days: \(error.localizedDescription)", level: 1)
+            throw error
+        }
+    }
     
+    func getTransactionsWithStatus(_ status: Transaction.SyncStatus) -> [Transaction] {
+        return getTransactionsWithStatus([status])
+    }
     
+    func getTransactionsWithStatus(_ statuses: [Transaction.SyncStatus]) -> [Transaction] {
+        let statusStrings = statuses.map { $0.rawValue }
+        
+        let fetchDescriptor = FetchDescriptor<Transaction>(
+            predicate: #Predicate<Transaction> { transaction in
+                statusStrings.contains(transaction.syncStatus)
+            }
+        )
+        
+        do {
+            return try modelContext.fetch(fetchDescriptor)
+        } catch {
+            print("Failed to fetch transactions with statuses \(statuses): \(error)")
+            return []
+        }
+    }
+    
+    //MARK: notifications
+    func addNotification(time: Double, title: String, subtitle: String, body: String) async {
+        //print("addNotification \(title), \(body)")
+        let center = UNUserNotificationCenter.current()
+        
+        // First check current authorization status
+        let settings = await center.notificationSettings()
+        //print("Notification settings: \(settings.authorizationStatus.rawValue)")
+        
+        guard settings.authorizationStatus == .authorized else {
+            print("Notifications not authorized")
+            return
+        }
+        
+        // Create and add notification
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.subtitle = subtitle
+        content.body = body
+        content.sound = UNNotificationSound.default
+        
+        // Add category identifier and increase interruption level
+        content.categoryIdentifier = "TRANSACTION_UPDATE"
+        content.interruptionLevel = .timeSensitive  // Makes notification more likely to appear
+        
+        // For debugging, use a shorter time interval
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: max(1, time), repeats: false)
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+        
+        do {
+            try await center.add(request)
+            //print("Notification scheduled successfully for \(Date().addingTimeInterval(time))")
+            
+            // Debug: List pending notifications
+            _ = await center.pendingNotificationRequests()
+            //print("Pending notifications: \(pending.count)")
+            
+            // Debug: List delivered notifications
+            _ = await center.deliveredNotifications()
+            //print("Delivered notifications: \(delivered.count)")
+        } catch {
+            print("Error scheduling notification: \(error)")
+        }
+    }
 }
