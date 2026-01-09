@@ -45,7 +45,7 @@ struct MainView: View {
     @AppStorage("categorize_incoming", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var categorize_incoming = true
     @AppStorage("is_test_flight", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var is_test_flight = false
     
-    @State private var showingAboutSheet = false
+    
     @State private var showingJobSheet = false
     @State private var showingSettingsSheet = false
     @State private var showingCategorySheet = false
@@ -144,14 +144,6 @@ struct MainView: View {
             }
             .navigationTitle("Lunch Sync")
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showingAboutSheet = true
-                    } label: {
-                        Image(systemName: "info.circle")
-                    }
-                }
-                
                 if(categorize_incoming){
                     ToolbarItem(placement: .primaryAction) {
                         Button {
@@ -182,20 +174,6 @@ struct MainView: View {
                         Image(systemName: "gearshape")
                     }
                 }
-            }
-            .sheet(isPresented: $showingAboutSheet) {
-                NavigationStack {
-                    AboutView()
-                        .toolbar {
-                            ToolbarItem(placement: .confirmationAction) {
-                                Button("Done") {
-                                    showingAboutSheet = false
-                                }
-                            }
-                        }
-                }
-                .presentationDetents([.large])
-                .presentationDragIndicator(.hidden)
             }
             .sheet(isPresented: $showingJobSheet) {
                 backgroundSyncSheet()

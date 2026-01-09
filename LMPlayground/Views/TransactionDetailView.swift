@@ -49,7 +49,6 @@ struct TransactionDetailView: View {
                             Button("Mark as skipped") { wallet.setSyncStatus(newTrans: transaction, newStatus: .skipped)   }
                         }else if transaction.sync == .complete{
                             Button("Queue for Sync") { wallet.setSyncStatus(newTrans: transaction, newStatus: .pending) }
-                            Button("Queue for Sync") { wallet.setSyncStatus(newTrans: transaction, newStatus: .pending) }
                             Button("Mark as error", role: .destructive) { wallet.setSyncStatus(newTrans: transaction, newStatus: .never)   }
                         }else if transaction.sync == .skipped{
                             Button("Queue for Sync") { wallet.setSyncStatus(newTrans: transaction, newStatus: .pending) }
@@ -247,7 +246,7 @@ struct DetailRow: View {
         accountID: "acc_preview_001",
         status: "cleared",
         isPending: false,
-        sync: .pending,
+        sync: .complete,
         lm_category_id: "123",
         lm_category_name: "Dining",
         category_id: "200",
