@@ -7,19 +7,57 @@ struct TransactionListView: View {
     let wallet: Wallet
     let syncStatuses: [Transaction.SyncStatus]
     @State private var transactions: [Transaction] = []
+    @State private var searchText: String = ""
+    @State private var selectedStatusFilter: String
     
     init(wallet: Wallet, syncStatuses: [Transaction.SyncStatus]) {
         self.wallet = wallet
         self.syncStatuses = syncStatuses
+        // Default to first status when multiple statuses, otherwise "All"
+        self._selectedStatusFilter = State(initialValue: syncStatuses.count > 1 ? syncStatuses.first?.rawValue ?? "All" : "All")
     }
     
     init(wallet: Wallet, syncStatus: Transaction.SyncStatus) {
         self.init(wallet: wallet, syncStatuses: [syncStatus])
     }
     
+    private var filteredTransactions: [Transaction] {
+        var result = transactions.sorted(by: { $0.date > $1.date })
+        
+        // Filter by selected status tab (if not "All")
+        if selectedStatusFilter != "All",
+           let status = syncStatuses.first(where: { $0.rawValue == selectedStatusFilter }) {
+            result = result.filter { $0.sync == status }
+        }
+        
+        // Filter by search text
+        if !searchText.isEmpty {
+            result = result.filter { transaction in
+                let payeeMatch = transaction.payee.localizedCaseInsensitiveContains(searchText)
+                let amountString = String(format: "%.2f", abs(transaction.amount))
+                let amountMatch = amountString.contains(searchText)
+                return payeeMatch || amountMatch
+            }
+        }
+        
+        return result
+    }
+    
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 0) {
+                if syncStatuses.count > 1 {
+                    Picker("Filter by status", selection: $selectedStatusFilter) {
+                        Text("All").tag("All")
+                        ForEach(syncStatuses, id: \.rawValue) { status in
+                            Text(status.rawValue.capitalized).tag(status.rawValue)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal)
+                    .padding(.vertical, 8)
+                }
+                
                 if syncStatuses.count == 1 && syncStatuses.first == .never {
                     Button(action: {
                         transactions.forEach { transaction in
@@ -34,12 +72,13 @@ struct TransactionListView: View {
                     }
                 }
                 List {
-                    ForEach(transactions.sorted(by: { $0.date > $1.date }), id: \.id) { account in
+                    ForEach(filteredTransactions, id: \.id) { account in
                         TransactionRowView(transaction: account, wallet: wallet)
                     }
                 }
             }
-            .navigationTitle("\(transactions.count) Transactions with status: \(syncStatuses.map { $0.rawValue }.joined(separator: ", "))")
+            .searchable(text: $searchText, prompt: "Search by payee or amount")
+            .navigationTitle("\(filteredTransactions.count) Transactions")
             .navigationBarTitleDisplayMode(.inline)
         }
         .onAppear {
