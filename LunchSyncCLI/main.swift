@@ -198,9 +198,77 @@ func runCreateFetchUpdateDemo() async throws {
     printSideBySide(original: original, updated: updated)
 }
 
+/// Tests Skip Mapping fix: categoryId 0 (invalid) vs nil (correct for "no category")
+func runSkipMappingTest() async throws {
+    let assetId = try await getOrCreateAssetId()
+    let dateFormatter = ISO8601DateFormatter()
+    dateFormatter.formatOptions = [.withFullDate]
+    let today = dateFormatter.string(from: Date())
+
+    print("\n=== Skip Mapping Test ===\n")
+
+    // Test 1: Create with categoryId: 0 (what the bug was sending - should fail)
+    let externalIdZero = "cli-skip-0-\(UUID().uuidString)"
+    print("1. Creating transaction with categoryId: 0 (bug behavior)...")
+    let createZero = CreateTransactionRequest(
+        date: today,
+        payee: "CLI Skip Mapping Test (categoryId=0)",
+        amount: "2.00",
+        currency: "usd",
+        categoryId: 0,
+        assetId: assetId,
+        notes: "Testing category_id=0 - Skip Mapping bug",
+        status: "uncleared",
+        externalId: externalIdZero,
+        isPending: false
+    )
+    do {
+        let resp = try await API.createTransactions(transactions: [createZero])
+        if let errs = resp.errors, !errs.isEmpty {
+            print("   FAILED (expected): \(errs.joined(separator: ", "))")
+        } else if let id = resp.transactionIds?.first {
+            print("   SUCCESS (unexpected - LM accepted 0): id=\(id)")
+        } else {
+            print("   Unexpected response: \(resp)")
+        }
+    } catch {
+        print("   FAILED (expected): \(error.localizedDescription)")
+    }
+
+    // Test 2: Create with categoryId: nil (correct for Skip Mapping - should succeed)
+    let externalIdNil = "cli-skip-nil-\(UUID().uuidString)"
+    print("\n2. Creating transaction with categoryId: nil (fix behavior)...")
+    let createNil = CreateTransactionRequest(
+        date: today,
+        payee: "CLI Skip Mapping Test (categoryId=nil)",
+        amount: "3.00",
+        currency: "usd",
+        categoryId: nil,
+        assetId: assetId,
+        notes: "Testing category_id=nil - Skip Mapping fix",
+        status: "uncleared",
+        externalId: externalIdNil,
+        isPending: false
+    )
+    do {
+        let resp = try await API.createTransactions(transactions: [createNil])
+        if let errs = resp.errors, !errs.isEmpty {
+            print("   FAILED: \(errs.joined(separator: ", "))")
+        } else if let id = resp.transactionIds?.first {
+            print("   SUCCESS: id=\(id)")
+        } else {
+            print("   Unexpected response: \(resp)")
+        }
+    } catch {
+        print("   FAILED: \(error.localizedDescription)")
+    }
+
+    print("\n=== Done ===\n")
+}
+
 // MARK: - Entry point for command-line execution
 do {
-    try await runCreateFetchUpdateDemo()
+    try await runSkipMappingTest()
 } catch {
     if let cli = error as? CLIError { fputs("Error: \(cli.description)\n", stderr) }
     else { fputs("Error: \(error.localizedDescription)\n", stderr) }

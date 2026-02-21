@@ -577,7 +577,7 @@ class SyncBroker {
                             payee: transaction.payee,
                             amount: String(format: "%.2f", transaction.amount),
                             currency: "usd",
-                            categoryId: transaction.lm_category_id != nil ? Int(transaction.lm_category_id!) : nil,
+                            categoryId: transaction.lmCategoryIdForAPI,
                             assetId: Int(transaction.lm_account),
                             notes: putTransStatusInNotes ? (transaction.notes.isEmpty ? nil : transaction.notes) : nil,
                             status: nil, //importAsCleared ? "cleared" : "uncleared", no need to call this for updates
@@ -617,7 +617,7 @@ class SyncBroker {
                 payee: transaction.payee,
                 amount: String(format: "%.2f", transaction.amount),
                 currency: "usd",
-                categoryId: transaction.lm_category_id != nil ? Int(transaction.lm_category_id!) : nil,
+                categoryId: transaction.lmCategoryIdForAPI,
                 assetId: Int(transaction.lm_account),
                 notes: putTransStatusInNotes ? (transaction.notes.isEmpty ? nil : transaction.notes) : nil,
                 status: importAsCleared ? "cleared" : "uncleared",

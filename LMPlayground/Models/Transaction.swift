@@ -87,4 +87,11 @@ class Transaction: Identifiable {
         if histories == nil { histories = [] }
         histories?.append(history)
     }
+
+    /// Category ID to send to LunchMoney API. Returns nil for Skip Mapping (lm_id="0") or empty,
+    /// since the API expects nil/omitted for "no category" - sending 0 causes sync failures.
+    var lmCategoryIdForAPI: Int? {
+        guard let id = lm_category_id, !id.isEmpty, id != "0" else { return nil }
+        return Int(id)
+    }
 }
