@@ -111,19 +111,26 @@ class AppleWallet{
         var accounts: [Account] = []
         let walletAccounts: [FinanceKit.Account] = try await fetchAccounts()
         for acct in walletAccounts {
-            print("getWalletAccounts \(acct.displayName) \(acct.id)")
+            let accountType: String
+            if acct.liabilityAccount != nil {
+                accountType = "Credit"
+            } else if acct.assetAccount?.accountDescription?.lowercased().contains("saving") == true {
+                accountType = "Savings"
+            } else {
+                accountType = "Cash"
+            }
+            print("getWalletAccounts \(acct.displayName) \(acct.id) type=\(accountType)")
             
             do {
                 let balance = try await fetchBalances(accountId: UUID(uuidString: acct.id.uuidString)!)
-                //var balanceAmount = (balance.available?.amount.amount as NSDecimalNumber?)?.doubleValue ?? 0.0
-                var balanceAmount : Decimal = 0
-                var accountBalanceDate : Date?
+                var balanceAmount: Decimal = 0
+                var accountBalanceDate: Date?
 
                 switch balance.currentBalance {
                 case .availableAndBooked(let available, let booked):
                     balanceAmount = (available.creditDebitIndicator == FinanceKit.CreditDebitIndicator.credit) ?
                         booked.amount.amount : available.amount.amount
-                    accountBalanceDate = available.asOfDate
+                    accountBalanceDate = booked.asOfDate
                 case .available(let available):
                     balanceAmount = available.amount.amount
                     accountBalanceDate = available.asOfDate
@@ -135,6 +142,7 @@ class AppleWallet{
                 }
 
                 print("getWalletAccounts: \(acct.displayName) \(acct.id) \(balanceAmount)")
+                
                 let newAccount = Account(
                     id: acct.id.uuidString,
                     name: acct.displayName,
@@ -146,11 +154,12 @@ class AppleWallet{
                     institution_name: acct.institutionName,
                     institution_id: acct.id.uuidString,
                     lastUpdated: accountBalanceDate ?? Date(),
-                    sync: false
+                    sync: false,
+                    accountType: accountType
                 )
                 accounts.append(newAccount)
             } catch {
-                print("Authorization request error: \(error.localizedDescription)")
+                print("getWalletAccounts balance error for \(acct.displayName): \(error.localizedDescription)")
             }
         }
         print("getWalletAccounts returning \(accounts.count) accounts")
@@ -535,18 +544,24 @@ class AppleWallet{
         return transactionsFound
     }
     
+    private func balanceAsOfDate(_ balance: AccountBalance) -> Date {
+        switch balance.currentBalance {
+        case .availableAndBooked(_, let booked):    return booked.asOfDate
+        case .available(let available):             return available.asOfDate
+        case .booked(let booked):                   return booked.asOfDate
+        @unknown default:                           return Date.distantPast
+        }
+    }
+
     private func fetchBalances(accountId: UUID) async throws -> AccountBalance {
-        //             balance.available != nil &&
-        let predicate = #Predicate<AccountBalance> { balance in
-            balance.accountID == accountId
+        let startDate = Calendar.current.date(byAdding: .day, value: -7, to: Date())!
+        let query = AccountBalanceQuery(sortDescriptors: [], predicate: AccountBalanceQuery.predicate(bookedSince: startDate), limit: 100, offset: 0)
+        let balances = try await FinanceStore.shared.accountBalances(query: query).filter { $0.accountID == accountId }
+        guard let latest = balances.max(by: { balanceAsOfDate($0) < balanceAsOfDate($1) }) else {
+            throw NSError(domain: "FetchBalances", code: -1, userInfo: [NSLocalizedDescriptionKey: "No balance found"])
         }
-        // TODO sort by the most recent?
-        let query = AccountBalanceQuery(sortDescriptors: [], predicate: predicate, limit: 1000, offset: 0)
-        let balances = try await FinanceStore.shared.accountBalances(query: query).reversed()
-        for balance in balances {
-            return balance
-        }
-        throw NSError(domain: "FetchBalances", code: -1, userInfo: [NSLocalizedDescriptionKey: "No balance found"])
+        print("fetchBalances: \(accountId) \(balanceAsOfDate(latest)) \(latest.currentBalance)")
+        return latest
     }
     
     private func fetchTransactions() {

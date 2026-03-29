@@ -95,7 +95,8 @@ struct AssetSelectionView: View {
                                     createdAssetId = nil
                                     let id = await wallet.createAsset(name: newAssetName.isEmpty ? account.name : newAssetName,
                                                                       institutionName: account.institution_name,
-                                                                      note: account.id)
+                                                                      note: account.id,
+                                                                      accountType: account.accountType)
                                     if let id {
                                         createdAssetId = id
                                         await loadAssets()

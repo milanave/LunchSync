@@ -174,6 +174,7 @@ struct GetAssetsResponse: Decodable {
 
 struct CreateAssetRequest: Encodable {
     let typeName: String
+    let subTypeName: String
     let balance: Double
     let currency: String
     let name: String?
@@ -183,6 +184,7 @@ struct CreateAssetRequest: Encodable {
 
     private enum CodingKeys: String, CodingKey {
         case typeName = "type_name"
+        case subTypeName = "subtype_name"
         case balance
         case currency
         case name

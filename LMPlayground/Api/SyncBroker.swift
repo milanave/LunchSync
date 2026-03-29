@@ -91,12 +91,7 @@ class SyncBroker {
                 }
                 addLog(prefix: prefix, message: "token was blank, but successfully retrieved", level: 2)
             }
-            
-            //addLog(prefix: prefix, message: "token retrieved", level: 2)
-            
-            //let initialPendingCount = getTransactionsWithStatus(.pending).count
-            //addLog(prefix: prefix, message: "got initialPendingCount: \(initialPendingCount)", level: 2)
-            
+                        
             // get a list of accounts, then Apple Wallet transactions for those accounts
             let accounts = getSyncedAccounts()
             

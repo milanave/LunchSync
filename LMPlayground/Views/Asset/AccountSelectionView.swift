@@ -150,7 +150,7 @@ struct AccountRowView: View {
                 Image("WalletIcon")
                     .resizable()
                     .frame(width: 24, height: 24)
-                Text(account.name)
+                Text("\(account.name) (\(account.accountType))")
                 Spacer()
                 CurrencyFormatter.shared.formattedText(account.balance)
             }
@@ -206,7 +206,9 @@ class AccountSelectionViewModel: ObservableObject {
                     appleWallet.getSimulatedAccounts() : 
                     appleWallet.getWalletAccounts()
                 try await wallet.syncAccountBalances(accounts: allAppleAccounts)
-                await MainActor.run {                    
+                let accountTypeUpdates = allAppleAccounts.map { (id: $0.id, accountType: $0.accountType) }
+                await MainActor.run {
+                    wallet.syncAccountTypes(updates: accountTypeUpdates)
                     objectWillChange.send()
                 }
             } catch {

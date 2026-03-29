@@ -173,6 +173,19 @@ class Wallet :ObservableObject {
         try? modelContext.save() // Save the new transaction
     }
     
+    func syncAccountTypes(updates: [(id: String, accountType: String)]) {
+        for update in updates {
+            guard !update.accountType.isEmpty else { continue }
+            let id = update.id
+            let fetchDescriptor = FetchDescriptor<Account>(predicate: #Predicate { $0.id == id })
+            if let localAccount = try? modelContext.fetch(fetchDescriptor).first,
+               localAccount.accountType.isEmpty {
+                localAccount.accountType = update.accountType
+            }
+        }
+        try? modelContext.save()
+    }
+
     func updateAccountBalance(accountId: String, balance: Double, lastUpdated: Date){
         let fetchDescriptor = FetchDescriptor<Account>(predicate: #Predicate { $0.id == accountId })
         
@@ -461,13 +474,28 @@ class Wallet :ObservableObject {
         }
     }
     
-    func createAsset(name:String, institutionName:String, note:String) async -> Int?{
+    func createAsset(name: String, institutionName: String, note: String, accountType: String = "") async -> Int? {
         let dateFormatter = ISO8601DateFormatter()
         dateFormatter.formatOptions = [.withFullDate]
         let today = dateFormatter.string(from: Date())
-        
+
+        let typeName: String
+        let subTypeName: String
+        switch accountType {
+        case "Credit":
+            typeName = "credit"
+            subTypeName = "credit card"
+        case "Savings":
+            typeName = "cash"
+            subTypeName = "savings"
+        default: // Cash or unset
+            typeName = "cash"
+            subTypeName = "digital wallet"
+        }
+
         let assetRequest = CreateAssetRequest(
-            typeName: "cash", // cash, credit, investment, other, real estate, loan, vehicle, cryptocurrency, employee compensation
+            typeName: typeName,
+            subTypeName: subTypeName,
             balance: 0.0,
             currency: "usd",
             name: name,

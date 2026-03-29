@@ -266,9 +266,45 @@ func runSkipMappingTest() async throws {
     print("\n=== Done ===\n")
 }
 
+func runFetchAllAssets() async throws {
+    let assets = try await API.getAssets()
+
+    if assets.isEmpty {
+        print("No assets found.")
+        return
+    }
+
+    let idWidth = 8
+    let nameWidth = 30
+    let typeWidth = 16
+    let balWidth = 14
+    let curWidth = 8
+
+    let header = pad("ID", to: idWidth) + " | " +
+                 pad("Name", to: nameWidth) + " | " +
+                 pad("Type", to: typeWidth) + " | " +
+                 pad("Balance", to: balWidth) + " | " +
+                 pad("Currency", to: curWidth)
+    let divider = String(repeating: "-", count: header.count)
+
+    print("\n=== Assets (\(assets.count)) ===\n")
+    print(header)
+    print(divider)
+
+    for asset in assets {
+        let row = pad(String(asset.id), to: idWidth) + " | " +
+                  pad(asset.name, to: nameWidth) + " | " +
+                  pad(asset.typeName, to: typeWidth) + " | " +
+                  pad(asset.balance, to: balWidth) + " | " +
+                  pad(asset.currency, to: curWidth)
+        print(row)
+    }
+    print()
+}
+
 // MARK: - Entry point for command-line execution
 do {
-    try await runSkipMappingTest()
+    try await runFetchAllAssets()
 } catch {
     if let cli = error as? CLIError { fputs("Error: \(cli.description)\n", stderr) }
     else { fputs("Error: \(error.localizedDescription)\n", stderr) }
