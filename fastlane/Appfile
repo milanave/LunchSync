@@ -1,0 +1,4 @@
+app_identifier("com.littlebluebug.AppleCardSync")
+apple_id(ENV["FASTLANE_APPLE_ID"])
+team_id("MF7QJ9TF5S")
+itc_team_id(ENV["FASTLANE_ITC_TEAM_ID"]) if ENV["FASTLANE_ITC_TEAM_ID"]

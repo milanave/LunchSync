@@ -1,0 +1,95 @@
+default_platform(:ios)
+
+XCODEPROJ = "LMPlayground.xcodeproj"
+SCHEME    = "LMPlayground"
+APP_BUNDLE_ID       = "com.littlebluebug.AppleCardSync"
+EXTENSION_BUNDLE_ID = "com.littlebluebug.AppleCardSync.LunchSyncBackgroundHandler"
+
+platform :ios do
+  before_all do
+    unless File.exist?("../Config.xcconfig")
+      UI.user_error!("Config.xcconfig is missing. Copy Config.template.xcconfig to Config.xcconfig and fill in PUSH_SERVICE_KEY before building.")
+    end
+    setup_ci if ENV["CI"]
+    app_store_connect_api_key(
+      key_id:      ENV.fetch("ASC_KEY_ID"),
+      issuer_id:   ENV.fetch("ASC_ISSUER_ID"),
+      key_filepath: ENV.fetch("ASC_KEY_PATH"),
+      duration:    1200,
+      in_house:    false,
+    )
+  end
+
+  desc "Build and upload a TestFlight beta"
+  lane :beta do |options|
+    ensure_git_status_clean unless options[:allow_dirty]
+
+    next_build = latest_testflight_build_number(app_identifier: APP_BUNDLE_ID) + 1
+    increment_build_number(xcodeproj: XCODEPROJ, build_number: next_build)
+
+    build_app(
+      project: XCODEPROJ,
+      scheme: SCHEME,
+      configuration: "Release",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          APP_BUNDLE_ID       => "",
+          EXTENSION_BUNDLE_ID => "",
+        },
+        signingStyle: "automatic",
+        teamID: "MF7QJ9TF5S",
+      },
+      clean: true,
+      output_directory: "build",
+    )
+
+    upload_to_testflight(
+      app_identifier: APP_BUNDLE_ID,
+      skip_waiting_for_build_processing: true,
+      changelog: options[:changelog] || "Bug fixes and improvements.",
+    )
+  end
+
+  desc "Build and upload a production build to App Store Connect (does not auto-submit for review)"
+  lane :release do |options|
+    ensure_git_status_clean unless options[:allow_dirty]
+
+    next_build = latest_testflight_build_number(app_identifier: APP_BUNDLE_ID) + 1
+    increment_build_number(xcodeproj: XCODEPROJ, build_number: next_build)
+
+    build_app(
+      project: XCODEPROJ,
+      scheme: SCHEME,
+      configuration: "Release",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          APP_BUNDLE_ID       => "",
+          EXTENSION_BUNDLE_ID => "",
+        },
+        signingStyle: "automatic",
+        teamID: "MF7QJ9TF5S",
+      },
+      clean: true,
+      output_directory: "build",
+    )
+
+    upload_to_app_store(
+      app_identifier: APP_BUNDLE_ID,
+      submit_for_review: options[:submit] == true,
+      automatic_release: false,
+      force: true,
+      precheck_include_in_app_purchases: false,
+      skip_metadata: true,
+      skip_screenshots: true,
+      skip_binary_upload: false,
+    )
+  end
+
+  desc "Bump marketing version (pass type:patch|minor|major)"
+  lane :bump_version do |options|
+    type = options[:type] || "patch"
+    increment_version_number(xcodeproj: XCODEPROJ, bump_type: type)
+  end
+end
