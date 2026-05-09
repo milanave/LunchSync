@@ -259,6 +259,60 @@ class AppleWallet{
         }*/
     }
     
+    /// Lightweight result returned by `fetchWalletMetadata` — just the bits
+    /// `SyncBroker.syncMetadata` needs to backfill `walletMetadataJSON`.
+    struct WalletMetadataLookup {
+        let financeKitId: String   // UUID string
+        let metadataJSON: String?
+    }
+
+    /// Date-bounded metadata fetch for a single account. Mirrors the safe
+    /// pattern from `refreshWalletTransactionsForAccounts`: query FinanceKit
+    /// with only a date predicate (which it handles efficiently), and filter
+    /// to the requested account in Swift afterwards. Avoids the buggy
+    /// dynamic-`contains`-in-predicate path that hangs/crashes on large
+    /// wallets.
+    func fetchWalletMetadata(
+        account: Account,
+        startDate: Date,
+        endDate: Date,
+        logPrefix: String = ""
+    ) async throws -> [WalletMetadataLookup] {
+        guard let accountUUID = UUID(uuidString: account.id) else {
+            print("\(logPrefix) fetchWalletMetadata: account.id is not a UUID: \(account.id)")
+            return []
+        }
+
+        let sortDescriptor = SortDescriptor(\FinanceKit.Transaction.transactionDate, order: .reverse)
+        let query = TransactionQuery(
+            sortDescriptors: [sortDescriptor],
+            predicate: #Predicate<FinanceKit.Transaction> { transaction in
+                transaction.transactionDate >= startDate &&
+                transaction.transactionDate <= endDate
+            }
+        )
+
+        print("\(logPrefix) fetchWalletMetadata querying FinanceStore \(startDate) → \(endDate) for account \(account.name)")
+        let transactions = try await FinanceStore.shared.transactions(query: query)
+        let filtered = transactions.filter { $0.accountID == accountUUID }
+        print("\(logPrefix) fetchWalletMetadata: \(transactions.count) raw, \(filtered.count) for this account")
+
+        return filtered.map { txn in
+            let mccString = txn.merchantCategoryCode.map { String(describing: $0) }
+            let mccDesc = mccString.flatMap { getMCCDescription(for: $0) }
+            let metadata = WalletMetadata(
+                from: txn,
+                accountDisplayName: account.name,
+                institutionName: account.institution_name,
+                merchantCategoryDescription: mccDesc
+            )
+            return WalletMetadataLookup(
+                financeKitId: txn.id.uuidString,
+                metadataJSON: metadata.toJSONString()
+            )
+        }
+    }
+
     /*
      this fetches ALL transactions from the Wallet. Could be a lot.
      this is only used for importing transactions?

@@ -33,6 +33,28 @@ class SyncBroker {
         let total: Int
         let status: String
     }
+
+    public struct SyncMetadataProgress {
+        public enum Step: String {
+            case fetching = "Fetching wallet transactions"
+            case capturing = "Capturing metadata"
+            case pushing = "Pushing to Lunch Money"
+            case done = "Complete"
+        }
+        public let step: Step
+        public let current: Int
+        public let total: Int
+        public let detail: String?
+        public let matched: Int
+        public let pushed: Int
+        public let failed: Int
+    }
+
+    public struct SyncMetadataResult {
+        public let matched: Int
+        public let pushed: Int
+        public let failed: Int
+    }
  
     //MARK: Logging functions
     public func addLog(message: String, level: Int = 1) {
@@ -773,6 +795,151 @@ class SyncBroker {
             //print("Error searching for account")
         }
         try? modelContext.save()
+    }
+
+    // MARK: - Sync Metadata (backfill custom_metadata for already-synced transactions)
+
+    /// Backfill `walletMetadataJSON` on existing local transactions by re-fetching
+    /// from FinanceKit, then push the freshly-captured metadata up to Lunch Money
+    /// for any of those transactions that are already linked (`lm_id` set).
+    ///
+    /// `transactions` is the user-selected subset (typically a month range).
+    /// `account` provides the FinanceKit account ID to query.
+    ///
+    /// Pinned to `@MainActor` because the body mutates SwiftData `@Model` objects
+    /// and calls `modelContext.save()` after each `await`. Without this, the
+    /// continuation can resume off-main, SwiftData's ModelContext detaches from
+    /// the main queue, and we crash with a malloc double-free. The `await` points
+    /// (FinanceKit query, API.updateTransaction) still suspend cleanly so the UI
+    /// stays responsive between requests.
+    @MainActor
+    public func syncMetadata(
+        transactions: [Transaction],
+        account: Account,
+        progress: @escaping (SyncMetadataProgress) -> Void
+    ) async throws -> SyncMetadataResult {
+        let total = transactions.count
+
+        // Step 1: pull FinanceKit metadata for this account, bounded by the
+        // date span of the user's selection. Bounding the FinanceKit query
+        // by date is the safe predicate path; an unbounded fetch (or one
+        // using a dynamic `contains` predicate) hangs/crashes on large
+        // wallets — see the comment in `refreshWalletTransactionsForAccounts`.
+        progress(SyncMetadataProgress(
+            step: .fetching, current: 0, total: total,
+            detail: "Querying Apple Wallet…",
+            matched: 0, pushed: 0, failed: 0
+        ))
+
+        let dates = transactions.map(\.date)
+        guard let earliest = dates.min(), let latest = dates.max() else {
+            // Empty selection — nothing to do.
+            progress(SyncMetadataProgress(
+                step: .done, current: 0, total: 0,
+                detail: nil, matched: 0, pushed: 0, failed: 0
+            ))
+            return SyncMetadataResult(matched: 0, pushed: 0, failed: 0)
+        }
+        let cal = Calendar.current
+        let startDate = cal.date(byAdding: .day, value: -1, to: earliest) ?? earliest
+        let endDate = max(cal.date(byAdding: .day, value: 1, to: latest) ?? latest, Date())
+
+        let lookups = try await appleWallet.fetchWalletMetadata(
+            account: account,
+            startDate: startDate,
+            endDate: endDate,
+            logPrefix: logPrefix
+        )
+
+        // Index by FinanceKit id (which equals our local Transaction.id since
+        // we capture it at fetch time as `txn.id.uuidString`).
+        var byId: [String: String] = [:]
+        for entry in lookups {
+            if let json = entry.metadataJSON, !json.isEmpty {
+                byId[entry.financeKitId] = json
+            }
+        }
+        addLog(message: "syncMetadata fetched \(lookups.count) wallet txns in range, \(byId.count) carry metadata", level: 2)
+
+        // Step 2: capture metadata onto matching local transactions.
+        var matched: [Transaction] = []
+        for (i, local) in transactions.enumerated() {
+            progress(SyncMetadataProgress(
+                step: .capturing, current: i, total: total,
+                detail: local.payee,
+                matched: matched.count, pushed: 0, failed: 0
+            ))
+
+            guard let incoming = byId[local.id] else { continue }
+            if local.walletMetadataJSON != incoming {
+                let wasEmpty = (local.walletMetadataJSON ?? "").isEmpty
+                local.walletMetadataJSON = incoming
+                local.addHistory(
+                    note: wasEmpty ? "Captured wallet metadata (Sync Metadata)" : "Refreshed wallet metadata (Sync Metadata)",
+                    source: logPrefix
+                )
+            }
+            matched.append(local)
+        }
+        try? modelContext.save()
+
+        // Final tick of Step 2 so the UI can show full-bar before moving on.
+        progress(SyncMetadataProgress(
+            step: .capturing, current: total, total: total,
+            detail: nil,
+            matched: matched.count, pushed: 0, failed: 0
+        ))
+
+        // Step 3: push to Lunch Money for everything already linked.
+        let toPush = matched.filter { !$0.lm_id.isEmpty && Int($0.lm_id) != nil }
+        var pushed = 0
+        var failed = 0
+
+        progress(SyncMetadataProgress(
+            step: .pushing, current: 0, total: toPush.count,
+            detail: nil,
+            matched: matched.count, pushed: pushed, failed: failed
+        ))
+
+        for (i, txn) in toPush.enumerated() {
+            progress(SyncMetadataProgress(
+                step: .pushing, current: i, total: toPush.count,
+                detail: txn.payee,
+                matched: matched.count, pushed: pushed, failed: failed
+            ))
+
+            guard let lmId = Int(txn.lm_id),
+                  let metadata = WalletMetadata.from(jsonString: txn.walletMetadataJSON) else {
+                failed += 1
+                continue
+            }
+
+            let request = UpdateTransactionRequest(transaction: .init(
+                date: nil, payee: nil, amount: nil, currency: nil,
+                categoryId: nil, assetId: nil, notes: nil, status: nil,
+                externalId: nil, isPending: nil,
+                customMetadata: metadata
+            ))
+
+            do {
+                _ = try await API.updateTransaction(id: lmId, request: request)
+                pushed += 1
+                txn.addHistory(note: "Pushed metadata to Lunch Money", source: logPrefix)
+            } catch {
+                failed += 1
+                txn.addHistory(note: "Failed to push metadata: \(error.localizedDescription)", source: logPrefix)
+                addLog(message: "syncMetadata push failed for \(txn.id): \(error.localizedDescription)", level: 1)
+            }
+        }
+        try? modelContext.save()
+
+        progress(SyncMetadataProgress(
+            step: .done, current: toPush.count, total: toPush.count,
+            detail: nil,
+            matched: matched.count, pushed: pushed, failed: failed
+        ))
+
+        return SyncMetadataResult(matched: matched.count, pushed: pushed, failed: failed)
     }
 
     //MARK: utility functions

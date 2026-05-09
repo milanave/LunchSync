@@ -46,6 +46,11 @@ struct AccountDetailView: View {
                 } label: {
                     Text("Re-Link Account")
                 }
+                NavigationLink {
+                    SyncMetadataView(account: account, wallet: wallet)
+                } label: {
+                    Text("Sync Metadata")
+                }
             }
             
             Section("Recent transactions") {
