@@ -267,6 +267,17 @@ class SyncBroker {
                 transaction.category_id = category_id
                 transaction.category_name = category_name
                 transaction.sync = syncBalanceOnly ? .skipped : .pending
+
+                // Patch the metadata captured by getRecentTransactions with the
+                // account/institution/MCC-description info we now have.
+                if let existing = WalletMetadata.from(jsonString: transaction.walletMetadataJSON) {
+                    transaction.walletMetadataJSON = existing.enriched(
+                        accountDisplayName: account?.name,
+                        institutionName: account?.institution_name,
+                        merchantCategoryDescription: category_name
+                    ).toJSONString()
+                }
+
                 returnedTransactions.append(transaction)
             }else{
                 print("prepPrefetchedTransactions account name is empty, skipping")
@@ -420,6 +431,21 @@ class SyncBroker {
                 //else{
                     //print(" -- \(transaction.payee) \(transaction.amount) has no changes: \(transaction.id)")
                 //}
+
+                // Backfill / refresh wallet metadata regardless of whether
+                // user-visible fields changed. Doesn't flip sync to .pending —
+                // we don't want to re-send to LM just because Apple cleaned up
+                // a merchant name. The freshly-encoded JSON simply replaces
+                // whatever (if anything) was previously stored.
+                if let incoming = newTrans.walletMetadataJSON, !incoming.isEmpty {
+                    let existing = transaction.walletMetadataJSON ?? ""
+                    if existing != incoming {
+                        transaction.walletMetadataJSON = incoming
+                        if existing.isEmpty {
+                            transaction.addHistory(note: "Captured wallet metadata", source: logPrefix)
+                        }
+                    }
+                }
             }else{
                 print("replaceTransaction insert new \(newTrans.payee)")
                 //newTrans.addHistory(note: "Created")
@@ -550,6 +576,13 @@ class SyncBroker {
         let skipDuplicates = sharedDefaults.bool(forKey: "skip_duplicates")
         let checkForRecurring = sharedDefaults.bool(forKey: "check_for_recurring")
         let skipBalanceUpdate = sharedDefaults.bool(forKey: "skip_balance_update")
+        // Default to true when the key has never been written.
+        let sendFinanceKitMetadata = sharedDefaults.object(forKey: "send_finance_kit_metadata") == nil
+            ? true
+            : sharedDefaults.bool(forKey: "send_finance_kit_metadata")
+        let walletMetadata: WalletMetadata? = sendFinanceKitMetadata
+            ? WalletMetadata.from(jsonString: transaction.walletMetadataJSON)
+            : nil
         
         do {
             // First check for existing transactions
@@ -577,7 +610,8 @@ class SyncBroker {
                             notes: putTransStatusInNotes ? (transaction.notes.isEmpty ? nil : transaction.notes) : nil,
                             status: nil, //importAsCleared ? "cleared" : "uncleared", no need to call this for updates
                             externalId: transaction.id,
-                            isPending: false //transaction.isPending can't set to true b/c LM doesn't let you edit
+                            isPending: false, //transaction.isPending can't set to true b/c LM doesn't let you edit
+                            customMetadata: walletMetadata
                         )
                     )
                     
@@ -617,7 +651,8 @@ class SyncBroker {
                 notes: putTransStatusInNotes ? (transaction.notes.isEmpty ? nil : transaction.notes) : nil,
                 status: importAsCleared ? "cleared" : "uncleared",
                 externalId: transaction.id,
-                isPending: false //transaction.isPending
+                isPending: false, //transaction.isPending
+                customMetadata: walletMetadata
             )
             
             // Create new transaction

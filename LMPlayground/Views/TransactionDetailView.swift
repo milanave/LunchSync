@@ -98,7 +98,25 @@ struct TransactionDetailView: View {
                     Text("Notes")
                 }
             }
-            
+
+            Section {
+                if let pretty = prettyPrintedMetadata {
+                    Text(pretty)
+                        .font(.system(.caption, design: .monospaced))
+                        .textSelection(.enabled)
+                } else {
+                    Text("No metadata captured")
+                        .foregroundColor(.secondary)
+                }
+            } header: {
+                Text("Metadata")
+            } footer: {
+                if prettyPrintedMetadata != nil {
+                    Text("This is the JSON that will be sent to Lunch Money in the `custom_metadata` field when this transaction syncs.")
+                        .font(.caption)
+                }
+            }
+
             Section {
                 if (transaction.histories ?? []).isEmpty {
                     Text("No transaction history")
@@ -165,6 +183,23 @@ struct TransactionDetailView: View {
         }
     }
     
+    /// Re-pretty-prints the stored `walletMetadataJSON` for display. Uses
+    /// JSONSerialization round-tripping so the field order from the original
+    /// encoder (which uses our CodingKeys order) is preserved.
+    private var prettyPrintedMetadata: String? {
+        guard
+            let json = transaction.walletMetadataJSON,
+            !json.isEmpty,
+            let data = json.data(using: .utf8),
+            let object = try? JSONSerialization.jsonObject(with: data),
+            let pretty = try? JSONSerialization.data(
+                withJSONObject: object,
+                options: [.prettyPrinted, .withoutEscapingSlashes]
+            )
+        else { return nil }
+        return String(data: pretty, encoding: .utf8)
+    }
+
     private func setSync(newStatus: Transaction.SyncStatus){
         wallet.setSyncStatus(newTrans: transaction, newStatus: newStatus)
     }
@@ -232,6 +267,31 @@ struct DetailRow: View {
 
     // Mock wallet and sample transaction
     let wallet = MockWallet(context: context, apiToken: "preview-token")
+
+    let sampleMetadataJSON = WalletMetadata(
+        source: "lunchsync",
+        sourceVersion: "1.4.2",
+        wallet: WalletMetadata.WalletPayload(
+            transactionId: "B3C2A1D0-8F77-4E2A-9C40-7E1D2F5A6B91",
+            accountId: "A1F2E3D4-1234-5678-9ABC-DEF012345678",
+            accountDisplayName: "Apple Card",
+            institutionName: "Goldman Sachs",
+            transactionDate: "2026-04-29T18:14:22Z",
+            postedDate: "2026-04-30T03:00:00Z",
+            status: "booked",
+            transactionType: "pointOfSale",
+            creditDebitIndicator: "debit",
+            transactionDescription: "BLUE BOTTLE COFFEE #142",
+            originalTransactionDescription: "SQ *BLUE BOTTLE COFFEE  OAKLAND CA",
+            merchantName: "Blue Bottle Coffee",
+            merchantCategoryCode: "5814",
+            merchantCategoryDescription: "Eating Places, Restaurants",
+            amount: WalletMetadata.Money(value: "7.85", currency: "USD"),
+            foreignAmount: nil,
+            foreignExchangeRate: nil
+        )
+    ).toJSONString()
+
     let sample = Transaction(
         id: "txn_preview_001",
         account: "Apple Card",
@@ -250,7 +310,8 @@ struct DetailRow: View {
         lm_category_id: "123",
         lm_category_name: "Dining",
         category_id: "200",
-        category_name: "Restaurants"
+        category_name: "Restaurants",
+        walletMetadataJSON: sampleMetadataJSON
     )
     sample.addHistory(note: "Queued for sync", source: "BGD")
     sample.addHistory(note: "amount = $1,000.23, payee = Acme Corp", source: "BGD")

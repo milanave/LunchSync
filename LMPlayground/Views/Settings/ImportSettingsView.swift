@@ -15,6 +15,7 @@ struct ImportSettingsView: View {
     
     @AppStorage("alert_after_import", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var alert_after_import = true
     @AppStorage("categorize_incoming", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var categorize_incoming = true
+    @AppStorage("send_finance_kit_metadata", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var send_finance_kit_metadata = true
     
     var body: some View {
         List {
@@ -61,6 +62,17 @@ struct ImportSettingsView: View {
                 .listRowSeparator(.hidden)
             } footer: {
                 Text("Send an alert after an import finds new transactions.")
+                    .font(.caption)
+            }
+            Section{
+                Toggle(isOn: $send_finance_kit_metadata) {
+                    HStack {
+                        Text("Send FinanceKit metadata")
+                    }
+                }
+                .listRowSeparator(.hidden)
+            } footer: {
+                Text("Attach the raw Apple Wallet transaction details (merchant name, MCC, original description, foreign-currency info, etc.) to each synced transaction's `custom_metadata` field in Lunch Money.")
                     .font(.caption)
             }
         }

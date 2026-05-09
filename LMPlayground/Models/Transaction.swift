@@ -29,6 +29,9 @@ class Transaction: Identifiable {
     var lm_category_name: String?
     var category_id: String?
     var category_name: String?
+    /// JSON-encoded `WalletMetadata` captured at fetch time. Sent to LM as
+    /// `custom_metadata` when the user has the corresponding setting on.
+    var walletMetadataJSON: String?
     @Relationship(deleteRule: .cascade, inverse: \TransactionHistory.transaction) var histories: [TransactionHistory]?
 
     var sync: SyncStatus {
@@ -58,6 +61,7 @@ class Transaction: Identifiable {
          lm_category_name: String? = nil,
          category_id: String? = nil,
          category_name: String? = nil,
+         walletMetadataJSON: String? = nil,
          histories: [TransactionHistory] = []
         ) {
         self.id = id
@@ -78,6 +82,7 @@ class Transaction: Identifiable {
         self.lm_category_name = lm_category_name ?? ""
         self.category_id = category_id ?? ""
         self.category_name = category_name ?? ""
+        self.walletMetadataJSON = walletMetadataJSON
         self.histories = histories
     }
 

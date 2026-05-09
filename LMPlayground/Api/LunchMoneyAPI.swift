@@ -12,6 +12,7 @@ struct CreateTransactionRequest: Encodable {
     let status: String?
     let externalId: String?
     let isPending: Bool
+    let customMetadata: WalletMetadata?
 
     private enum CodingKeys: String, CodingKey {
         case date
@@ -24,6 +25,33 @@ struct CreateTransactionRequest: Encodable {
         case status
         case externalId = "external_id"
         case isPending = "is_pending"
+        case customMetadata = "custom_metadata"
+    }
+
+    init(
+        date: String,
+        payee: String,
+        amount: String,
+        currency: String,
+        categoryId: Int?,
+        assetId: Int?,
+        notes: String?,
+        status: String?,
+        externalId: String?,
+        isPending: Bool,
+        customMetadata: WalletMetadata? = nil
+    ) {
+        self.date = date
+        self.payee = payee
+        self.amount = amount
+        self.currency = currency
+        self.categoryId = categoryId
+        self.assetId = assetId
+        self.notes = notes
+        self.status = status
+        self.externalId = externalId
+        self.isPending = isPending
+        self.customMetadata = customMetadata
     }
 }
 
@@ -260,6 +288,7 @@ struct UpdateTransactionRequest: Encodable {
         let status: String?
         let externalId: String?
         let isPending: Bool?
+        let customMetadata: WalletMetadata?
 
         private enum CodingKeys: String, CodingKey {
             case date
@@ -272,6 +301,33 @@ struct UpdateTransactionRequest: Encodable {
             case status
             case externalId = "external_id"
             case isPending = "is_pending"
+            case customMetadata = "custom_metadata"
+        }
+
+        init(
+            date: String?,
+            payee: String?,
+            amount: String?,
+            currency: String?,
+            categoryId: Int?,
+            assetId: Int?,
+            notes: String?,
+            status: String?,
+            externalId: String?,
+            isPending: Bool?,
+            customMetadata: WalletMetadata? = nil
+        ) {
+            self.date = date
+            self.payee = payee
+            self.amount = amount
+            self.currency = currency
+            self.categoryId = categoryId
+            self.assetId = assetId
+            self.notes = notes
+            self.status = status
+            self.externalId = externalId
+            self.isPending = isPending
+            self.customMetadata = customMetadata
         }
     }
 }

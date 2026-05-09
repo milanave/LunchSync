@@ -264,13 +264,13 @@ struct AppShortcuts: AppShortcutsProvider {
         return [
             .init(
                 intent: CheckTransactionsIntent(),
-                phrases: ["Check for new transactions"],
+                phrases: ["Check for new transactions in \(.applicationName)"],
                 shortTitle: "Check Transactions",
                 systemImageName: "arrow.clockwise"
             ),
             .init(
                 intent: SyncTransactionsIntent(),
-                phrases: ["Sync transactions"],
+                phrases: ["Sync transactions in \(.applicationName)"],
                 shortTitle: "Sync",
                 systemImageName: "arrow.triangle.2.circlepath"
             )

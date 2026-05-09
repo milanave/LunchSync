@@ -296,7 +296,14 @@ class AppleWallet{
             
             let category_id = transaction.merchantCategoryCode.map { String(describing: $0) }
             let category_name = category_id.flatMap { getMCCDescription(for: $0) }
-            
+
+            let metadataJSON = WalletMetadata(
+                from: transaction,
+                accountDisplayName: account?.name,
+                institutionName: account?.institution_name,
+                merchantCategoryDescription: category_name
+            ).toJSONString()
+
             let t = Transaction(
                 id: transaction.id.uuidString,
                 account: accountName,
@@ -315,12 +322,13 @@ class AppleWallet{
                 lm_category_id: "",
                 lm_category_name: "",
                 category_id: category_id,
-                category_name: category_name
+                category_name: category_name,
+                walletMetadataJSON: metadataJSON
             )
             t.addHistory(note: syncBalanceOnly ? "Created from fetch, skipping sync" : "Created from fetch", source:logPrefix)
             transactionsFound.append(t)
         }
-        
+
         return transactionsFound
     }
     
@@ -376,9 +384,14 @@ class AppleWallet{
             }
             
             let category_id = transaction.merchantCategoryCode.map { String(describing: $0) }
-            
+
             print("Recent transaction: \(transaction.transactionDescription), \(transaction.transactionAmount.amount), \(transaction.transactionDate)")
-            
+
+            // Capture FinanceKit metadata at fetch time. Account/MCC-description
+            // fields are unknown here and will be patched in by
+            // `prepPrefetchedTransactions` once accounts are matched.
+            let metadataJSON = WalletMetadata(from: transaction).toJSONString()
+
             let t = Transaction(
                 id: transaction.id.uuidString,
                 account: "",
@@ -397,7 +410,8 @@ class AppleWallet{
                 lm_category_id: "",
                 lm_category_name: "",
                 category_id: category_id,
-                category_name: "" // leave this blank so we don't have to touch the MCC code file until these transactions are prepped in SyncBroker
+                category_name: "", // leave this blank so we don't have to touch the MCC code file until these transactions are prepped in SyncBroker
+                walletMetadataJSON: metadataJSON
             )
             t.addHistory(note: "Created from recent", source: logPrefix)
             transactionsFound.append(t)
@@ -513,6 +527,13 @@ class AppleWallet{
             //print("refreshWalletTransactionsForAccounts \(transaction.transactionDescription) cat_id=\(category_id ?? "n/a"), cat_name=\(category_name ?? "n/a")")
             if(!syncBalanceOnly){
                 print("Sync balance and transaction")
+                let metadataJSON = WalletMetadata(
+                    from: transaction,
+                    accountDisplayName: account?.name,
+                    institutionName: account?.institution_name,
+                    merchantCategoryDescription: category_name
+                ).toJSONString()
+
                 let t = Transaction(
                     id: transaction.id.uuidString,
                     account: accountName,
@@ -531,7 +552,8 @@ class AppleWallet{
                     lm_category_id: "",
                     lm_category_name: "",
                     category_id: category_id,
-                    category_name: category_name
+                    category_name: category_name,
+                    walletMetadataJSON: metadataJSON
                 )
                 t.addHistory(note: syncBalanceOnly ? "Created from refresh, skipping sync" : "Created from refresh", source:logPrefix)
                 transactionsFound.append(t)
