@@ -32,14 +32,6 @@ platform :ios do
       scheme: SCHEME,
       configuration: "Release",
       export_method: "app-store",
-      export_options: {
-        provisioningProfiles: {
-          APP_BUNDLE_ID       => "",
-          EXTENSION_BUNDLE_ID => "",
-        },
-        signingStyle: "automatic",
-        teamID: "MF7QJ9TF5S",
-      },
       clean: true,
       output_directory: "build",
     )
