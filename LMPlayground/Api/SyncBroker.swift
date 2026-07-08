@@ -520,7 +520,9 @@ class SyncBroker {
             let matchingAccount = self.getSyncedAccounts().first(where: { $0.id == transaction.accountID })
             transaction.lm_account = matchingAccount?.lm_id ?? "0"
             
-            // go into an infinite loop to sync the transaction
+            // retry the sync a few times, then mark the transaction failed and
+            // move on so one bad transaction can't stall the rest of the batch
+            let maxSyncAttempts = 3
             var retryCount = 0
             while true {
                 do {
@@ -530,14 +532,28 @@ class SyncBroker {
                 } catch {
                     retryCount += 1
                     print("Error in syncTransaction: \(error) with \(current) of \(total), retry \(retryCount)")
+
+                    guard retryCount < maxSyncAttempts else {
+                        addLog(message: "syncTransaction, error \(error) for \(transaction.id), giving up after \(maxSyncAttempts) attempts", level: 2)
+                        transaction.sync = .never
+                        transaction.addHistory(note: "Sync failed after \(maxSyncAttempts) attempts: \(error)", source: logPrefix)
+
+                        progressCallback(SafeSyncProgress(
+                            current: current,
+                            total: total,
+                            status: "Failed \(current) of \(total) after \(maxSyncAttempts) attempts, skipping"
+                        ))
+                        break
+                    }
+
                     addLog(message: "syncTransaction, error \(error) for \(transaction.id), retrying...", level: 2)
-                    
+
                     progressCallback(SafeSyncProgress(
                         current: current,
                         total: total,
                         status: "Error with \(current) of \(total), retry \(retryCount)"
                     ))
-                    
+
                     // Wait 2 seconds before retrying
                     try await Task.sleep(nanoseconds: 2_000_000_000)
                 }
