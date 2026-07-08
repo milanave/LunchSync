@@ -35,7 +35,7 @@ func printSideBySide(original: LMTransaction, updated: LMTransaction) {
     print(String(repeating: "-", count: labelWidth + 3 + colWidth + 3 + colWidth))
 
     row("date", original.date, updated.date)
-    row("payee", original.payee, updated.payee)
+    row("payee", original.payee ?? "", updated.payee ?? "")
     row("amount", original.amount, updated.amount)
     row("currency", original.currency, updated.currency)
     row("category_id", original.categoryId.map(String.init) ?? "", updated.categoryId.map(String.init) ?? "")

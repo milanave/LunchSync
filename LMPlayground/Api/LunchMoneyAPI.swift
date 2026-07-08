@@ -98,7 +98,8 @@ struct CreateTransactionsResponse: Decodable {
 struct LMTransaction: Decodable {
     let id: Int
     let date: String
-    let payee: String
+    // Nullable in the LM API: manual/CSV/other-client transactions can have no payee.
+    let payee: String?
     let amount: String
     let currency: String
     let categoryId: Int?
