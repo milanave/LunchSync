@@ -47,11 +47,14 @@ class MockWallet: Wallet {
     
     override func addLog(message: String, level: Int) {}
     
-    override func replaceTransaction(newTrans: Transaction) {
+    @discardableResult
+    override func replaceTransaction(newTrans: Transaction) -> Wallet.ReplaceOutcome {
         if let index = transactions.firstIndex(where: { $0.id == newTrans.id }) {
             transactions[index] = newTrans
+            return .requeued
         } else {
             transactions.append(newTrans)
+            return .insertedNew
         }
     }
     

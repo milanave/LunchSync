@@ -95,10 +95,17 @@ struct AccountSelectionView: View {
                 PreviewTransactionsView(
                     transactions: transactions,
                     onImport: { selectedTransactions in
-                        //print("selected for import: \(selectedTransactions.count)")
+                        var inserted = 0
+                        var requeued = 0
+                        var unchanged = 0
                         selectedTransactions.forEach { transaction in
-                            viewModel.wallet.replaceTransaction(newTrans: transaction)
+                            switch viewModel.wallet.replaceTransaction(newTrans: transaction) {
+                            case .insertedNew: inserted += 1
+                            case .requeued: requeued += 1
+                            case .unchanged: unchanged += 1
+                            }
                         }
+                        viewModel.wallet.addLog(message: "bulk import: staged \(inserted) new, \(requeued) changed for sync; \(unchanged) of \(selectedTransactions.count) selected already up to date", level: 1)
                     }
                 )
             }

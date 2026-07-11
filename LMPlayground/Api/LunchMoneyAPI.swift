@@ -128,23 +128,35 @@ struct GetTransactionsRequest: Encodable {
     let startDate: String?
     let endDate: String?
     let assetId: Int?
-    
+    let limit: Int?
+    let offset: Int?
+
     private enum CodingKeys: String, CodingKey {
         case startDate = "start_date"
         case endDate = "end_date"
         case assetId = "asset_id"
+        case limit
+        case offset
     }
-    
-    init(startDate: String? = nil, endDate: String? = nil, assetId: Int? = nil) {
+
+    init(startDate: String? = nil, endDate: String? = nil, assetId: Int? = nil, limit: Int? = nil, offset: Int? = nil) {
         self.startDate = startDate
         self.endDate = endDate
         self.assetId = assetId
+        self.limit = limit
+        self.offset = offset
     }
 }
 
 
 struct GetTransactionsResponse: Decodable {
     let transactions: [LMTransaction]
+    let hasMore: Bool?
+
+    private enum CodingKeys: String, CodingKey {
+        case transactions
+        case hasMore = "has_more"
+    }
 }
 
 struct User: Decodable {
@@ -445,18 +457,32 @@ struct GetCategoriesResponse: Decodable {
     let categories: [LMCategoryAPI]
 }
 
+/// Thrown when the LM API returns HTTP 429. The API allows 100 requests per
+/// minute per IP address; `retryAfter` comes from the Retry-After response header.
+struct RateLimitedError: LocalizedError {
+    let retryAfter: TimeInterval
+
+    var errorDescription: String? {
+        "Lunch Money API rate limit reached, retry in \(Int(retryAfter))s"
+    }
+}
+
 // MARK: LunchMoneyAPI
 class LunchMoneyAPI {
     private let baseURL = "https://dev.lunchmoney.app/v1"
     private let apiToken: String
     private var debug: Bool = false
-    
+    /// Total HTTP requests issued by this instance, including retries.
+    /// SyncBroker diffs this across a run for its summary log line.
+    private(set) var requestCount = 0
+
     init(apiToken: String, debug: Bool = false) {
         self.apiToken = apiToken
         self.debug = debug
     }
 
     private func makeRequest<T: Decodable>(request: URLRequest, responseType: T.Type) async throws -> T {
+        requestCount += 1
         let (data, response) = try await URLSession.shared.data(for: request)
         
         if debug {
@@ -477,6 +503,11 @@ class LunchMoneyAPI {
             }
         }
         
+        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 429 {
+            let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After").flatMap(TimeInterval.init)
+            throw RateLimitedError(retryAfter: min(max(retryAfter ?? 60, 1), 120))
+        }
+
         if let httpResponse = response as? HTTPURLResponse, !(200...299).contains(httpResponse.statusCode) {
             if let errorResponse = try? JSONDecoder().decode(APIErrorResponse.self, from: data) {
                 throw NSError(domain: "", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "API Error: \(errorResponse.errors.joined(separator: ", "))"])
@@ -544,6 +575,45 @@ class LunchMoneyAPI {
             let response = try await call(path: "/transactions", responseType: GetTransactionsResponse.self, requestBody: request, method: "GET")
             return response.transactions
         }
+
+    /// Fetches every transaction in the date range, following pagination until
+    /// the API reports no more records. A single GET returns at most `limit`
+    /// records (the API default is 1000), so callers that need the full window
+    /// for duplicate detection must use this instead of `getTransactions`.
+    /// `onPage` is invoked after each page with (page number, records on that
+    /// page, running total) so callers can surface fetch progress in their logs.
+    func getAllTransactions(
+        startDate: String,
+        endDate: String,
+        onPage: ((_ page: Int, _ pageCount: Int, _ runningTotal: Int) -> Void)? = nil
+    ) async throws -> [LMTransaction] {
+        let pageSize = 1000
+        let maxPages = 50 // safety valve against a server that always reports more
+        var all: [LMTransaction] = []
+        var offset = 0
+
+        for page in 0..<maxPages {
+            let request = GetTransactionsRequest(
+                startDate: startDate,
+                endDate: endDate,
+                limit: pageSize,
+                offset: offset
+            )
+            let response = try await call(path: "/transactions", responseType: GetTransactionsResponse.self, requestBody: request, method: "GET")
+            all.append(contentsOf: response.transactions)
+            onPage?(page + 1, response.transactions.count, all.count)
+
+            // Older API responses may omit has_more; fall back to a full-page check.
+            let hasMore = response.hasMore ?? (response.transactions.count >= pageSize)
+            if response.transactions.isEmpty || !hasMore {
+                return all
+            }
+            offset += response.transactions.count
+        }
+
+        print("getAllTransactions: stopped after \(maxPages) pages (\(all.count) transactions), results may be incomplete")
+        return all
+    }
     
     func getTransactions2() async throws -> [LMTransaction] {
         //let response = try await call(path: "/transactions", responseType: GetTransactionsResponse.self)

@@ -168,16 +168,16 @@
 			<key>text-context</key>
 			<dict>
 				<key>focused</key>
-				<string>    func getAssets() async throws -&gt; [Asset] {
+				<string>    /// Total HTTP requests issued by this instance, including retries.
 </string>
 				<key>leading</key>
-				<string>    }
-    
+				<string>    private let apiToken: String
+    private var debug: Bool = false
 </string>
 				<key>trailing</key>
-				<string>        let response = try await call(path: "/assets", responseType: GetAssetsResponse.self)
-        return response.assets
-    }
+				<string>    /// SyncBroker diffs this across a run for its summary log line.
+    private(set) var requestCount = 0
+
 </string>
 			</dict>
 			<key>type</key>

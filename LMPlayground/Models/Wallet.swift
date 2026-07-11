@@ -38,93 +38,6 @@ class Wallet :ObservableObject {
         return userInfo
     }
 
-    // Add this type to handle progress updates
-    /*
-    struct SyncProgress {
-        let current: Int
-        let total: Int
-        let status: String
-    }
-    
-    // take an Apple Wallet transaction, store it, then add it via the API and save the id
-    func syncTransactions(progressCallback: @escaping (SyncProgress) -> Void) async throws {
-        let pendingTransactions = getTransactionsWithStatus(.pending)
-        let total = pendingTransactions.count
-        var current = 0
-        
-        // Initial progress update
-        await MainActor.run {
-            progressCallback(SyncProgress(
-                current: 0,
-                total: total,
-                status: "Starting sync..."
-            ))
-        }
-        
-        for transaction in pendingTransactions {
-            current += 1
-            
-            // Update progress before each transaction
-            await MainActor.run {
-                progressCallback(SyncProgress(
-                    current: current,
-                    total: total,
-                    status: "Syncing \(current) of \(total) for \(transaction.payee)"
-                ))
-            }
-            
-            let matchedLMAccount = await MainActor.run {
-                if let matchingAccount = getSyncedAccounts().first(where: { $0.id == transaction.accountID }) {
-                    return matchingAccount.lm_id
-                }
-                fatalError("Couldn't find asset id for \(transaction.id) with account id \(transaction.accountID)")
-            }
-            
-            await MainActor.run {
-                transaction.lm_account = matchedLMAccount
-            }
-            
-            // go into an infinite loop to sync the transaction
-            var retryCount = 0
-            while true {
-                do {
-                    let updatedTransaction = try await performSync(transaction: transaction)
-                    replaceTransaction(newTrans: updatedTransaction)
-                    break  // Break out of the while loop instead of returning
-                } catch {
-                    retryCount += 1
-                    print("Error in syncTransaction: \(error) with \(current) of \(total), retry \(retryCount)")
-                    addLog(message: "syncTransaction, error \(error) for \(transaction.id), retrying...", level: 2)
-                    
-                    await MainActor.run {
-                        progressCallback(SyncProgress(
-                            current: current,
-                            total: total,
-                            status: "Error with \(current) of \(total), retry \(retryCount)"
-                        ))
-                    }
-                    
-                    // Wait 2 seconds before retrying
-                    try await Task.sleep(nanoseconds: 2_000_000_000)
-                }
-            }
-            
-            
-            
-            
-            // Update progress after each transaction
-            await MainActor.run {
-                progressCallback(SyncProgress(
-                    current: current,
-                    total: total,
-                    status: "Completed \(current) of \(total)"
-                ))
-            }
-        }
-        
-        try modelContext.save()
-    }
-     */
     
     
     // all this does is take an array of Accounts (from Apple) and store/update each locally
@@ -297,11 +210,21 @@ class Wallet :ObservableObject {
     }
     */
     
-    func replaceTransaction(newTrans: Transaction){
+    /// What `replaceTransaction` did with the incoming transaction, so callers
+    /// (e.g. bulk import) can report an accurate summary to the log.
+    enum ReplaceOutcome {
+        case insertedNew    // not in the local store before; stored with its incoming sync status
+        case requeued       // existed with changed fields; re-queued as .pending
+        case unchanged      // existed with identical fields; left alone
+    }
+
+    @discardableResult
+    func replaceTransaction(newTrans: Transaction) -> ReplaceOutcome {
         // find a transaction in the local store
         let id = newTrans.id
         let fetchDescriptor = FetchDescriptor<Transaction>(predicate: #Predicate { $0.id == id })
         //print("replaceTransaction with \(id)")
+        var outcome: ReplaceOutcome = .unchanged
         do {
             let transactions = try modelContext.fetch(fetchDescriptor)
             
@@ -326,6 +249,7 @@ class Wallet :ObservableObject {
                     categoryNameChanged ||
                     lmCategoryIdChanged
                 ){
+                    outcome = .requeued
                     /*
                     print(" -- \(transaction.lm_id) has changes in payee, amount or date")
                     print(" -- -- \(newTrans.payee) != \(transaction.payee) \(newTrans.payee != transaction.payee)")
@@ -354,11 +278,13 @@ class Wallet :ObservableObject {
             }else{
                 //print("replaceTransaction insert new \(newTrans.payee)")
                 modelContext.insert(newTrans)
+                outcome = .insertedNew
             }
         } catch {
             print("error searching")
         }
         try? modelContext.save() // Save after making updates
+        return outcome
            
     }
     
@@ -513,167 +439,6 @@ class Wallet :ObservableObject {
         return nil
     }
     
-    /*
-     Takes a Transaction and attempts to sync it with the LM API
-     */
-    /*
-    func syncTransaction(transaction: Transaction) async throws -> Transaction {
-        while true {
-            do {
-                return try await performSync(transaction: transaction)
-            } catch {
-                print("Error in syncTransaction: \(error)")
-                addLog(message: "syncTransaction, error \(error) for \(transaction.id), retrying...", level: 2)
-                
-                // Wait 2 seconds before retrying
-                try await Task.sleep(nanoseconds: 2_000_000_000)
-            }
-        }
-    }
-     */
-    /*
-    private func performSync(transaction: Transaction) async throws -> Transaction {
-        //debug = true
-        //print("syncTransaction \(transaction.id)")
-        
-        // find an asset id and match it, otherwise die
-        /*
-        //print("DEBUG: Transaction details:")
-            //print("- ID: \(transaction.id)")
-            //print("- Date: \(transaction.date)")
-            //print("- Payee: \(transaction.payee)")
-            //print("- Amount: \(transaction.amount)")
-            //print("- Notes: \(transaction.notes)")
-            //print("- Status: \(transaction.status)")
-            //print("- Is Pending: \(transaction.isPending)")
-            //print("- LM Account: \(transaction.lm_account)")
-            //print("- LM ID: \(transaction.lm_id)")
-            //print("- Sync Status: \(transaction.sync)")
-            fatalError("Stopping execution for debugging")
-        */
-        
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        
-        let calendar = Calendar.current
-        let transactionDate = transaction.date
-        guard let thirtyDaysBefore = calendar.date(byAdding: .day, value: -30, to: transactionDate),
-              let thirtyDaysAfter = calendar.date(byAdding: .day, value: 30, to: transactionDate) else {
-            print("Error calculating date range")
-            addLog(message: "syncTransaction, Error calculating date range for \(transaction.id)", level: 2)
-            transaction.sync = .never // TODO, pass this as an error instead?
-            return transaction
-        }
-        
-        let startDate = dateFormatter.string(from: thirtyDaysBefore)
-        let endDate = dateFormatter.string(from: thirtyDaysAfter)
-        let dateString = dateFormatter.string(from: transaction.date)
-        
-        let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
-        let importAsCleared = sharedDefaults.bool(forKey: "importTransactionsCleared")
-        let putTransStatusInNotes = sharedDefaults.bool(forKey: "putTransStatusInNotes")
-        let applyRules = sharedDefaults.bool(forKey: "apply_rules")
-        let skipDuplicates = sharedDefaults.bool(forKey: "skip_duplicates")
-        let checkForRecurring = sharedDefaults.bool(forKey: "check_for_recurring")
-        let skipBalanceUpdate = sharedDefaults.bool(forKey: "skip_balance_update")
-        
-        do {
-            // First check for existing transactions
-            let existingTransactions = try await API.getTransactions(
-                request: GetTransactionsRequest(
-                    startDate: startDate,
-                    endDate: endDate
-                )
-            )
-            
-            // Check if transaction already exists
-            for trn in existingTransactions {
-                if trn.externalId == transaction.id {
-                    //print("Matching \(String(describing: trn.externalId)) to existing transaction \(trn.id)")
-                    
-                    
-                    let updateRequest = UpdateTransactionRequest(
-                        transaction: UpdateTransactionRequest.TransactionUpdate(
-                            date: dateString,
-                            payee: transaction.payee,
-                            amount: String(format: "%.2f", transaction.amount),
-                            currency: "usd",
-                            categoryId: transaction.lmCategoryIdForAPI,
-                            assetId: Int(transaction.lm_account),
-                            notes: putTransStatusInNotes ? (transaction.notes.isEmpty ? nil : transaction.notes) : nil,
-                            status: importAsCleared ? "cleared" : "uncleared",
-                            externalId: transaction.id,
-                            isPending: false //transaction.isPending
-                        )
-                    )
-                    
-                    // Call API to update the transaction
-                    let result = try await API.updateTransaction(id: trn.id, request: updateRequest)
-                    
-                    if let errors = result.errors {
-                        print("Failed to send transaction to LM: \(errors.joined(separator: ", "))")
-                        addLog(message: "syncTransaction, Failed to send transaction to LM for \(transaction.id), \(errors.joined(separator: ", "))", level: 2)
-                        // don't stop it from being re-synced this time
-                        //transaction.sync = .never
-                        return transaction
-                    } else {
-                        addLog(message: "syncTransaction, synced to LM for \(transaction.id), status=\(importAsCleared ? "cleared" : "uncleared")", level: 2)
-                        //print("Transaction sent to LM: updated=\(result.updated ?? false)")
-                        transaction.lm_id = String(trn.id)
-                        if let assetId = trn.assetId {
-                            transaction.lm_account = String(assetId)
-                        } else {
-                            transaction.lm_account = ""
-                        }
-                        transaction.sync = .complete
-                        return transaction
-                    }
-                }
-            }
-            
-            //print("did NOT find matching transactions, creating new one...")
-            let createRequest = CreateTransactionRequest(
-                date: dateString,
-                payee: transaction.payee,
-                amount: String(format: "%.2f", transaction.amount),
-                currency: "usd",
-                categoryId: transaction.lmCategoryIdForAPI,
-                assetId: Int(transaction.lm_account),
-                notes: putTransStatusInNotes ? (transaction.notes.isEmpty ? nil : transaction.notes) : nil,
-                status: importAsCleared ? "cleared" : "uncleared",
-                externalId: transaction.id,
-                isPending: false //transaction.isPending
-            )
-            
-            // Create new transaction
-            let response = try await API.createTransactions(
-                transactions: [createRequest],
-                applyRules: applyRules,
-                skipDuplicates: skipDuplicates,
-                checkForRecurring: checkForRecurring,
-                skipBalanceUpdate: skipBalanceUpdate
-            )
-            
-            if let transactionIds = response.transactionIds, !transactionIds.isEmpty {
-                transaction.lm_id = String(transactionIds[0])
-                transaction.sync = .complete
-                //print("Inserted \(transaction.lm_id) -> \(transaction.sync)")
-                addLog(message: "syncTransaction, synced to LM for \(transaction.id), status=\(importAsCleared ? "cleared" : "uncleared")", level: 2)
-            } else {
-                //print("No transaction ID received in response")
-                addLog(message: "syncTransaction, No transaction ID received in response for \(transaction.id)", level: 2)
-                transaction.sync = .never
-            }
-            
-            return transaction
-        } catch {
-            print("Error in syncTransaction: \(error)")
-            addLog(message: "syncTransaction, error \(error) for \(transaction.id)", level: 2)
-            transaction.sync = .never
-            throw error
-        }
-    }
-     */
     
     func addLog(message: String, level: Int = 1) {
         let now = Date()
