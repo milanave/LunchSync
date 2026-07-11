@@ -63,6 +63,8 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Api/LunchMoneyAPI.swift,
+				Api/LunchMoneyAPIV2.swift,
+				Api/LunchMoneyService.swift,
 				Models/WalletMetadata.swift,
 			);
 			target = C4887FE32EA263AF002EA3E3 /* LunchSyncCLI */;
@@ -79,6 +81,8 @@
 			membershipExceptions = (
 				Api/AppleWallet.swift,
 				Api/LunchMoneyAPI.swift,
+				Api/LunchMoneyAPIV2.swift,
+				Api/LunchMoneyService.swift,
 				Api/PushAPI.swift,
 				Api/SyncBroker.swift,
 				"BGD Test/FinanceUtilities.swift",

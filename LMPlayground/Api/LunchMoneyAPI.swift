@@ -88,6 +88,11 @@ struct CreateTransactionsRequest: Encodable {
 struct CreateTransactionsResponse: Decodable {
     let transactionIds: [Int]?
     let errors: [String]?
+    // Populated only by the v2 client (never decoded from the v1 wire): the
+    // fully-hydrated inserted transactions and the server-side duplicate
+    // report, which together give per-item outcomes without a follow-up fetch.
+    var inserted: [LMTransaction]? = nil
+    var skippedDuplicates: [SkippedDuplicateInfo]? = nil
 
     private enum CodingKeys: String, CodingKey {
         case transactionIds = "ids"
@@ -576,45 +581,12 @@ class LunchMoneyAPI {
             return response.transactions
         }
 
-    /// Fetches every transaction in the date range, following pagination until
-    /// the API reports no more records. A single GET returns at most `limit`
-    /// records (the API default is 1000), so callers that need the full window
-    /// for duplicate detection must use this instead of `getTransactions`.
-    /// `onPage` is invoked after each page with (page number, records on that
-    /// page, running total) so callers can surface fetch progress in their logs.
-    func getAllTransactions(
-        startDate: String,
-        endDate: String,
-        onPage: ((_ page: Int, _ pageCount: Int, _ runningTotal: Int) -> Void)? = nil
-    ) async throws -> [LMTransaction] {
-        let pageSize = 1000
-        let maxPages = 50 // safety valve against a server that always reports more
-        var all: [LMTransaction] = []
-        var offset = 0
-
-        for page in 0..<maxPages {
-            let request = GetTransactionsRequest(
-                startDate: startDate,
-                endDate: endDate,
-                limit: pageSize,
-                offset: offset
-            )
-            let response = try await call(path: "/transactions", responseType: GetTransactionsResponse.self, requestBody: request, method: "GET")
-            all.append(contentsOf: response.transactions)
-            onPage?(page + 1, response.transactions.count, all.count)
-
-            // Older API responses may omit has_more; fall back to a full-page check.
-            let hasMore = response.hasMore ?? (response.transactions.count >= pageSize)
-            if response.transactions.isEmpty || !hasMore {
-                return all
-            }
-            offset += response.transactions.count
-        }
-
-        print("getAllTransactions: stopped after \(maxPages) pages (\(all.count) transactions), results may be incomplete")
-        return all
+    // getAllTransactions (the pagination loop over this) lives in a
+    // LunchMoneyService protocol extension so both API versions share it.
+    func getTransactionsPage(request: GetTransactionsRequest) async throws -> GetTransactionsResponse {
+        return try await call(path: "/transactions", responseType: GetTransactionsResponse.self, requestBody: request, method: "GET")
     }
-    
+
     func getTransactions2() async throws -> [LMTransaction] {
         //let response = try await call(path: "/transactions", responseType: GetTransactionsResponse.self)
         //assetId: "99813"

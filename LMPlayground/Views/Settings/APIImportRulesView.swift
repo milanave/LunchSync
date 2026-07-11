@@ -12,7 +12,8 @@ struct APIImportRulesView: View {
     @AppStorage("skip_duplicates", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var skipDuplicates = false
     @AppStorage("check_for_recurring", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var checkForRecurring = false
     @AppStorage("skip_balance_update", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var skipBalanceUpdate = false
-    
+    @AppStorage(LMAPIVersion.defaultsKey, store: UserDefaults(suiteName: LMAPIVersion.appGroupSuiteName)) private var apiVersionRaw = LMAPIVersion.v1.rawValue
+
 	var body: some View {
 		List {
 			Section{
@@ -47,8 +48,13 @@ struct APIImportRulesView: View {
                     }
                     .listRowSeparator(.hidden)
                 } footer: {
-                    Text("If true, will check new transactions for occurrences of new monthly expenses.")
-                        .font(.caption)
+                    if apiVersionRaw == LMAPIVersion.v2.rawValue {
+                        Text("If true, will check new transactions for occurrences of new monthly expenses. Only available on API v1 — this has no effect while API v2 is selected.")
+                            .font(.caption)
+                    } else {
+                        Text("If true, will check new transactions for occurrences of new monthly expenses.")
+                            .font(.caption)
+                    }
                 }
                 Section{
                     Toggle(isOn: $skipBalanceUpdate) {

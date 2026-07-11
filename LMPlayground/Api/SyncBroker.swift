@@ -11,10 +11,10 @@ import SwiftUI
 class SyncBroker {
     private let modelContext: ModelContext
     private var apiToken: String
-    private var API: LunchMoneyAPI
+    private var API: any LunchMoneyService
     private var appleWallet: AppleWallet
     private var logPrefix: String = ""
-    
+
     init(context: ModelContext, logPrefix: String = "") {
         self.modelContext = context
         self.logPrefix = logPrefix
@@ -24,8 +24,16 @@ class SyncBroker {
         } catch {
             self.apiToken = ""
         }
-        self.API = LunchMoneyAPI(apiToken: apiToken, debug: false)
+        self.API = LunchMoneyServiceFactory.make(apiToken: apiToken)
         appleWallet = AppleWallet()
+    }
+
+    /// Rebuilds the API client from the current token and the API version
+    /// selected in Settings. Called at the top of each public operation so a
+    /// run picks up settings changes, but never mid-run — a single run stays
+    /// on one API version.
+    private func refreshAPIService() {
+        API = LunchMoneyServiceFactory.make(apiToken: apiToken)
     }
     
     public struct SafeSyncProgress {
@@ -89,7 +97,7 @@ class SyncBroker {
         
         
         do {
-            addLog(prefix: prefix, message: "Starting transaction fetch (importAsCleared: \(importAsCleared), transStatusInNotes: \(putTransStatusInNotes), autoSync: \(autoImportTransactions), categorize: \(categorize_incoming)", level: 1)
+            addLog(prefix: prefix, message: "Starting transaction fetch (importAsCleared: \(importAsCleared), transStatusInNotes: \(putTransStatusInNotes), autoSync: \(autoImportTransactions), categorize: \(categorize_incoming), api: \(LunchMoneyServiceFactory.currentVersion().rawValue))", level: 1)
             
             if apiToken.isEmpty {
                 let keychain = Keychain()
@@ -113,7 +121,12 @@ class SyncBroker {
                 }
                 addLog(prefix: prefix, message: "token was blank, but successfully retrieved", level: 2)
             }
-                        
+
+            // Rebuild the client so this run uses the token just read and the
+            // currently selected API version (the init-time client may have
+            // been built with an empty token or an older version selection).
+            refreshAPIService()
+
             // get a list of accounts, then Apple Wallet transactions for those accounts
             let accounts = getSyncedAccounts()
             
@@ -442,7 +455,10 @@ class SyncBroker {
                     transaction.lm_id = newTrans.lm_id
                     transaction.lm_account = newTrans.lm_account
                     transaction.sync = .pending
-                    if pendingChanged { transaction.isPending = newTrans.isPending }
+                    if pendingChanged {
+                        transaction.isPending = newTrans.isPending
+                        transaction.refreshMetadataPendingFlag()
+                    }
                     if categoryIdChanged { transaction.category_id = newTrans.category_id }
                     if categoryNameChanged { transaction.category_name = newTrans.category_name }
                     if lmCategoryIdChanged { transaction.lm_category_id = newTrans.lm_category_id }
@@ -509,16 +525,30 @@ class SyncBroker {
 
         guard !pendingTransactions.isEmpty else { return }
 
+        // One API version per run: the client and the settings snapshot are
+        // taken together here, so a settings change mid-run has no effect.
+        refreshAPIService()
         let runStart = Date()
         let requestsBefore = API.requestCount
         let settings = SyncSettings()
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
+        addLog(message: "using Lunch Money API \(settings.apiVersion.rawValue)", level: 2)
 
         let syncedAccounts = getSyncedAccounts()
         for transaction in pendingTransactions {
             let matchingAccount = syncedAccounts.first(where: { $0.id == transaction.accountID })
             transaction.lm_account = matchingAccount?.lm_id ?? "0"
+        }
+
+        if settings.apiVersion == .v2 {
+            try await syncTransactionsV2(
+                pendingTransactions,
+                settings: settings,
+                dateFormatter: dateFormatter,
+                progressCallback: progressCallback
+            )
+            return
         }
 
         // The LM API allows 100 requests/minute per IP, so fetch the LM side once
@@ -710,10 +740,217 @@ class SyncBroker {
 
         // Changed transactions that already exist in LM: v1 has no batch update,
         // so these stay one PUT each, paced by the 429 handling above.
-        if !toUpdate.isEmpty {
-            addLog(message: "pushing \(toUpdate.count) individual updates (LM has no batch update endpoint)", level: 2)
+        try await pushUpdates(
+            toUpdate.map { (local: $0.local, remoteId: $0.remote.id, remoteAssetId: $0.remote.assetId) },
+            applyRemoteAssetId: true,
+            settings: settings,
+            dateFormatter: dateFormatter,
+            startingCurrent: current,
+            total: total,
+            progressCallback: progressCallback
+        )
+
+        try modelContext.save()
+        finished = true
+    }
+
+    // MARK: - v2 sync strategy
+
+    /// The v2 API path: no window fetch. Every pending row is either inserted
+    /// or updated — POST the rows without a known LM id and let the server
+    /// dedupe on external_id (always enforced in v2); rows the duplicate
+    /// report resolves to an existing id get a follow-up PUT with current
+    /// wallet values, because the remote's state is unknown (it may predate a
+    /// reinstall or have been created by another device). Rows that already
+    /// carry an lm_id are PUT directly, as on v1.
+    private func syncTransactionsV2(
+        _ pendingTransactions: [Transaction],
+        settings: SyncSettings,
+        dateFormatter: DateFormatter,
+        progressCallback: @escaping (SafeSyncProgress) -> Void
+    ) async throws {
+        let total = pendingTransactions.count
+        var current = 0
+        let runStart = Date()
+        let requestsBefore = API.requestCount
+
+        var toCreate: [Transaction] = []
+        var toUpdate: [(local: Transaction, remoteId: Int, remoteAssetId: Int?)] = []
+        for transaction in pendingTransactions {
+            if let lmId = Int(transaction.lm_id), lmId > 0 {
+                toUpdate.append((transaction, lmId, nil))
+            } else {
+                toCreate.append(transaction)
+            }
         }
-        for (transaction, remote) in toUpdate {
+        addLog(message: "syncing \(toCreate.count) new (server-side external_id dedupe) and \(toUpdate.count) changed transactions", level: 2)
+
+        var recovered = 0
+        var finished = false
+        defer {
+            // One level-1 line per run so exported logs show what happened,
+            // even for runs that abort partway (e.g. persistent rate limiting).
+            let created = toCreate.filter { $0.sync == .complete }.count
+            let updated = toUpdate.filter { $0.local.sync == .complete }.count
+            let failed = pendingTransactions.filter { $0.sync == .never }.count
+            let requests = API.requestCount - requestsBefore
+            addLog(message: "sync run \(finished ? "complete" : "aborted") (v2): \(created) synced, \(updated) updated, \(recovered) matched existing by external id, \(failed) failed, \(requests) API requests, \(Self.elapsed(since: runStart))", level: 1)
+        }
+
+        let batchCount = (toCreate.count + Self.createBatchSize - 1) / Self.createBatchSize
+        if !toCreate.isEmpty {
+            addLog(message: "inserting \(toCreate.count) transactions in \(batchCount) batch\(batchCount == 1 ? "" : "es") of up to \(Self.createBatchSize), status=\(settings.importAsCleared ? "cleared" : "uncleared")", level: 2)
+        }
+
+        // Rows Lunch Money reported as external_id duplicates: the id is
+        // adopted immediately, the values are pushed in the update phase.
+        var followUpUpdates: [(local: Transaction, remoteId: Int, remoteAssetId: Int?)] = []
+
+        var chunkIndex = 0
+        var chunkStart = 0
+        while chunkStart < toCreate.count {
+            let chunk = Array(toCreate[chunkStart..<min(chunkStart + Self.createBatchSize, toCreate.count)])
+            chunkStart += chunk.count
+            chunkIndex += 1
+            let batchLabel = "batch \(chunkIndex)/\(batchCount)"
+
+            progressCallback(SafeSyncProgress(
+                current: current,
+                total: total,
+                status: "Syncing \(current + 1)-\(current + chunk.count) of \(total)"
+            ))
+
+            let batchStart = Date()
+            let requests = chunk.map { buildCreateRequest(for: $0, settings: settings, dateFormatter: dateFormatter) }
+            do {
+                let response = try await withRateLimitRetry(label: batchLabel, status: { message in
+                    progressCallback(SafeSyncProgress(current: current, total: total, status: message))
+                }) {
+                    try await API.createTransactions(
+                        transactions: requests,
+                        applyRules: settings.applyRules,
+                        skipDuplicates: settings.skipDuplicates,
+                        checkForRecurring: nil, // does not exist on v2
+                        skipBalanceUpdate: settings.skipBalanceUpdate
+                    )
+                }
+
+                var insertedByExternalId: [String: LMTransaction] = [:]
+                for inserted in response.inserted ?? [] {
+                    if let externalId = inserted.externalId, insertedByExternalId[externalId] == nil {
+                        insertedByExternalId[externalId] = inserted
+                    }
+                }
+                var skipByIndex: [Int: SkippedDuplicateInfo] = [:]
+                var skipByExternalId: [String: SkippedDuplicateInfo] = [:]
+                for skip in response.skippedDuplicates ?? [] {
+                    if let index = skip.requestIndex { skipByIndex[index] = skip }
+                    if let externalId = skip.requestExternalId, skipByExternalId[externalId] == nil {
+                        skipByExternalId[externalId] = skip
+                    }
+                }
+
+                for (index, transaction) in chunk.enumerated() {
+                    if let inserted = insertedByExternalId[transaction.id] {
+                        transaction.lm_id = String(inserted.id)
+                        transaction.sync = .complete
+                        transaction.addHistory(note: "Synced to LM", source: logPrefix)
+                    } else if let skip = skipByIndex[index] ?? skipByExternalId[transaction.id] {
+                        if skip.reason == .duplicateExternalId, let existingId = skip.existingTransactionId {
+                            // Already in LM (an earlier run, another device, or
+                            // before a reinstall). Adopt the id; values go up
+                            // in the update phase, and the row stays .pending
+                            // until that PUT lands so an aborted run retries.
+                            transaction.lm_id = String(existingId)
+                            transaction.addHistory(note: "Matched existing LM transaction by external id", source: logPrefix)
+                            followUpUpdates.append((transaction, existingId, nil))
+                            recovered += 1
+                        } else {
+                            // payee/amount/date heuristic (Skip duplicates
+                            // setting): it matched some other transaction, so
+                            // don't adopt that id — mirrors the v1 outcome.
+                            transaction.sync = .complete
+                            transaction.addHistory(note: "Skipped by Lunch Money as duplicate (payee/amount/date)", source: logPrefix)
+                        }
+                    } else {
+                        // No outcome reported for this row; leave it .pending
+                        // so the next run retries it.
+                        addLog(message: "\(batchLabel): no insert outcome for \(transaction.id), leaving pending", level: 2)
+                    }
+                }
+                addLog(message: "\(batchLabel): \(response.inserted?.count ?? 0) inserted, \((response.skippedDuplicates ?? []).count) duplicates reported, in \(Self.elapsed(since: batchStart))", level: 2)
+            } catch let error as RateLimitedError {
+                // Still rate limited after waiting out Retry-After several times:
+                // give up on this run. Everything unsent stays .pending and is
+                // picked up by the next sync.
+                throw error
+            } catch {
+                // v2 validation is atomic: one invalid row rejects the whole
+                // chunk with nothing inserted. Fall back to one-at-a-time so a
+                // single bad transaction can't take down the other 499.
+                addLog(message: "\(batchLabel): batch insert failed after \(Self.elapsed(since: batchStart)) (\(error.localizedDescription)), retrying chunk individually", level: 2)
+                let deduped = try await createIndividually(chunk, label: batchLabel, settings: settings, dateFormatter: dateFormatter) { message in
+                    progressCallback(SafeSyncProgress(current: current, total: total, status: message))
+                }
+                for transaction in deduped {
+                    if let lmId = Int(transaction.lm_id), lmId > 0 {
+                        // Re-queue so the follow-up PUT (or the next run, if
+                        // this one aborts) pushes current wallet values.
+                        transaction.sync = .pending
+                        followUpUpdates.append((transaction, lmId, nil))
+                        recovered += 1
+                    }
+                    // Without an id (heuristic dupes on v2, all dupes on v1)
+                    // the row stays .complete with no lm_id — same as v1.
+                }
+            }
+
+            current += chunk.count
+            try? modelContext.save()
+            progressCallback(SafeSyncProgress(
+                current: current,
+                total: total,
+                status: "Completed \(current) of \(total)"
+            ))
+        }
+
+        // Known updates plus everything recovered from the duplicate report.
+        // remoteAssetId is nil / applyRemoteAssetId false: unlike the v1 window
+        // match there is no fetched remote row, and lm_account was already
+        // stamped from the local account link.
+        try await pushUpdates(
+            toUpdate + followUpUpdates,
+            applyRemoteAssetId: false,
+            settings: settings,
+            dateFormatter: dateFormatter,
+            startingCurrent: current,
+            total: total + followUpUpdates.count,
+            progressCallback: progressCallback
+        )
+
+        try modelContext.save()
+        finished = true
+    }
+
+    /// Pushes one PUT per (local transaction, LM id) pair with retry and
+    /// failure bookkeeping shared by both API versions. When
+    /// `applyRemoteAssetId` is true the remote's asset id is written back to
+    /// lm_account (the v1 window-match behavior); the v2 path passes false and
+    /// keeps the locally-stamped account link.
+    private func pushUpdates(
+        _ updates: [(local: Transaction, remoteId: Int, remoteAssetId: Int?)],
+        applyRemoteAssetId: Bool,
+        settings: SyncSettings,
+        dateFormatter: DateFormatter,
+        startingCurrent: Int,
+        total: Int,
+        progressCallback: @escaping (SafeSyncProgress) -> Void
+    ) async throws {
+        var current = startingCurrent
+        if !updates.isEmpty {
+            addLog(message: "pushing \(updates.count) individual updates (LM has no batch update endpoint)", level: 2)
+        }
+        for (transaction, remoteId, remoteAssetId) in updates {
             current += 1
 
             progressCallback(SafeSyncProgress(
@@ -733,18 +970,20 @@ class SyncBroker {
                     let result = try await withRateLimitRetry(label: "update \(current) of \(total)", status: { message in
                         progressCallback(SafeSyncProgress(current: current, total: total, status: message))
                     }) {
-                        try await API.updateTransaction(id: remote.id, request: updateRequest)
+                        try await API.updateTransaction(id: remoteId, request: updateRequest)
                     }
 
                     if let errors = result.errors {
                         addLog(message: "syncTransaction, Failed to send transaction to LM for \(transaction.id), \(errors.joined(separator: ", "))", level: 2)
                         // don't stop it from being re-synced this time
                     } else {
-                        transaction.lm_id = String(remote.id)
-                        if let assetId = remote.assetId {
-                            transaction.lm_account = String(assetId)
-                        } else {
-                            transaction.lm_account = ""
+                        transaction.lm_id = String(remoteId)
+                        if applyRemoteAssetId {
+                            if let assetId = remoteAssetId {
+                                transaction.lm_account = String(assetId)
+                            } else {
+                                transaction.lm_account = ""
+                            }
                         }
                         transaction.sync = .complete
                         transaction.addHistory(note: "Synced to LM (updated)", source: logPrefix)
@@ -790,9 +1029,6 @@ class SyncBroker {
                 status: "Completed \(current) of \(total)"
             ))
         }
-
-        try modelContext.save()
-        finished = true
     }
 
     /// Documented LM maximum number of transactions per insert request.
@@ -811,6 +1047,7 @@ class SyncBroker {
         let checkForRecurring: Bool
         let skipBalanceUpdate: Bool
         let sendFinanceKitMetadata: Bool
+        let apiVersion: LMAPIVersion
 
         init() {
             let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
@@ -824,6 +1061,7 @@ class SyncBroker {
             sendFinanceKitMetadata = sharedDefaults.object(forKey: "send_finance_kit_metadata") == nil
                 ? true
                 : sharedDefaults.bool(forKey: "send_finance_kit_metadata")
+            apiVersion = LunchMoneyServiceFactory.currentVersion()
         }
     }
 
@@ -892,8 +1130,10 @@ class SyncBroker {
 
     /// Fallback when a batch insert is rejected: create the chunk's transactions
     /// one at a time so only the genuinely bad rows get marked as failed.
-    /// Returns any transactions LM deduped by external_id (created earlier but
-    /// unknown to us) whose LM ids still need to be resolved.
+    /// Returns the transactions LM deduped by external_id (created earlier but
+    /// unknown to us). On v1 their LM ids still need to be resolved from a
+    /// window re-fetch; on v2 the duplicate report already supplied the id
+    /// (written to lm_id here) and the caller schedules a follow-up update.
     private func createIndividually(
         _ transactions: [Transaction],
         label: String,
@@ -920,11 +1160,21 @@ class SyncBroker {
                             skipBalanceUpdate: settings.skipBalanceUpdate
                         )
                     }
+                    // v2 reports duplicates explicitly (and resolves their ids);
+                    // v1 signals them with an empty ids array.
+                    let wasDuplicate = !(response.skippedDuplicates ?? []).isEmpty
                     if let ids = response.transactionIds, !ids.isEmpty {
                         transaction.lm_id = String(ids[0])
                         transaction.sync = .complete
-                        transaction.addHistory(note: "Synced to LM", source: logPrefix)
-                        createdCount += 1
+                        transaction.addHistory(
+                            note: wasDuplicate ? "Matched existing LM transaction by external id" : "Synced to LM",
+                            source: logPrefix
+                        )
+                        if wasDuplicate {
+                            needIdResolution.append(transaction)
+                        } else {
+                            createdCount += 1
+                        }
                     } else {
                         // No id and no error: LM deduped it against an existing
                         // transaction with the same external_id.
@@ -1064,6 +1314,7 @@ class SyncBroker {
         account: Account,
         progress: @escaping (SyncMetadataProgress) -> Void
     ) async throws -> SyncMetadataResult {
+        refreshAPIService()
         let total = transactions.count
 
         // Step 1: pull FinanceKit metadata for this account, bounded by the

@@ -51,7 +51,15 @@ struct SettingsView: View {
                              Text("API Import Rules")
                          }
                      }
-                     
+
+                     NavigationLink {
+                         APIVersionView()
+                     } label: {
+                         HStack {
+                             Text("Lunch Money API")
+                         }
+                     }
+
                      NavigationLink {
                          CleanupView()
                      } label: {

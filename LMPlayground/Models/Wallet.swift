@@ -6,10 +6,15 @@ import os
 @MainActor
 class Wallet :ObservableObject {
     private let modelContext: ModelContext
-    private var API: LunchMoneyAPI
+    private var apiToken: String
+    /// Built per use so every call follows the API version currently selected
+    /// in Settings — Wallet instances outlive settings changes.
+    private var API: any LunchMoneyService {
+        LunchMoneyServiceFactory.make(apiToken: apiToken)
+    }
     private var lastLogTime: Date?
     var logger: Logger!
-    
+
     var isSimulator: Bool = {
         #if targetEnvironment(simulator)
         return true
@@ -20,12 +25,12 @@ class Wallet :ObservableObject {
 
     init(context: ModelContext, apiToken: String) {
         self.modelContext = context
-        self.API = LunchMoneyAPI(apiToken: apiToken, debug: false)
+        self.apiToken = apiToken
         logger = Logger(subsystem: "com.littlebluebug.AppleCardSync", category: "Wallet")
     }
-    
+
     func updateAPIToken(_ token: String) {
-        self.API = LunchMoneyAPI(apiToken: token, debug: false)
+        self.apiToken = token
     }
     
     func getAPIAccountName() async throws -> String{
@@ -264,7 +269,10 @@ class Wallet :ObservableObject {
                     transaction.lm_id = newTrans.lm_id
                     transaction.lm_account = newTrans.lm_account
                     transaction.sync = .pending
-                    if pendingChanged { transaction.isPending = newTrans.isPending }
+                    if pendingChanged {
+                        transaction.isPending = newTrans.isPending
+                        transaction.refreshMetadataPendingFlag()
+                    }
                     if categoryIdChanged { transaction.category_id = newTrans.category_id }
                     if categoryNameChanged { transaction.category_name = newTrans.category_name }
                     if lmCategoryIdChanged { transaction.lm_category_id = newTrans.lm_category_id }

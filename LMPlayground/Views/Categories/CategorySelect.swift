@@ -304,7 +304,7 @@ struct CategorySelect: View {
                 return
             }
             
-            let api = LunchMoneyAPI(apiToken: apiToken, debug: false)
+            let api = LunchMoneyServiceFactory.make(apiToken: apiToken)
             let categoriesAPI = try await api.getCategories()
             
             // Clear existing categories

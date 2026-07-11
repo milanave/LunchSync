@@ -162,7 +162,9 @@ struct TokenPromptView: View {
         verifiedBudgetname = nil
         
         //print("Verifying token: \(apiToken)")
-        let api = LunchMoneyAPI(apiToken: apiToken, debug: false)
+        // Verifies against the API version selected in Settings, so a broken
+        // v2 selection surfaces here rather than silently at sync time.
+        let api = LunchMoneyServiceFactory.make(apiToken: apiToken)
         
         Task {
             do {

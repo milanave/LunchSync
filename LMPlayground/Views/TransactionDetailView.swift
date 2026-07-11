@@ -279,6 +279,7 @@ struct DetailRow: View {
             transactionDate: "2026-04-29T18:14:22Z",
             postedDate: "2026-04-30T03:00:00Z",
             status: "booked",
+            isPending: false,
             transactionType: "pointOfSale",
             creditDebitIndicator: "debit",
             transactionDescription: "BLUE BOTTLE COFFEE #142",

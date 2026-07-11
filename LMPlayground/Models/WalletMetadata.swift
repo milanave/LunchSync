@@ -35,6 +35,10 @@ struct WalletMetadata: Codable {
         let transactionDate: String           // ISO-8601
         let postedDate: String?               // ISO-8601
         let status: String                    // booked | pending | authorized | memo | rejected
+        // Mirrors Transaction.isPending (status != booked). Optional so JSON
+        // captured before this field existed still decodes; kept in step by
+        // Transaction.refreshMetadataPendingFlag() when the flag flips.
+        var isPending: Bool?
         let transactionType: String           // pointOfSale | refund | …
         let creditDebitIndicator: String      // credit | debit
         let transactionDescription: String
@@ -54,6 +58,7 @@ struct WalletMetadata: Codable {
             case transactionDate = "transaction_date"
             case postedDate = "posted_date"
             case status
+            case isPending = "is_pending"
             case transactionType = "transaction_type"
             case creditDebitIndicator = "credit_debit_indicator"
             case transactionDescription = "transaction_description"
@@ -161,6 +166,7 @@ extension WalletMetadata {
             transactionDate: Self.isoFormatter.string(from: txn.transactionDate),
             postedDate: txn.postedDate.map { Self.isoFormatter.string(from: $0) },
             status: String(describing: txn.status),
+            isPending: txn.status == .booked ? false : true,
             transactionType: String(describing: txn.transactionType),
             creditDebitIndicator: String(describing: txn.creditDebitIndicator),
             transactionDescription: txn.transactionDescription,

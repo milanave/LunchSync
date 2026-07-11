@@ -93,6 +93,18 @@ class Transaction: Identifiable {
         histories?.append(history)
     }
 
+    /// Re-encode the stored wallet metadata JSON so `wallet.is_pending`
+    /// matches `isPending`. Call after flipping the pending flag. No-op when
+    /// there's no stored metadata or the flag already agrees.
+    func refreshMetadataPendingFlag() {
+        guard var metadata = WalletMetadata.from(jsonString: walletMetadataJSON),
+              metadata.wallet.isPending != isPending else { return }
+        metadata.wallet.isPending = isPending
+        if let json = metadata.toJSONString() {
+            walletMetadataJSON = json
+        }
+    }
+
     /// Category ID to send to LunchMoney API. Returns nil for Skip Mapping (lm_id="0") or empty,
     /// since the API expects nil/omitted for "no category" - sending 0 causes sync failures.
     var lmCategoryIdForAPI: Int? {

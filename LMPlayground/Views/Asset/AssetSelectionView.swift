@@ -159,9 +159,9 @@ struct AssetSelectionView: View {
         do {
             let keychain = Keychain()
             if let token = try? keychain.retrieveTokenFromKeychain() {
-                let api = LunchMoneyAPI(apiToken: token, debug: false)
+                let api = LunchMoneyServiceFactory.make(apiToken: token)
                 self.assets = try await api.getAssets() //WithLastTransaction()
-                
+
             }
             isLoading = false
         } catch {

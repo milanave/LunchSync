@@ -53,9 +53,11 @@ func printSideBySide(original: LMTransaction, updated: LMTransaction) {
 
 private let statusValues = ["uncleared", "cleared"]
 
-private let API: LunchMoneyAPI = {
+private let API: any LunchMoneyService = {
     let token = "a1c31d3ecabc0d0b55c4285317c150a4cc13d6001fc912fe3d"
-    return LunchMoneyAPI(apiToken: token, debug: true)
+    // Run against API v2 with: LM_API_VERSION=v2 (defaults to v1)
+    let version = LMAPIVersion(rawValue: ProcessInfo.processInfo.environment["LM_API_VERSION"] ?? "") ?? .v1
+    return LunchMoneyServiceFactory.make(apiToken: token, version: version, debug: true)
 }()
 
 private var firstTwoCategoryIdsCache: [Int]? = nil
@@ -89,6 +91,7 @@ func getOrCreateAssetId() async throws -> Int {
 
         let assetRequest = CreateAssetRequest(
             typeName: "cash",
+            subTypeName: "digital wallet",
             balance: 0.0,
             currency: "usd",
             name: "CLI Asset",
@@ -304,10 +307,15 @@ func runFetchAllAssets() async throws {
 
 // MARK: - Entry point for command-line execution
 do {
-    try await runFetchAllAssets()
+    if ProcessInfo.processInfo.arguments.contains("mapper-checks") {
+        try runMapperChecks()
+    } else {
+        try await runFetchAllAssets()
+    }
 } catch {
     if let cli = error as? CLIError { fputs("Error: \(cli.description)\n", stderr) }
     else { fputs("Error: \(error.localizedDescription)\n", stderr) }
+    exit(1)
 }
 
 
