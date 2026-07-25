@@ -22,9 +22,15 @@ struct Utility {
         return UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
     }
     
-    public static func isTestFlight() -> Bool {
+    // Cached because appStoreReceiptURL does a synchronous XPC round-trip to
+    // LaunchServices, and this gets called during SwiftUI body evaluation.
+    private static let cachedIsTestFlight: Bool = {
         guard let url = Bundle.main.appStoreReceiptURL else { return false }
         return url.lastPathComponent == "sandboxReceipt"
+    }()
+
+    public static func isTestFlight() -> Bool {
+        return cachedIsTestFlight
     }
     
     public static func getRunState() -> RunState? {

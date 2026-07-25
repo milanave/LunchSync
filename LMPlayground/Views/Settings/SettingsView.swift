@@ -10,6 +10,8 @@ import SwiftData
 
 struct SettingsView: View {
     @Binding var isPresented: Bool
+
+    @StateObject private var announcementStore = AnnouncementStore()
 		
     
     private var appVersion: String {
@@ -73,6 +75,18 @@ struct SettingsView: View {
                      } label: {
                          HStack {
                              Text("Shortcuts")
+                         }
+                     }
+
+                     NavigationLink {
+                         AnnouncementListView(announcements: AnnouncementCatalog.recent(25))
+                             .navigationTitle("Announcements")
+                             .onDisappear {
+                                 announcementStore.markSeen(AnnouncementCatalog.recent(25))
+                             }
+                     } label: {
+                         HStack {
+                             Text("Announcements")
                          }
                      }
                  } footer: {

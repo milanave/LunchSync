@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		C45CA58E2E91DE8C00C55948 /* LunchSyncBackgroundHandler.appex in CopyFiles */ = {isa = PBXBuildFile; fileRef = C40812982E1FD35000121F0C /* LunchSyncBackgroundHandler.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		C4B510012EA300010000B001 /* InAppSupport in Frameworks */ = {isa = PBXBuildFile; productRef = C4B510022EA300010000B002 /* InAppSupport */; };
 		C4D328642CCD1DA900B638AB /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = C4D328632CCD1DA900B638AB /* README.md */; };
 /* End PBXBuildFile section */
 
@@ -151,6 +152,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C4B510012EA300010000B001 /* InAppSupport in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -245,6 +247,7 @@
 			);
 			name = LMPlayground;
 			packageProductDependencies = (
+				C4B510022EA300010000B002 /* InAppSupport */,
 			);
 			productName = LMPlayground;
 			productReference = C4D328412CCD137200B638AB /* LMPlayground.app */;
@@ -280,6 +283,9 @@
 			);
 			mainGroup = C4D328382CCD137200B638AB;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				C4B510032EA300010000B003 /* XCLocalSwiftPackageReference "../../InAppSupport" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C4D328422CCD137200B638AB /* Products */;
 			projectDirPath = "";
@@ -348,7 +354,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = LunchSyncBackgroundHandler/LunchSyncBackgroundHandler.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LunchSyncBackgroundHandler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LunchSyncBackgroundHandler;
@@ -378,7 +384,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = LunchSyncBackgroundHandler/LunchSyncBackgroundHandler.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LunchSyncBackgroundHandler/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LunchSyncBackgroundHandler;
@@ -566,7 +572,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = LMPlayground/LMPlayground.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_ASSET_PATHS = "\"LMPlayground/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -580,7 +586,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_UISupportsDocumentBrowser = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -607,7 +613,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = LMPlayground/LMPlayground.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_ASSET_PATHS = "\"LMPlayground/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -621,7 +627,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_UISupportsDocumentBrowser = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -680,6 +686,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		C4B510032EA300010000B003 /* XCLocalSwiftPackageReference "../../InAppSupport" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../InAppSupport;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C4B510022EA300010000B002 /* InAppSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = InAppSupport;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C4D328392CCD137200B638AB /* Project object */;
 }

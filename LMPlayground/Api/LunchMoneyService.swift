@@ -12,18 +12,21 @@ import Foundation
 
 /// Which Lunch Money API version a client speaks. Stored in the shared app
 /// group defaults (key `lm_api_version`) so the app, the background delivery
-/// extension, and App Intents all follow the same selection. v1 is the
-/// default; v2 is opt-in while Lunch Money's v2 API remains in alpha.
+/// extension, and App Intents all follow the same selection. v2 is the
+/// default; users who explicitly selected v1 keep it.
 enum LMAPIVersion: String, CaseIterable, Identifiable {
     case v1
     case v2
+
+    /// Used whenever no version has been explicitly selected.
+    static let defaultVersion: LMAPIVersion = .v2
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
-        case .v1: return "v1 (stable, default)"
-        case .v2: return "v2 (alpha)"
+        case .v1: return "v1 (legacy)"
+        case .v2: return "v2 (default)"
         }
     }
 
@@ -138,7 +141,7 @@ enum LunchMoneyServiceFactory {
     static func currentVersion() -> LMAPIVersion {
         let defaults = UserDefaults(suiteName: LMAPIVersion.appGroupSuiteName) ?? .standard
         let raw = defaults.string(forKey: LMAPIVersion.defaultsKey) ?? ""
-        return LMAPIVersion(rawValue: raw) ?? .v1
+        return LMAPIVersion(rawValue: raw) ?? LMAPIVersion.defaultVersion
     }
 
     /// Builds a client for `version`, or for the user's selected version when

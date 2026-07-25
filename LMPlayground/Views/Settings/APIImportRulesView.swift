@@ -12,7 +12,7 @@ struct APIImportRulesView: View {
     @AppStorage("skip_duplicates", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var skipDuplicates = false
     @AppStorage("check_for_recurring", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var checkForRecurring = false
     @AppStorage("skip_balance_update", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var skipBalanceUpdate = false
-    @AppStorage(LMAPIVersion.defaultsKey, store: UserDefaults(suiteName: LMAPIVersion.appGroupSuiteName)) private var apiVersionRaw = LMAPIVersion.v1.rawValue
+    @AppStorage(LMAPIVersion.defaultsKey, store: UserDefaults(suiteName: LMAPIVersion.appGroupSuiteName)) private var apiVersionRaw = LMAPIVersion.defaultVersion.rawValue
 
 	var body: some View {
 		List {

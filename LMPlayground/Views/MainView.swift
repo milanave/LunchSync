@@ -7,6 +7,7 @@ import FinanceKit
 import BackgroundTasks
 import os
 import StoreKit
+import InAppSupport
 
 struct MainView: View {
     @Environment(\.modelContext) private var modelContext
@@ -49,6 +50,12 @@ struct MainView: View {
     @State private var showingJobSheet = false
     @State private var showingSettingsSheet = false
     @State private var showingCategorySheet = false
+    @State private var showingHelpSheet = false
+
+    @ObservedObject private var feedbackService = FeedbackService.shared
+
+    @StateObject private var announcementStore = AnnouncementStore()
+    @State private var showingAnnouncements = false
 
     private let appDelegate: AppDelegate
 
@@ -141,9 +148,35 @@ struct MainView: View {
             }
             .task {
                 refreshView()
+                await feedbackService.refresh()
             }
             .navigationTitle("Lunch Sync")
             .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        // Snapshot before the sheet covers the screen, so the
+                        // composer can offer the screen the user was just on.
+                        FeedbackScreenSnapshot.shared.capture()
+                        showingHelpSheet = true
+                    } label: {
+                        ZStack {
+                            Image(systemName: "questionmark.bubble")
+
+                            if feedbackService.unreadCount > 0 {
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 9, height: 9)
+                                    .offset(x: 8, y: -8)
+                            }
+                        }
+                    }
+                    .accessibilityLabel(
+                        feedbackService.unreadCount > 0
+                            ? "Help & Feedback, \(feedbackService.unreadCount) unread"
+                            : "Help & Feedback"
+                    )
+                }
+
                 if(categorize_incoming){
                     ToolbarItem(placement: .primaryAction) {
                         Button {
@@ -198,9 +231,26 @@ struct MainView: View {
                     refreshTrigger = UUID()
                 }
             }
+            .sheet(isPresented: $showingHelpSheet) {
+                NavigationStack {
+                    FeedbackHomeView()
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") {
+                                    showingHelpSheet = false
+                                }
+                            }
+                        }
+                }
+                .presentationDetents([.large])
+                .onDisappear {
+                    FeedbackScreenSnapshot.shared.clear()
+                }
+            }
         }.navigationTitle("Lunch Sync")
         .onAppear {
             checkApiToken()
+            checkAnnouncements()
             timeUpdateTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
                 timeUpdateTrigger = Date()
             }
@@ -212,9 +262,17 @@ struct MainView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             refreshView()
             setBackgroundDelivery(enabled: enableBackgroundDelivery)
+            checkAnnouncements()
         }
         .onChange(of: refreshTrigger) { _, _ in
             refreshView()
+        }
+        .sheet(isPresented: $showingAnnouncements, onDismiss: {
+            announcementStore.markUnseenAsRead()
+        }) {
+            AnnouncementsView(announcements: announcementStore.unseen) {
+                showingAnnouncements = false
+            }
         }
         .sheet(isPresented: $showingSyncProgress) {
             VStack(spacing: 20) {
@@ -392,6 +450,17 @@ struct MainView: View {
         .presentationDetents([.fraction(0.7), .large])
     }
     
+    // MARK: checkAnnouncements
+    private func checkAnnouncements() {
+        announcementStore.checkForUnseen(freshInstall: apiToken.isEmpty)
+        guard !announcementStore.unseen.isEmpty else { return }
+        // Don't fight another sheet for the presentation slot
+        if !showingJobSheet && !showingSettingsSheet && !showingCategorySheet
+            && !showingSyncProgress && !showingPreviewTransactions {
+            showingAnnouncements = true
+        }
+    }
+
     // MARK: lunchMoneyApiSection
     private func lunchMoneyApiSection() -> some View {
         Section {
@@ -779,10 +848,12 @@ struct MainView: View {
         
         do {
             let syncBroker = SyncBroker(context: modelContext, logPrefix: "MV")
-            try await syncBroker.syncTransactions(prefix: "MV", shouldContinue: {
-                isSyncing
-            }) { progress in
-                syncProgress = progress
+            try await withBackgroundAssertion("importPendingTransactions") {
+                try await syncBroker.syncTransactions(prefix: "MV", shouldContinue: {
+                    isSyncing
+                }) { progress in
+                    syncProgress = progress
+                }
             }
             await MainActor.run {
                 refreshView()
@@ -804,16 +875,18 @@ struct MainView: View {
         let syncBroker = SyncBroker(context: modelContext)
         Task {
             do {
-                let preFetchedWalletData = try await appleWallet.getPreFetchedWalletData(logPrefix: "MV")
-                _ = try await syncBroker.fetchTransactions(
-                    prefix: "MV",
-                    showAlert: true,
-                    skipSync: true,
-                    progress: { progressMessage in
-                        //print("refreshWalletTransactions Progress: \(progressMessage)")
-                    },
-                    preFetchedWalletData: preFetchedWalletData
-                )
+                try await withBackgroundAssertion("refreshWalletTransactions") {
+                    let preFetchedWalletData = try await appleWallet.getPreFetchedWalletData(logPrefix: "MV")
+                    _ = try await syncBroker.fetchTransactions(
+                        prefix: "MV",
+                        showAlert: true,
+                        skipSync: true,
+                        progress: { progressMessage in
+                            //print("refreshWalletTransactions Progress: \(progressMessage)")
+                        },
+                        preFetchedWalletData: preFetchedWalletData
+                    )
+                }
                 //print("refreshWalletTransactions Completed with \(pendingCount) pending transactions")
                 refreshView()
             } catch {
@@ -905,6 +978,33 @@ struct MainView: View {
         }
     }
     
+}
+
+// MARK: background assertions
+// Sync and wallet refresh write to the CloudKit-backed store. If iOS suspends
+// the app while a write is in flight, RunningBoard kills it (0xdead10cc), so
+// hold a background task assertion for the duration of the work.
+@MainActor
+private func beginBackgroundAssertion(_ name: String) -> UIBackgroundTaskIdentifier {
+    UIApplication.shared.beginBackgroundTask(withName: name)
+}
+
+@MainActor
+private func endBackgroundAssertion(_ identifier: UIBackgroundTaskIdentifier) {
+    guard identifier != .invalid else { return }
+    UIApplication.shared.endBackgroundTask(identifier)
+}
+
+private func withBackgroundAssertion<T>(_ name: String, _ work: () async throws -> T) async throws -> T {
+    let identifier = await beginBackgroundAssertion(name)
+    do {
+        let result = try await work()
+        await endBackgroundAssertion(identifier)
+        return result
+    } catch {
+        await endBackgroundAssertion(identifier)
+        throw error
+    }
 }
 
 // MARK: preview

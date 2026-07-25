@@ -419,6 +419,19 @@ class AppleWallet{
             }
         )
         
+        // FinanceKit traps (rather than throws) if its internal store can't be
+        // opened, e.g. shortly after unlock while data protection is still up,
+        // so bail out before querying instead of crashing.
+        if !isSimulator {
+            guard dataAvailable() else {
+                throw NSError(domain: "AppleWallet", code: -3, userInfo: [NSLocalizedDescriptionKey: "getRecentTransactions: FinanceKit data not available, skipping fetch"])
+            }
+            let authStatus = try await FinanceStore.shared.authorizationStatus()
+            guard authStatus == .authorized else {
+                throw NSError(domain: "AppleWallet", code: -4, userInfo: [NSLocalizedDescriptionKey: "getRecentTransactions: FinanceKit not authorized (\(authStatus)), skipping fetch"])
+            }
+        }
+
         print("Executing FinanceStore query for date range \(startDate) to \(endDate)")
         var transactions: [FinanceKit.Transaction]
         do {

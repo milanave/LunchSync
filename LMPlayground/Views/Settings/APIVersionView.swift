@@ -2,20 +2,20 @@
 //  APIVersionView.swift
 //  LMPlayground
 //
-//  Lets the user choose which Lunch Money API version syncs use. v1 is the
-//  stable default; v2 is Lunch Money's next-generation API, currently in
-//  alpha. Both versions use the same API token and operate on the same data
-//  and ids, so switching back and forth is safe at any time.
+//  Lets the user choose which Lunch Money API version syncs use. v2 is the
+//  default; v1 remains available as a fallback. Both versions use the same
+//  API token and operate on the same data and ids, so switching back and
+//  forth is safe at any time.
 //
 
 import SwiftUI
 
 struct APIVersionView: View {
     @AppStorage(LMAPIVersion.defaultsKey, store: UserDefaults(suiteName: LMAPIVersion.appGroupSuiteName))
-    private var apiVersionRaw = LMAPIVersion.v1.rawValue
+    private var apiVersionRaw = LMAPIVersion.defaultVersion.rawValue
 
     private var selectedVersion: LMAPIVersion {
-        LMAPIVersion(rawValue: apiVersionRaw) ?? .v1
+        LMAPIVersion(rawValue: apiVersionRaw) ?? LMAPIVersion.defaultVersion
     }
 
     var body: some View {

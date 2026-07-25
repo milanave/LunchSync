@@ -7,7 +7,7 @@ struct LogListView: View {
     @Query(sort: \Log.date, order: .reverse) private var logs: [Log]
     @State private var searchText = ""
     @AppStorage("detailedLogging") private var detailedLogging = false
-    @State private var showAllLogs = false
+    @State private var showAllLogs = true
     @State private var sourceFilter: LogSourceFilter = .all
     let wallet: Wallet
     

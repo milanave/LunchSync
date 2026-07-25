@@ -3,6 +3,8 @@ import SwiftData
 import UserNotifications
 import BackgroundTasks
 import AppIntents
+import CloudKit
+import InAppSupport
 
 extension Notification.Name {
     static let pendingTransactionsChanged = Notification.Name("pendingTransactionsChanged")
@@ -181,8 +183,23 @@ struct LMPlaygroundApp: App {
     @AppStorage("backgroundJobFrequency", store: UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync")) private var backgroundJobFrequency: Int = 1
     
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
+
+    private static let supportIdentity = SupportIdentity(appGroup: "group.com.littlebluebug.AppleCardSync")
+
     init() {
+        InAppSupport.configure(InAppSupportConfiguration(
+            baseURL: "https://api.chilltacular.com",
+            keyId: "ls1",
+            secret: "884363ce2f2b016d31bc65aa95c2673bde2e0954d3eda065fa8359728dd3437c",
+            appGroup: "group.com.littlebluebug.AppleCardSync",
+            userIdProvider: { Self.supportIdentity.userId() },
+            logAttachmentProvider: { await SupportLogs.attachment() },
+            settingsExtras: nil,
+            logsView: { SupportLogs.logsView() }
+        ))
+        SupportLogs.container = sharedModelContainer
+        Self.adoptCloudKitSupportIdentity()
+
         // Set up notifications delegate first
         UNUserNotificationCenter.current().delegate = appDelegate.notificationDelegate
         
@@ -216,6 +233,18 @@ struct LMPlaygroundApp: App {
         }
     }
     
+    // The store already syncs across a user's devices via CloudKit, so support
+    // threads should follow them too. Until the record name resolves (or if
+    // iCloud is unavailable) SupportIdentity falls back to its per-device UUID.
+    private static func adoptCloudKitSupportIdentity() {
+        Task.detached {
+            let container = CKContainer(identifier: "iCloud.com.littlebluebug.AppleCardSync")
+            guard let status = try? await container.accountStatus(), status == .available,
+                  let recordID = try? await container.userRecordID() else { return }
+            supportIdentity.setAccountUserId(recordID.recordName)
+        }
+    }
+
     var sharedModelContainer: ModelContainer = {
         do {
             let container = try Persistence.makeContainer()

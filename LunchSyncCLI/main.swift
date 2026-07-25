@@ -55,8 +55,8 @@ private let statusValues = ["uncleared", "cleared"]
 
 private let API: any LunchMoneyService = {
     let token = "a1c31d3ecabc0d0b55c4285317c150a4cc13d6001fc912fe3d"
-    // Run against API v2 with: LM_API_VERSION=v2 (defaults to v1)
-    let version = LMAPIVersion(rawValue: ProcessInfo.processInfo.environment["LM_API_VERSION"] ?? "") ?? .v1
+    // Run against API v1 with: LM_API_VERSION=v1 (defaults to v2)
+    let version = LMAPIVersion(rawValue: ProcessInfo.processInfo.environment["LM_API_VERSION"] ?? "") ?? LMAPIVersion.defaultVersion
     return LunchMoneyServiceFactory.make(apiToken: token, version: version, debug: true)
 }()
 

@@ -50,7 +50,8 @@ struct PushAPI {
             "environment": currentEnvironment(),
             "app_version": appVersionString(),
             "os_version": ProcessInfo.processInfo.operatingSystemVersionString,
-            "run_state": runStateString
+            "run_state": runStateString,
+            "lm_api_version": LunchMoneyServiceFactory.currentVersion().rawValue
         ]
     }
     
