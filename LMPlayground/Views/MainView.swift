@@ -139,6 +139,7 @@ struct MainView: View {
                     refreshView()
                     //refreshWalletTransactions()
                     await setIsTestFlight()
+                    await feedbackService.refresh()
                 }
 
             }
@@ -159,16 +160,20 @@ struct MainView: View {
                         FeedbackScreenSnapshot.shared.capture()
                         showingHelpSheet = true
                     } label: {
-                        ZStack {
-                            Image(systemName: "questionmark.bubble")
-
-                            if feedbackService.unreadCount > 0 {
-                                Circle()
-                                    .fill(Color.red)
-                                    .frame(width: 9, height: 9)
-                                    .offset(x: 8, y: -8)
+                        // The dot is an overlay *on the symbol* rather than a
+                        // sibling in a ZStack: as a sibling the toolbar's glass
+                        // pass draws the symbol back over it and the dot reads
+                        // as if it were behind the icon.
+                        Image(systemName: "questionmark.bubble")
+                            .overlay(alignment: .topTrailing) {
+                                if feedbackService.unreadCount > 0 {
+                                    Circle()
+                                        .fill(Color.red)
+                                        .frame(width: 9, height: 9)
+                                        .offset(x: 4, y: -4)
+                                        .allowsHitTesting(false)
+                                }
                             }
-                        }
                     }
                     .accessibilityLabel(
                         feedbackService.unreadCount > 0
@@ -182,20 +187,22 @@ struct MainView: View {
                         Button {
                             showingCategorySheet = true
                         } label: {
-                            ZStack {
-                                Image(systemName: "tag")
-                                
-                                if uncategorizedCount > 0 {
-                                    Text("\(uncategorizedCount)")
-                                        .font(.caption2)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.white)
-                                        .frame(minWidth: 16, minHeight: 16)
-                                        .background(Color.red)
-                                        .clipShape(Circle())
-                                        .offset(x: 8, y: -8)
+                            // Same overlay-on-the-symbol treatment as the help
+                            // badge above, for the same reason.
+                            Image(systemName: "tag")
+                                .overlay(alignment: .topTrailing) {
+                                    if uncategorizedCount > 0 {
+                                        Text("\(uncategorizedCount)")
+                                            .font(.caption2)
+                                            .fontWeight(.bold)
+                                            .foregroundColor(.white)
+                                            .frame(minWidth: 16, minHeight: 16)
+                                            .background(Color.red)
+                                            .clipShape(Circle())
+                                            .offset(x: 8, y: -8)
+                                            .allowsHitTesting(false)
+                                    }
                                 }
-                            }
                         }
                     }
                 }
@@ -245,6 +252,9 @@ struct MainView: View {
                 .presentationDetents([.large])
                 .onDisappear {
                     FeedbackScreenSnapshot.shared.clear()
+                    // Threads read inside the sheet clear their unread flag
+                    // server-side; resync so the header dot matches.
+                    Task { await feedbackService.refresh() }
                 }
             }
         }.navigationTitle("Lunch Sync")
@@ -263,6 +273,10 @@ struct MainView: View {
             refreshView()
             setBackgroundDelivery(enabled: enableBackgroundDelivery)
             checkAnnouncements()
+            // Support replies land while we're backgrounded; the header dot is
+            // only as fresh as the last list_conversations call, and .task
+            // above runs once per view lifetime. Re-poll on every foreground.
+            Task { await feedbackService.refresh() }
         }
         .onChange(of: refreshTrigger) { _, _ in
             refreshView()

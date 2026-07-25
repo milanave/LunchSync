@@ -11,19 +11,27 @@ platform :ios do
       UI.user_error!("Config.xcconfig is missing. Copy Config.template.xcconfig to Config.xcconfig and fill in PUSH_SERVICE_KEY before building.")
     end
     setup_ci if ENV["CI"]
+
+    # fastlane/.env must win over anything already exported in the shell.
+    # Sourcing ../.env.asc (crash triage) exports a different ASC_KEY_ID, and
+    # plain dotenv will not overwrite an existing var — which silently pairs
+    # that key id with this key file and yields a 401 from Apple.
+    env_file = File.expand_path(".env", __dir__)
+    Dotenv.overload(env_file) if File.exist?(env_file)
+
+    UI.message("App Store Connect key: #{ENV['ASC_KEY_ID']} (#{File.basename(ENV['ASC_KEY_PATH'].to_s)})")
+
     app_store_connect_api_key(
       key_id:      ENV.fetch("ASC_KEY_ID"),
       issuer_id:   ENV.fetch("ASC_ISSUER_ID"),
       key_filepath: ENV.fetch("ASC_KEY_PATH"),
-      duration:    1200,
+      duration:    900,
       in_house:    false,
     )
   end
 
   desc "Build and upload a TestFlight beta"
   lane :beta do |options|
-    ensure_git_status_clean unless options[:allow_dirty]
-
     next_build = latest_testflight_build_number(app_identifier: APP_BUNDLE_ID) + 1
     increment_build_number(xcodeproj: XCODEPROJ, build_number: next_build)
 
@@ -45,8 +53,6 @@ platform :ios do
 
   desc "Build and upload a production build to App Store Connect (does not auto-submit for review)"
   lane :release do |options|
-    ensure_git_status_clean unless options[:allow_dirty]
-
     next_build = latest_testflight_build_number(app_identifier: APP_BUNDLE_ID) + 1
     increment_build_number(xcodeproj: XCODEPROJ, build_number: next_build)
 
@@ -82,6 +88,32 @@ platform :ios do
   desc "Bump marketing version (pass type:patch|minor|major)"
   lane :bump_version do |options|
     type = options[:type] || "patch"
-    increment_version_number(xcodeproj: XCODEPROJ, bump_type: type)
+    pbxproj = File.join("..", XCODEPROJ, "project.pbxproj")
+
+    # This project keeps the version in the MARKETING_VERSION build setting and
+    # leaves CFBundleShortVersionString out of Info.plist entirely, so agvtool
+    # (and therefore increment_version_number) reads it as empty and fails.
+    contents = File.read(pbxproj)
+    versions = contents.scan(/MARKETING_VERSION = ([\d.]+);/).flatten.uniq
+    UI.user_error!("No MARKETING_VERSION found in #{pbxproj}") if versions.empty?
+    if versions.size > 1
+      UI.user_error!("MARKETING_VERSION differs across build configs (#{versions.join(', ')}); fix by hand first.")
+    end
+
+    parts = versions.first.split(".").map(&:to_i)
+    major, minor, patch = parts[0].to_i, parts[1].to_i, parts[2].to_i
+    case type
+    when "major" then major, minor, patch = major + 1, 0, 0
+    when "minor" then minor, patch = minor + 1, 0
+    when "patch" then patch += 1
+    else UI.user_error!("Unknown bump type '#{type}' (expected patch, minor, or major)")
+    end
+    new_version = "#{major}.#{minor}.#{patch}"
+
+    contents.gsub!(/MARKETING_VERSION = [\d.]+;/, "MARKETING_VERSION = #{new_version};")
+    File.write(pbxproj, contents)
+
+    UI.success("Marketing version #{versions.first} → #{new_version} (#{versions.size} config(s) updated)")
+    new_version
   end
 end
