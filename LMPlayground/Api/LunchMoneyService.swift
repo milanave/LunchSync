@@ -52,18 +52,17 @@ enum LMAPIBaseURL {
             return nil
         }
 
-        let path = components.path
-            .split(separator: "/", omittingEmptySubsequences: true)
-            .joined(separator: "/")
+let normalizedPath = components.path
+    .split(separator: "/", omittingEmptySubsequences: true)
+    .joined(separator: "/")
 
-        var normalized = "\(scheme)://\(components.host ?? "")"
-        if let port = components.port {
-            normalized += ":\(port)"
-        }
-        if !path.isEmpty {
-            normalized += "/\(path)"
-        }
-        return normalized
+var normalizedComponents = URLComponents()
+normalizedComponents.scheme = scheme
+normalizedComponents.host = components.host
+normalizedComponents.port = components.port
+normalizedComponents.path = normalizedPath.isEmpty ? "" : "/\(normalizedPath)"
+
+return normalizedComponents.url?.absoluteString
     }
 
     static func currentBaseURL(for version: LMAPIVersion) -> String {
@@ -82,12 +81,15 @@ enum LMAPIBaseURL {
         }
     }
 
-    private static func makeVersionedBaseURL(from baseURL: String, version: LMAPIVersion) -> String {
-        if baseURL.hasSuffix("/v1") || baseURL.hasSuffix("/v2") {
-            return baseURL
-        }
-        return "\(baseURL)/\(version.rawValue)"
+private static func makeVersionedBaseURL(from baseURL: String, version: LMAPIVersion) -> String {
+    let desiredSuffix = "/\(version.rawValue)"
+    if baseURL.hasSuffix(desiredSuffix) {
+        return baseURL
     }
+    if baseURL.hasSuffix("/v1") || baseURL.hasSuffix("/v2") {
+        return String(baseURL.dropLast(3)) + desiredSuffix
+    }
+    return baseURL + desiredSuffix
 }
 
 /// One server-side duplicate reported by the v2 insert endpoint. v2 always

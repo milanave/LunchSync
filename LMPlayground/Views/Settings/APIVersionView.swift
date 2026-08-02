@@ -40,9 +40,8 @@ struct APIVersionView: View {
 
             Section {
                 TextField("https://api.yourserver.com", text: $apiBaseURLInput)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .disableAutocorrection(true)
+.textInputAutocapitalization(.never)
+.autocorrectionDisabled()
                     .onSubmit {
                         saveCustomBaseURL()
                     }
