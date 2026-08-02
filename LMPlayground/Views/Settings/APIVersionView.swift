@@ -13,6 +13,10 @@ import SwiftUI
 struct APIVersionView: View {
     @AppStorage(LMAPIVersion.defaultsKey, store: UserDefaults(suiteName: LMAPIVersion.appGroupSuiteName))
     private var apiVersionRaw = LMAPIVersion.defaultVersion.rawValue
+    @AppStorage(LMAPIBaseURL.defaultsKey, store: UserDefaults(suiteName: LMAPIVersion.appGroupSuiteName))
+    private var apiBaseURLRaw = ""
+
+    @State private var apiBaseURLInput = ""
 
     private var selectedVersion: LMAPIVersion {
         LMAPIVersion(rawValue: apiVersionRaw) ?? LMAPIVersion.defaultVersion
@@ -34,6 +38,21 @@ struct APIVersionView: View {
                     .font(.caption)
             }
 
+            Section {
+                TextField("https://api.yourserver.com", text: $apiBaseURLInput)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .disableAutocorrection(true)
+                    .onSubmit {
+                        saveCustomBaseURL()
+                    }
+            } header: {
+                Text("API Base URL")
+            } footer: {
+                Text("Optional. Leave blank to use Lunch Money's default API host. Custom values are trimmed and validated; invalid URLs are ignored and default endpoints are used.")
+                    .font(.caption)
+            }
+
             if selectedVersion == .v2 {
                 Section {
                     Label {
@@ -50,6 +69,28 @@ struct APIVersionView: View {
             }
         }
         .navigationTitle("Lunch Money API")
+        .onAppear {
+            apiBaseURLInput = apiBaseURLRaw
+        }
+        .onDisappear {
+            saveCustomBaseURL()
+        }
+    }
+
+    private func saveCustomBaseURL() {
+        let trimmed = apiBaseURLInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            apiBaseURLRaw = ""
+            apiBaseURLInput = ""
+            return
+        }
+
+        guard let normalized = LMAPIBaseURL.normalizedCustomBaseURL(trimmed) else {
+            apiBaseURLRaw = trimmed
+            return
+        }
+        apiBaseURLRaw = normalized
+        apiBaseURLInput = normalized
     }
 }
 

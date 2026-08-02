@@ -36,6 +36,60 @@ enum LMAPIVersion: String, CaseIterable, Identifiable {
     static let appGroupSuiteName = "group.com.littlebluebug.AppleCardSync"
 }
 
+enum LMAPIBaseURL {
+    static let defaultsKey = "lm_api_base_url"
+    private static let defaultV1BaseURL = "https://dev.lunchmoney.app/v1"
+    private static let defaultV2BaseURL = "https://api.lunchmoney.dev/v2"
+
+    static func normalizedCustomBaseURL(_ rawValue: String) -> String? {
+        let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let url = URL(string: trimmed),
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let scheme = components.scheme?.lowercased(),
+              (scheme == "http" || scheme == "https"),
+              components.host != nil else {
+            return nil
+        }
+
+        let path = components.path
+            .split(separator: "/", omittingEmptySubsequences: true)
+            .joined(separator: "/")
+
+        var normalized = "\(scheme)://\(components.host ?? "")"
+        if let port = components.port {
+            normalized += ":\(port)"
+        }
+        if !path.isEmpty {
+            normalized += "/\(path)"
+        }
+        return normalized
+    }
+
+    static func currentBaseURL(for version: LMAPIVersion) -> String {
+        let defaults = UserDefaults(suiteName: LMAPIVersion.appGroupSuiteName) ?? .standard
+        let stored = defaults.string(forKey: defaultsKey) ?? ""
+        guard let customBase = normalizedCustomBaseURL(stored) else {
+            return defaultBaseURL(for: version)
+        }
+        return makeVersionedBaseURL(from: customBase, version: version)
+    }
+
+    private static func defaultBaseURL(for version: LMAPIVersion) -> String {
+        switch version {
+        case .v1: return defaultV1BaseURL
+        case .v2: return defaultV2BaseURL
+        }
+    }
+
+    private static func makeVersionedBaseURL(from baseURL: String, version: LMAPIVersion) -> String {
+        if baseURL.hasSuffix("/v1") || baseURL.hasSuffix("/v2") {
+            return baseURL
+        }
+        return "\(baseURL)/\(version.rawValue)"
+    }
+}
+
 /// One server-side duplicate reported by the v2 insert endpoint. v2 always
 /// dedupes on (manual_account_id, external_id) and reports each skip with the
 /// id of the transaction it collided with, which is how the v2 sync path

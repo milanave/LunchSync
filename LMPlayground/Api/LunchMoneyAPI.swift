@@ -474,7 +474,7 @@ struct RateLimitedError: LocalizedError {
 
 // MARK: LunchMoneyAPI
 class LunchMoneyAPI {
-    private let baseURL = "https://dev.lunchmoney.app/v1"
+    private var baseURL: String { LMAPIBaseURL.currentBaseURL(for: .v1) }
     private let apiToken: String
     private var debug: Bool = false
     /// Total HTTP requests issued by this instance, including retries.

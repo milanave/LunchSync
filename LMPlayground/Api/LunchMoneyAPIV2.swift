@@ -23,7 +23,7 @@
 import Foundation
 
 class LunchMoneyAPIV2 {
-    private let baseURL = "https://api.lunchmoney.dev/v2"
+    private var baseURL: String { LMAPIBaseURL.currentBaseURL(for: .v2) }
     private let apiToken: String
     private var debug: Bool = false
     /// Total HTTP requests issued by this instance, including retries.

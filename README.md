@@ -121,9 +121,10 @@ Represents a financial account with properties:
 1. Download and install LunchSync from the Test Flight link: https://testflight.apple.com/join/mF8JEHqk
 2. Get your Lunch Money API token from [my.lunchmoney.app/developers](https://my.lunchmoney.app/developers)
 3. Launch LunchSync and enter your API token
-4. Grant access to Apple Wallet when prompted
-5. Select which accounts you want to sync
-6. Optional: Enable background sync for automatic updates
+4. Optional: Open **Settings → Lunch Money API** and set **API Base URL** to point to a self-hosted server. Leave it blank to use the default Lunch Money endpoints.
+5. Grant access to Apple Wallet when prompted
+6. Select which accounts you want to sync
+7. Optional: Enable background sync for automatic updates
 
 ## Privacy & Security
 
@@ -136,5 +137,4 @@ Represents a financial account with properties:
 ## Support
 
 For issues, feature requests, or contributions, please contact support@littlebluebug.com
-
 
