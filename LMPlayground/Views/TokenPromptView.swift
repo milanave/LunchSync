@@ -23,6 +23,7 @@ struct TokenPromptView: View {
     @State private var verifiedBudgetname: String?
     @State private var mirrorURLString: String = ""
     @State private var mirrorURLError: String?
+    @State private var mirrorOnly: Bool = false
 
 
     private let keychain = Keychain()
@@ -128,11 +129,13 @@ struct TokenPromptView: View {
                     }
                     Button("Save") {
                         guard saveMirrorURL() else { return }
-                        keychain.storeTokenInKeychain(token: apiToken)
+                        if !apiToken.isEmpty {
+                            keychain.storeTokenInKeychain(token: apiToken)
+                        }
                         onSave()
                         dismiss()
                     }
-                    .disabled(!isTokenValid)
+                    .disabled(!isTokenValid && !canSaveMirrorOnly)
 
                     if let error = verificationError {
                         Text(error)
@@ -146,9 +149,18 @@ struct TokenPromptView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .keyboardType(.URL)
-                        .onChange(of: mirrorURLString) { _, _ in
+                        .onChange(of: mirrorURLString) { _, newValue in
                             mirrorURLError = nil
+                            // Mirror-only without a URL makes no sense; drop
+                            // the toggle when the field is cleared.
+                            if newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                mirrorOnly = false
+                            }
                         }
+
+                    if !mirrorURLString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Toggle("Mirror only — don't sync to Lunch Money", isOn: $mirrorOnly)
+                    }
 
                     if let error = mirrorURLError {
                         Text(error)
@@ -158,7 +170,11 @@ struct TokenPromptView: View {
                 } header: {
                     Text("Mirror Server (Optional)")
                 } footer: {
-                    Text("When set, each sync also sends a JSON snapshot of your accounts and transactions to <base URL>/finance-kit-sync. The URL must use https. Leave blank to disable.")
+                    if mirrorOnly {
+                        Text("Mirror only: each sync sends a JSON snapshot of your accounts and transactions to <base URL>/finance-kit-sync and skips Lunch Money entirely. No Lunch Money API token is required. The URL must use https.")
+                    } else {
+                        Text("When set, each sync also sends a JSON snapshot of your accounts and transactions to <base URL>/finance-kit-sync. The URL must use https. Leave blank to disable.")
+                    }
                 }
                 /*
                 #if DEBUG
@@ -178,18 +194,27 @@ struct TokenPromptView: View {
         .onAppear {
             let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
             mirrorURLString = sharedDefaults.string(forKey: MirrorAPI.defaultsKey) ?? ""
+            mirrorOnly = sharedDefaults.bool(forKey: MirrorAPI.mirrorOnlyDefaultsKey)
         }
     }
 
-    /// Persists the mirror URL alongside the token save. Returns false (and
-    /// shows an inline error) when the entered URL is invalid, so bad values
-    /// are never stored. A blank field clears the setting.
+    /// Mirror-only mode lets the user save with no verified (or even entered)
+    /// API token, as long as the mirror URL validates.
+    private var canSaveMirrorOnly: Bool {
+        mirrorOnly && MirrorAPI.validatedBaseURL(from: mirrorURLString) != nil
+    }
+
+    /// Persists the mirror URL and mirror-only flag alongside the token save.
+    /// Returns false (and shows an inline error) when the entered URL is
+    /// invalid, so bad values are never stored. A blank field clears both
+    /// settings.
     private func saveMirrorURL() -> Bool {
         let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
         let trimmed = mirrorURLString.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if trimmed.isEmpty {
             sharedDefaults.removeObject(forKey: MirrorAPI.defaultsKey)
+            sharedDefaults.set(false, forKey: MirrorAPI.mirrorOnlyDefaultsKey)
             mirrorURLError = nil
             return true
         }
@@ -200,6 +225,7 @@ struct TokenPromptView: View {
         }
 
         sharedDefaults.set(url.absoluteString, forKey: MirrorAPI.defaultsKey)
+        sharedDefaults.set(mirrorOnly, forKey: MirrorAPI.mirrorOnlyDefaultsKey)
         mirrorURLString = url.absoluteString
         mirrorURLError = nil
         return true

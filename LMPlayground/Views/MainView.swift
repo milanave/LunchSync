@@ -14,6 +14,8 @@ struct MainView: View {
     @StateObject private var wallet: Wallet
     
     @State private var apiConnected = false
+    // Mirror-only mode: sync goes to the mirror server, no LM token needed.
+    @State private var mirrorOnlyActive = MirrorAPI.isMirrorOnlyEnabled()
     @State private var showingTokenPrompt = false
     @State private var showingAccountView = false
     @State private var isShowingAccountSelectionDialog = false
@@ -125,7 +127,7 @@ struct MainView: View {
             VStack {
                 List {
                     lunchMoneyApiSection()
-                    if(apiConnected) {
+                    if(apiConnected || mirrorOnlyActive) {
                         appleWalletSection()
                         if(walletsConnected>0){
                             transactionSyncSection()
@@ -496,9 +498,9 @@ struct MainView: View {
                         ProgressView()
                             .controlSize(.small)
                     } else {
-                        Image(systemName: apiConnected ? "checkmark.icloud.fill" : "icloud.slash.fill")
+                        Image(systemName: (apiConnected || mirrorOnlyActive) ? "checkmark.icloud.fill" : "icloud.slash.fill")
                             .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(apiConnected ? .green : .red)
+                            .foregroundStyle((apiConnected || mirrorOnlyActive) ? .green : .red)
                     }
                     VStack {
                         HStack {
@@ -516,6 +518,8 @@ struct MainView: View {
                                     }
                                 }
                                 
+                            } else if(mirrorOnlyActive) {
+                                Text("Mirror only — Lunch Money disabled")
                             } else {
                                 Text("Not Connected")
                             }
@@ -687,20 +691,24 @@ struct MainView: View {
             }
             .disabled(walletsConnected < 1)
             
-            Button {
-                Task {
-                    wallet.addLog(message: "MV: importing \(pendingCount) transactions for \(walletsConnected) accounts", level: 1)
-                    await importPendingTransactions()
-                    updateBadgeCount()
+            // Pushing to Lunch Money makes no sense in mirror-only mode; the
+            // mirror POST happens as part of "Get Latest Wallet Transactions".
+            if !mirrorOnlyActive {
+                Button {
+                    Task {
+                        wallet.addLog(message: "MV: importing \(pendingCount) transactions for \(walletsConnected) accounts", level: 1)
+                        await importPendingTransactions()
+                        updateBadgeCount()
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                        Text("Sync \(pendingCount) Transactions to Lunch Money")
+                        Spacer()
+                    }
                 }
-            } label: {
-                HStack {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                    Text("Sync \(pendingCount) Transactions to Lunch Money")
-                    Spacer()
-                }
+                .disabled(pendingCount < 1)
             }
-            .disabled(pendingCount < 1)
             
             Button {
                 showingJobSheet = true
@@ -813,6 +821,7 @@ struct MainView: View {
     // MARK: refreshView
     private func refreshView(){
         //print("refreshView")
+        mirrorOnlyActive = MirrorAPI.isMirrorOnlyEnabled()
         completedCount = wallet.getTransactionsWithStatus([.complete]).count
         pendingCount = wallet.getTransactionsWithStatus(.pending).count
         errorCount = wallet.getTransactionsWithStatus(.never).count
@@ -936,6 +945,11 @@ struct MainView: View {
         if apiConnected {
             return
         }
+        // Mirror-only with no token: nothing to verify, and the mirror path
+        // doesn't need LM. The UI unlocks via mirrorOnlyActive instead.
+        if apiToken.isEmpty && mirrorOnlyActive {
+            return
+        }
         Task {
             await MainActor.run {
                 isVerifyingToken = true
@@ -967,6 +981,7 @@ struct MainView: View {
         wallet.updateAPIToken(initialToken)
         apiConnected = false
         user = nil
+        mirrorOnlyActive = MirrorAPI.isMirrorOnlyEnabled()
         checkApiToken()
         refreshView()
         // Nudge any dependent views to refresh

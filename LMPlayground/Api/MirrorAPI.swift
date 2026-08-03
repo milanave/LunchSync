@@ -62,6 +62,10 @@ struct MirrorTransaction: Encodable {
 struct MirrorAPI {
     /// Key in the shared app-group UserDefaults holding the mirror base URL.
     static let defaultsKey = "mirror_base_url"
+    /// Key in the shared app-group UserDefaults holding the mirror-only flag.
+    /// When true (and a valid mirror URL is configured) syncs skip Lunch
+    /// Money entirely and only POST to the mirror server.
+    static let mirrorOnlyDefaultsKey = "mirror_only"
 
     enum MirrorError: LocalizedError {
         case badResponse
@@ -99,6 +103,14 @@ struct MirrorAPI {
             return nil
         }
         return validatedBaseURL(from: stored)
+    }
+
+    /// True only when the mirror-only flag is set AND a valid mirror URL is
+    /// configured. A stale flag with no (or an invalid) URL degrades to
+    /// normal Lunch Money mode.
+    static func isMirrorOnlyEnabled() -> Bool {
+        let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
+        return sharedDefaults.bool(forKey: mirrorOnlyDefaultsKey) && configuredBaseURL() != nil
     }
 
     let baseURL: URL
