@@ -17,6 +17,8 @@ struct MirrorSyncEngine {
 
     enum Outcome {
         case notConfigured
+        /// Nothing was attempted (e.g. another process holds the run lock).
+        case skipped(String)
         case success(sent: Int)
         case failure(sent: Int, error: Error)
     }
@@ -54,6 +56,22 @@ struct MirrorSyncEngine {
         guard let baseURL = MirrorAPI.configuredBaseURL() else {
             return .notConfigured
         }
+
+        // Advisory cross-process lock: the app and the background extension
+        // can run at the same time, and both would open the same ledger
+        // store. If another engine run holds the lock, skip this one.
+        let lock: RunLock?
+        switch RunLock.acquire() {
+        case .busy:
+            log("mirror: already running in another process, skipping this run")
+            return .skipped("mirror already running")
+        case .unavailable:
+            log("mirror: run lock unavailable, continuing without it")
+            lock = nil
+        case .acquired(let acquired):
+            lock = acquired
+        }
+        defer { lock?.release() }
 
         // Graceful failure: no ledger, no mirror run (a run without dedupe
         // bookkeeping would re-send the whole history every time).
@@ -100,7 +118,7 @@ struct MirrorSyncEngine {
                 entries.append((id: packet.id, hash: hash, packet: packet))
             }
 
-            let existing = try ledger.recordsById()
+            var existing = try ledger.recordsById()
             // Send anything the ledger has never seen, or whose content
             // (amount, date, status, description, merchant fields) changed
             // since the server last acknowledged it.
@@ -137,7 +155,7 @@ struct MirrorSyncEngine {
                     return .failure(sent: sent, error: error)
                 }
                 do {
-                    try ledger.acknowledge(batch.map { ($0.id, $0.hash) }, existing: existing, at: Date())
+                    try ledger.acknowledge(batch.map { ($0.id, $0.hash) }, existing: &existing, at: Date())
                 } catch {
                     // The server did ack this batch; a lost upsert only means
                     // a harmless resend next run (the server upserts too).
@@ -240,21 +258,42 @@ struct MirrorSyncEngine {
     /// The whole transaction history: no date predicate, date ascending,
     /// paginated through TransactionQuery's limit/offset (1000 per page).
     private static func fetchFullHistory(log: (String) -> Void) async throws -> [FinanceKit.Transaction] {
-        let sortDescriptors = [SortDescriptor(\FinanceKit.Transaction.transactionDate, order: .forward)]
-        var all: [FinanceKit.Transaction] = []
+        // Secondary sort on id keeps the ordering stable when many rows share
+        // a timestamp, so page boundaries can't shuffle between executions.
+        let sortDescriptors = [
+            SortDescriptor(\FinanceKit.Transaction.transactionDate, order: .forward),
+            SortDescriptor(\FinanceKit.Transaction.id, order: .forward)
+        ]
+        var fetched: [FinanceKit.Transaction] = []
+        var offset = 0
         while true {
             let query = TransactionQuery(
                 sortDescriptors: sortDescriptors,
                 predicate: nil,
                 limit: pageSize,
-                offset: all.count
+                offset: offset
             )
             let page = try await FinanceStore.shared.transactions(query: query)
-            all.append(contentsOf: page)
-            if page.count < pageSize { break }
-            log("mirror: fetched \(all.count) transactions so far…")
+            // Loop until an EMPTY page: FinanceKit doesn't guarantee full
+            // pages, so a short page isn't proof the history is exhausted.
+            if page.isEmpty { break }
+            fetched.append(contentsOf: page)
+            offset += page.count
+            log("mirror: fetched \(fetched.count) transactions so far…")
         }
-        return all
+        // Belt and braces: each page is a separate query execution, so ties
+        // straddling a boundary could still repeat; keep the first occurrence
+        // of each id.
+        var seen = Set<UUID>()
+        var deduped: [FinanceKit.Transaction] = []
+        deduped.reserveCapacity(fetched.count)
+        for txn in fetched where seen.insert(txn.id).inserted {
+            deduped.append(txn)
+        }
+        if deduped.count != fetched.count {
+            log("mirror: dropped \(fetched.count - deduped.count) duplicate rows across pages")
+        }
+        return deduped
     }
 
     // MARK: - Mapping & hashing
@@ -292,25 +331,77 @@ struct MirrorSyncEngine {
             metadata: metadata
         )
 
-        // SHA256 over a canonical string of the change-relevant fields —
-        // deliberately not Hasher/hashValue, whose seed is randomized per
-        // process. A pending→posted flip, amount correction, or merchant
-        // cleanup changes the hash and re-queues the row.
+        // SHA256 over a canonical string of the change-relevant packet fields
+        // — deliberately not Hasher/hashValue, whose seed is randomized per
+        // process. Any correction that alters what the packet carries
+        // (amount, dates, status, type, descriptions, merchant fields,
+        // foreign amount/rate, or a move to another account) changes the hash
+        // and re-queues the row. nil is encoded distinctly from empty string.
+        let nilMarker = "\u{1}nil"
         let canonical = [
+            wallet.accountId,
             wallet.amount.value,
             wallet.amount.currency,
             wallet.creditDebitIndicator,
             wallet.transactionDate,
+            wallet.postedDate ?? nilMarker,
             status,
+            wallet.transactionType,
             wallet.transactionDescription,
-            wallet.originalTransactionDescription ?? "",
-            wallet.merchantName ?? "",
-            wallet.merchantCategoryCode ?? ""
+            wallet.originalTransactionDescription ?? nilMarker,
+            wallet.merchantName ?? nilMarker,
+            wallet.merchantCategoryCode ?? nilMarker,
+            wallet.foreignAmount?.value ?? nilMarker,
+            wallet.foreignAmount?.currency ?? nilMarker,
+            wallet.foreignExchangeRate ?? nilMarker
         ].joined(separator: "|")
         let hash = SHA256.hash(data: Data(canonical.utf8))
             .map { String(format: "%02x", $0) }
             .joined()
 
         return (packet, hash)
+    }
+
+    // MARK: - Cross-process run lock
+
+    /// Advisory lock (flock on a file in the app-group container) held for a
+    /// whole engine run, so the app and the background extension never work
+    /// the same ledger store concurrently. Non-blocking: a contended lock
+    /// means another run is in flight and this one just skips.
+    private final class RunLock {
+        enum Acquisition {
+            case acquired(RunLock)
+            case busy
+            case unavailable
+        }
+
+        private let fileDescriptor: Int32
+
+        private init(fileDescriptor: Int32) {
+            self.fileDescriptor = fileDescriptor
+        }
+
+        static func acquire() -> Acquisition {
+            guard let groupURL = FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: MirrorLedger.appGroupIdentifier
+            ) else {
+                return .unavailable
+            }
+            let lockURL = groupURL.appendingPathComponent("mirror.lock")
+            let fd = open(lockURL.path, O_CREAT | O_WRONLY, 0o644)
+            guard fd >= 0 else {
+                return .unavailable
+            }
+            guard flock(fd, LOCK_EX | LOCK_NB) == 0 else {
+                close(fd)
+                return .busy
+            }
+            return .acquired(RunLock(fileDescriptor: fd))
+        }
+
+        func release() {
+            flock(fileDescriptor, LOCK_UN)
+            close(fileDescriptor)
+        }
     }
 }

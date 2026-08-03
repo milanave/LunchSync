@@ -139,6 +139,15 @@ class SyncBroker {
                 refreshAPIService()
             }
 
+            // The wallet-fetch + Lunch Money section below is fenced so a
+            // failure in it can't skip the mirror run further down (the
+            // mirror reads FinanceKit itself and is independent of all of
+            // this). Any error is rethrown right after the mirror runs, so
+            // normal-mode error reporting is unchanged.
+            var lmError: Error?
+            var transactionsToSyncCount = 0
+            var finalPendingCount = 0
+            do {
             // get a list of accounts, then Apple Wallet transactions for those accounts
             let accounts = getSyncedAccounts()
             
@@ -187,7 +196,7 @@ class SyncBroker {
             }
             
 
-            let transactionsToSyncCount = getTransactionsWithStatus(.pending).count
+            transactionsToSyncCount = getTransactionsWithStatus(.pending).count
             //addLog(prefix: prefix, message: "\(transactionsToSyncCount) transactions ready to sync", level: 2)
             
             if(autoImportTransactions && !mirrorOnly){
@@ -200,7 +209,7 @@ class SyncBroker {
                 addLog(prefix: prefix, message: "skipping auto import", level: 2)
             }
                         
-            let finalPendingCount = getTransactionsWithStatus(.pending).count
+            finalPendingCount = getTransactionsWithStatus(.pending).count
             
             // Get and sync account balances
             addLog(prefix: prefix, message: "Updating account balances", level: 2)
@@ -224,14 +233,20 @@ class SyncBroker {
             for acct in accountsToUpdate {
                 addLog(prefix: prefix, message: "sync account: \(acct.name) \(CurrencyFormatter.shared.format(acct.balance))", level: 2)
             }
+            } catch {
+                lmError = error
+            }
 
-            // Mirror server sync — always non-fatal. The engine reads
+            // Mirror server sync — always non-fatal, and always runs (even
+            // when the wallet/LM section above failed). The engine reads
             // FinanceKit itself and keeps its own ledger; nothing here touches
             // the app's store or the Lunch Money path.
             var mirroredCount = 0
             switch await MirrorSyncEngine.runIfConfigured(log: { self.addLog(prefix: prefix, message: $0, level: 2) }) {
             case .notConfigured:
                 break
+            case .skipped(let reason):
+                addLog(prefix: prefix, message: "mirror: skipped (\(reason))", level: 2)
             case .success(let sent):
                 mirroredCount = sent
                 addLog(prefix: prefix, message: "mirror: sent \(sent) transactions", level: 1)
@@ -241,6 +256,12 @@ class SyncBroker {
                 if mirrorOnly && showAlert {
                     await addNotification(time: 0.5, title: "Sync Error", subtitle: "", body: "Mirror sync failed: \(error.localizedDescription)")
                 }
+            }
+
+            // The wallet/LM section failed: now that the mirror has run,
+            // rethrow so the outer catch reports it exactly as before.
+            if let lmError {
+                throw lmError
             }
 
             // get number of unmapped categories

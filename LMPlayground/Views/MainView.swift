@@ -130,7 +130,11 @@ struct MainView: View {
                     lunchMoneyApiSection()
                     if(apiConnected || mirrorOnlyActive) {
                         appleWalletSection()
-                        if(walletsConnected>0){
+                        // Mirror-only never links accounts to LM assets (that
+                        // needs a token), so account.sync stays false and
+                        // walletsConnected stays 0 — the mirror engine reads
+                        // all FinanceKit accounts directly and doesn't care.
+                        if(walletsConnected>0 || mirrorOnlyActive){
                             transactionSyncSection()
                             optionButtons()
                             //automateButtons()
@@ -347,7 +351,7 @@ struct MainView: View {
                 Section {
                     
                     Toggle("Enable background sync", isOn: $enableBackgroundJob.animation())
-                        .disabled(walletsConnected < 1)
+                        .disabled(walletsConnected < 1 && !mirrorOnlyActive)
                         .onChange(of: enableBackgroundJob) { _, newValue in
                             if !newValue {
                                 if let token = appDelegate.notificationDelegate.currentDeviceToken {
@@ -694,7 +698,7 @@ struct MainView: View {
                     Spacer()
                 }
             }
-            .disabled(walletsConnected < 1)
+            .disabled(walletsConnected < 1 && !mirrorOnlyActive)
             
             // No Lunch Money pushes in mirror-only mode; the mirror POST
             // happens as part of "Get Latest Wallet Transactions".
@@ -904,7 +908,10 @@ struct MainView: View {
         Task {
             do {
                 try await withBackgroundAssertion("refreshWalletTransactions") {
-                    let preFetchedWalletData = try await appleWallet.getPreFetchedWalletData(logPrefix: "MV")
+                    // Best-effort: on prefetch failure fall back to the
+                    // broker's own fetch (and its mirror run) instead of
+                    // aborting before fetchTransactions is even called.
+                    let preFetchedWalletData = try? await appleWallet.getPreFetchedWalletData(logPrefix: "MV")
                     _ = try await syncBroker.fetchTransactions(
                         prefix: "MV",
                         showAlert: true,

@@ -66,18 +66,38 @@ struct MirrorLedger {
         return Dictionary(records.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
-    /// Upserts an acknowledged batch and saves. Throws on save failure so
-    /// the caller can log it (the server did ack; a lost upsert only means
-    /// a harmless resend, since the server upserts too).
-    func acknowledge(_ entries: [(id: String, contentHash: String)], existing: [String: MirrorRecord], at date: Date) throws {
+    /// Upserts an acknowledged batch and saves. `existing` is inout: records
+    /// inserted here are registered in it, so a repeated id later in the run
+    /// (or in the same batch) updates the pending insert instead of adding a
+    /// second row and tripping the unique constraint on save.
+    ///
+    /// Throws on save failure so the caller can log it (the server did ack; a
+    /// lost upsert only means a harmless resend, since the server upserts
+    /// too). On failure the context is rolled back, so one bad save can't
+    /// leave poisoned pending changes that make every later save fail.
+    func acknowledge(_ entries: [(id: String, contentHash: String)], existing: inout [String: MirrorRecord], at date: Date) throws {
+        var insertedIds: [String] = []
         for entry in entries {
             if let record = existing[entry.id] {
                 record.contentHash = entry.contentHash
                 record.mirroredAt = date
             } else {
-                context.insert(MirrorRecord(id: entry.id, contentHash: entry.contentHash, mirroredAt: date))
+                let record = MirrorRecord(id: entry.id, contentHash: entry.contentHash, mirroredAt: date)
+                context.insert(record)
+                existing[entry.id] = record
+                insertedIds.append(entry.id)
             }
         }
-        try context.save()
+        do {
+            try context.save()
+        } catch {
+            context.rollback()
+            // The rolled-back inserts are no longer valid records; drop them
+            // from the map so a retry re-inserts instead of mutating a ghost.
+            for id in insertedIds {
+                existing.removeValue(forKey: id)
+            }
+            throw error
+        }
     }
 }

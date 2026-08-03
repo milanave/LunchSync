@@ -80,6 +80,20 @@ class Keychain {
         listAllKeychainItems()
     }
 
+    /// Removes the stored API token (used when the user saves with an empty
+    /// token field, e.g. to switch to mirror-only mode). Missing item is fine.
+    func deleteTokenFromKeychain() {
+        let status = SecItemDelete([
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: appId,
+            kSecAttrAccount as String: tokenKey,
+            kSecAttrAccessGroup as String: sharedAccessGroup
+        ] as CFDictionary)
+        if status != errSecSuccess && status != errSecItemNotFound {
+            print("⚠️ Failed to delete Keychain token: \(String(describing: SecCopyErrorMessageString(status, nil)))")
+        }
+    }
+
     func retrieveTokenFromKeychain() throws -> String {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,

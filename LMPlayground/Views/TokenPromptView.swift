@@ -128,9 +128,13 @@ struct TokenPromptView: View {
                     Button("Save") {
                         guard saveMirrorURL() else { return }
                         // A valid mirror URL allows saving with no token at
-                        // all (mirror-only); never write an empty token.
+                        // all (mirror-only). An empty field removes any stored
+                        // token so mirror-only can actually activate; a blank
+                        // token is never written.
                         if !apiToken.isEmpty {
                             keychain.storeTokenInKeychain(token: apiToken)
+                        } else {
+                            keychain.deleteTokenFromKeychain()
                         }
                         onSave()
                         dismiss()
@@ -140,6 +144,12 @@ struct TokenPromptView: View {
                     if let error = verificationError {
                         Text(error)
                             .foregroundColor(.red)
+                            .font(.footnote)
+                    }
+
+                    if canSaveWithoutToken {
+                        Text("Saving with an empty token removes any stored Lunch Money token and switches to mirror-only sync.")
+                            .foregroundColor(.secondary)
                             .font(.footnote)
                     }
                 }
