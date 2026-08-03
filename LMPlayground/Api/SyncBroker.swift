@@ -87,10 +87,7 @@ class SyncBroker {
         let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
         let importAsCleared = sharedDefaults.bool(forKey: "importTransactionsCleared")
         let putTransStatusInNotes = sharedDefaults.bool(forKey: "putTransStatusInNotes")
-        // Mirror-only mode (mirror_only flag + a valid mirror URL): skip every
-        // Lunch Money call and only POST the snapshot to the mirror server.
-        let mirrorOnly = MirrorAPI.isMirrorOnlyEnabled()
-        let autoImportTransactions = (skipSync || mirrorOnly) ? false : sharedDefaults.bool(forKey: "autoImportTransactions")
+        let autoImportTransactions = skipSync ? false : sharedDefaults.bool(forKey: "autoImportTransactions")
         
         let categorize_incoming = sharedDefaults.object(forKey: "categorize_incoming") == nil ? true : sharedDefaults.bool(forKey: "categorize_incoming")
         let alert_after_import = sharedDefaults.object(forKey: "alert_after_import") == nil ? true : sharedDefaults.bool(forKey: "alert_after_import")
@@ -100,9 +97,9 @@ class SyncBroker {
         
         
         do {
-            addLog(prefix: prefix, message: "Starting transaction fetch (importAsCleared: \(importAsCleared), transStatusInNotes: \(putTransStatusInNotes), autoSync: \(autoImportTransactions), categorize: \(categorize_incoming), mirrorOnly: \(mirrorOnly), api: \(LunchMoneyServiceFactory.currentVersion().rawValue))", level: 1)
-
-            if apiToken.isEmpty && !mirrorOnly {
+            addLog(prefix: prefix, message: "Starting transaction fetch (importAsCleared: \(importAsCleared), transStatusInNotes: \(putTransStatusInNotes), autoSync: \(autoImportTransactions), categorize: \(categorize_incoming), api: \(LunchMoneyServiceFactory.currentVersion().rawValue))", level: 1)
+            
+            if apiToken.isEmpty {
                 let keychain = Keychain()
                 var errorStr = "attempting to fetch token..."
                 
@@ -119,18 +116,26 @@ class SyncBroker {
                 }
                 
                 if apiToken.isEmpty {
-                    addLog(prefix: prefix, message: "error getting token \(errorStr)", level: 1)
-                    return 0
+                    // With a mirror server configured the run continues
+                    // token-less: wallet fetch and local persistence happen,
+                    // all Lunch Money calls are skipped.
+                    if MirrorAPI.configuredBaseURL() == nil {
+                        addLog(prefix: prefix, message: "error getting token \(errorStr)", level: 1)
+                        return 0
+                    }
+                } else {
+                    addLog(prefix: prefix, message: "token was blank, but successfully retrieved", level: 2)
                 }
-                addLog(prefix: prefix, message: "token was blank, but successfully retrieved", level: 2)
             }
 
-            // Rebuild the client so this run uses the token just read and the
-            // currently selected API version (the init-time client may have
-            // been built with an empty token or an older version selection).
-            // In mirror-only mode no Lunch Money call is made, so the client
-            // (which may have no token at all) is left untouched.
-            if !mirrorOnly {
+            // Mirror-only: valid mirror URL configured and no API token.
+            let mirrorOnly = MirrorAPI.isMirrorOnly(apiTokenEmpty: apiToken.isEmpty)
+            if mirrorOnly {
+                addLog(prefix: prefix, message: "no API token, running mirror-only (Lunch Money disabled)", level: 1)
+            } else {
+                // Rebuild the client so this run uses the token just read and the
+                // currently selected API version (the init-time client may have
+                // been built with an empty token or an older version selection).
                 refreshAPIService()
             }
 
@@ -182,14 +187,10 @@ class SyncBroker {
             }
             
 
-            // In mirror-only mode "to sync" means "not yet acknowledged by the
-            // mirror server"; the LM .pending status is never consumed there.
-            // (var: the mirror-only path replaces this with the actually
-            // mirrored count once the mirror POSTs have run.)
-            var transactionsToSyncCount = mirrorOnly ? getUnmirroredTransactionCount() : getTransactionsWithStatus(.pending).count
+            let transactionsToSyncCount = getTransactionsWithStatus(.pending).count
             //addLog(prefix: prefix, message: "\(transactionsToSyncCount) transactions ready to sync", level: 2)
             
-            if(autoImportTransactions){
+            if(autoImportTransactions && !mirrorOnly){
                 addLog(prefix: prefix, message: "starting import for \(transactionsToSyncCount) transactions", level: 2)
                 try await syncTransactions(prefix: prefix) { SafeSyncProgress in
                     self.addLog(prefix: prefix, message: "syncTransactions \(SafeSyncProgress.status) \(SafeSyncProgress.current)/\(SafeSyncProgress.total)", level: 2)
@@ -199,53 +200,49 @@ class SyncBroker {
                 addLog(prefix: prefix, message: "skipping auto import", level: 2)
             }
                         
-            var finalPendingCount = mirrorOnly ? getUnmirroredTransactionCount() : getTransactionsWithStatus(.pending).count
-
-            // Get and sync account balances (local persistence always; the
-            // Lunch Money asset update is skipped in mirror-only mode)
+            let finalPendingCount = getTransactionsWithStatus(.pending).count
+            
+            // Get and sync account balances
             addLog(prefix: prefix, message: "Updating account balances", level: 2)
-
+            
             var accountsToUpdate: [Account] = []
             if let _ = preFetchedWalletData {
                 accountsToUpdate = preFetchedWalletData!.accounts
             }else{
                 accountsToUpdate = try await appleWallet.getWalletAccounts()
             }
-            try await syncAccountBalances(accounts: accountsToUpdate, pushToLunchMoney: !mirrorOnly)
+            if mirrorOnly {
+                // Keep the local persistence from syncAccountBalances but
+                // skip its Lunch Money updateAsset PUTs.
+                for acct in accountsToUpdate {
+                    replaceAccount(newAccount: acct, propertiesToUpdate: ["balance", "lastUpdated"])
+                    updateAccountBalance(accountId: acct.id, balance: acct.balance, lastUpdated: acct.lastUpdated)
+                }
+            } else {
+                try await syncAccountBalances(accounts: accountsToUpdate)
+            }
             for acct in accountsToUpdate {
                 addLog(prefix: prefix, message: "sync account: \(acct.name) \(CurrencyFormatter.shared.format(acct.balance))", level: 2)
             }
 
-            // Mirror any transactions the mirror server hasn't acknowledged
-            // yet (the whole local history catches up over successive runs).
-            // The new rows from this fetch are already persisted by
-            // replaceTransaction above, so the store query picks them up.
-            // Failures are logged but never break the LM sync.
-            let mirrored = await mirrorUnmirroredTransactions(prefix: prefix)
-            if mirrorOnly {
-                // Mirror acks are the whole sync in this mode: pending means
-                // "not yet mirrored" for badges and alerts.
-                finalPendingCount = getUnmirroredTransactionCount()
-                switch mirrored {
-                case .success(let mirroredCount):
-                    // The success notification should report what actually
-                    // reached the mirror server, not the pre-mirror queue size.
-                    transactionsToSyncCount = mirroredCount
-                case .failure(let error):
-                    // No other sync happened, so surface the failure the same
-                    // way LM sync errors are surfaced, and suppress the
-                    // "transactions synced" success notification below.
-                    // Unacknowledged rows are retried on the next run.
-                    transactionsToSyncCount = 0
-                    addLog(prefix: prefix, message: "mirror-only sync failed: \(error.localizedDescription)", level: 1)
-                    if showAlert {
-                        await addNotification(time: 0.1, title: "Mirror Sync Error", subtitle: "", body: "Sending to the mirror server failed: \(error.localizedDescription)")
-                    }
-                case .notConfigured:
-                    break // unreachable: mirrorOnly requires a configured URL
+            // Mirror server sync — always non-fatal. The engine reads
+            // FinanceKit itself and keeps its own ledger; nothing here touches
+            // the app's store or the Lunch Money path.
+            var mirroredCount = 0
+            switch await MirrorSyncEngine.runIfConfigured(log: { self.addLog(prefix: prefix, message: $0, level: 2) }) {
+            case .notConfigured:
+                break
+            case .success(let sent):
+                mirroredCount = sent
+                addLog(prefix: prefix, message: "mirror: sent \(sent) transactions", level: 1)
+            case .failure(let sent, let error):
+                mirroredCount = sent
+                addLog(prefix: prefix, message: "mirror: failed after \(sent) sent: \(error.localizedDescription)", level: 1)
+                if mirrorOnly && showAlert {
+                    await addNotification(time: 0.5, title: "Sync Error", subtitle: "", body: "Mirror sync failed: \(error.localizedDescription)")
                 }
             }
-            
+
             // get number of unmapped categories
             //addLog(prefix: prefix, message: "Updating badge counts", level: 2)
             let fetchDescriptor = FetchDescriptor<TrnCategory>(
@@ -254,8 +251,15 @@ class SyncBroker {
             let uncategorizedCount = (try? modelContext.fetch(fetchDescriptor).count) ?? 0
             
             var body = ""
-            
-            if(categorize_incoming){
+
+            if(mirrorOnly){
+                // Token-less mode: the mirror result is the sync result, and
+                // the LM pending count is meaningless (nothing is ever pushed).
+                if(mirroredCount > 0){
+                    body = "\(mirroredCount) transaction\(mirroredCount == 1 ? "" : "s") synced"
+                }
+                updateBadgeCounts(count: categorize_incoming ? uncategorizedCount : 0)
+            }else if(categorize_incoming){
                 if(transactionsToSyncCount == 0 && uncategorizedCount == 0){
                     // no alert needed
                 }else if(transactionsToSyncCount > 0 && uncategorizedCount == 0){
@@ -316,151 +320,6 @@ class SyncBroker {
         }
     }
     
-    // MARK: mirror server
-
-    private static let mirrorDateFormatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter
-    }()
-
-    enum MirrorOutcome {
-        case notConfigured
-        case success(mirrored: Int)
-        case failure(Error)
-    }
-
-    /// Max transactions per mirror POST, so a full-history first sync goes up
-    /// as a sequence of requests instead of one giant one.
-    private static let mirrorBatchSize = 500
-
-    /// Transactions the mirror server has not yet acknowledged with a 2xx,
-    /// oldest first. `mirroredAt` is the mirror pipeline's own bookkeeping —
-    /// completely independent of the Lunch Money `sync` status.
-    private func getUnmirroredTransactions() -> [Transaction] {
-        let fetchDescriptor = FetchDescriptor<Transaction>(
-            predicate: #Predicate<Transaction> { $0.mirroredAt == nil },
-            sortBy: [SortDescriptor(\.date, order: .forward)]
-        )
-        do {
-            return try modelContext.fetch(fetchDescriptor)
-        } catch {
-            print("Failed to fetch unmirrored transactions: \(error)")
-            return []
-        }
-    }
-
-    func getUnmirroredTransactionCount() -> Int {
-        let fetchDescriptor = FetchDescriptor<Transaction>(
-            predicate: #Predicate<Transaction> { $0.mirroredAt == nil }
-        )
-        return (try? modelContext.fetchCount(fetchDescriptor)) ?? 0
-    }
-
-    /// If a mirror base URL is configured, POST every not-yet-acknowledged
-    /// transaction in the local store (plus all synced accounts) to
-    /// <base URL>/finance-kit-sync, in batches of `mirrorBatchSize`, oldest
-    /// first. Each 2xx stamps `mirroredAt` on exactly that batch and saves,
-    /// so anything unacknowledged stays queued and is retried on the next
-    /// run — the entire local history is mirrored eventually. Stops on the
-    /// first failure. Any failure is logged and swallowed so it can never
-    /// affect the Lunch Money sync; the outcome is returned so the
-    /// mirror-only path can react to it.
-    @discardableResult
-    private func mirrorUnmirroredTransactions(prefix: String) async -> MirrorOutcome {
-        guard let baseURL = MirrorAPI.configuredBaseURL() else { return .notConfigured }
-
-        let accounts = getSyncedAccounts()
-        let accountsById = Dictionary(accounts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        // The accounts array is small and the server upserts, so every batch
-        // carries the full set — batching is invisible to the server.
-        let mirrorAccounts = accounts.map { account in
-            MirrorAccount(
-                id: account.id,
-                name: account.name,
-                institution: account.institution_name,
-                balance: account.balance,
-                currency: account.currency.lowercased()
-            )
-        }
-
-        let queued = getUnmirroredTransactions()
-        let api = MirrorAPI(baseURL: baseURL)
-        var mirroredCount = 0
-        var stampSaveFailures = 0
-
-        // With nothing queued, still send one accounts-only packet so the
-        // server's balances stay fresh.
-        var batches: [[Transaction]] = []
-        if queued.isEmpty {
-            batches = [[]]
-        } else {
-            var start = 0
-            while start < queued.count {
-                batches.append(Array(queued[start..<min(start + Self.mirrorBatchSize, queued.count)]))
-                start += Self.mirrorBatchSize
-            }
-        }
-
-        for batch in batches {
-            let mirrorTransactions = batch.map { transaction -> MirrorTransaction in
-                let metadata = WalletMetadata.from(jsonString: transaction.walletMetadataJSON)
-                let currency = metadata?.wallet.amount.currency
-                    ?? accountsById[transaction.accountID]?.currency
-                    ?? "usd"
-                return MirrorTransaction(
-                    id: transaction.id,
-                    accountId: transaction.accountID,
-                    date: Self.mirrorDateFormatter.string(from: transaction.date),
-                    amount: transaction.amount,
-                    currency: currency.lowercased(),
-                    payee: transaction.payee,
-                    status: transaction.isPending ? "pending" : "posted",
-                    notes: transaction.notes,
-                    category: transaction.category,
-                    metadata: metadata.map { AnyEncodable($0) } ?? AnyEncodable([String: String]())
-                )
-            }
-
-            let packet = MirrorPacket(
-                schemaVersion: 1,
-                accounts: mirrorAccounts,
-                transactions: mirrorTransactions
-            )
-
-            do {
-                try await api.sync(packet: packet)
-            } catch {
-                addLog(prefix: prefix, message: "mirror sync failed (non-fatal) after \(mirroredCount) of \(queued.count) transactions; the rest stay queued: \(error.localizedDescription)", level: 1)
-                return .failure(error)
-            }
-
-            // Acknowledged: stamp exactly this batch so a failure in a later
-            // batch can't lose the acks already received.
-            let now = Date()
-            for transaction in batch {
-                transaction.mirroredAt = now
-            }
-            do {
-                try modelContext.save()
-            } catch {
-                // Keep going: the server already acked this batch and upserts,
-                // so a lost stamp only means a harmless resend next run — but
-                // the log must not pretend the ack was persisted.
-                stampSaveFailures += 1
-                addLog(prefix: prefix, message: "failed to persist mirroredAt for a batch of \(batch.count) (ack received, stamp may be lost and the batch resent next run): \(error.localizedDescription)", level: 1)
-            }
-            mirroredCount += batch.count
-        }
-
-        if stampSaveFailures > 0 {
-            addLog(prefix: prefix, message: "mirrored \(mirroredCount) transactions (\(batches.count) request\(batches.count == 1 ? "" : "s"), \(mirrorAccounts.count) accounts) to \(baseURL.host ?? baseURL.absoluteString), but \(stampSaveFailures) batch stamp save\(stampSaveFailures == 1 ? "" : "s") failed and may not have persisted", level: 1)
-        } else {
-            addLog(prefix: prefix, message: "mirrored \(mirroredCount) transactions (\(batches.count) request\(batches.count == 1 ? "" : "s"), \(mirrorAccounts.count) accounts) to \(baseURL.host ?? baseURL.absoluteString)", level: 2)
-        }
-        return .success(mirrored: mirroredCount)
-    }
-
     // go through the transactions and update the account and category
     func prepPrefetchedTransactions(transactions: [Transaction], accounts:[Account]) -> [Transaction] {
         var returnedTransactions: [Transaction] = []
@@ -642,9 +501,6 @@ class SyncBroker {
                     transaction.lm_id = newTrans.lm_id
                     transaction.lm_account = newTrans.lm_account
                     transaction.sync = .pending
-                    // Changed values need to reach the mirror server again;
-                    // this only touches the mirror pipeline's own field.
-                    transaction.mirroredAt = nil
                     if pendingChanged {
                         transaction.isPending = newTrans.isPending
                         transaction.refreshMetadataPendingFlag()
@@ -702,12 +558,6 @@ class SyncBroker {
     }
     
     func syncTransactions(progressCallback: @escaping (SafeSyncProgress) -> Void) async throws {
-        // Defense in depth: no Lunch Money pushes in mirror-only mode, no
-        // matter which code path asked for one.
-        if MirrorAPI.isMirrorOnlyEnabled() {
-            addLog(message: "mirror-only mode active, skipping Lunch Money transaction sync", level: 2)
-            return
-        }
         let pendingTransactions = getTransactionsWithStatus(.pending)
         let total = pendingTransactions.count
         var current = 0
@@ -1400,20 +1250,17 @@ class SyncBroker {
         return needIdResolution
     }
     
-    /// Persists fresh wallet balances locally and, unless `pushToLunchMoney`
-    /// is false (mirror-only mode), pushes them to the linked LM assets.
-    func syncAccountBalances(accounts: [Account], pushToLunchMoney: Bool = true) async throws {
+    func syncAccountBalances(accounts: [Account]) async throws {
         let syncedAccounts = getSyncedAccounts()
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
-
+        
         for acct in accounts {
             //print("syncAccounts \(acct.name) \(acct.id) \(acct.balance)")
             replaceAccount(newAccount: acct, propertiesToUpdate: ["balance", "lastUpdated"])
             updateAccountBalance(accountId: acct.id, balance: acct.balance, lastUpdated: acct.lastUpdated)
 
-            if pushToLunchMoney,
-               let matchingAccount = syncedAccounts.first(where: { $0.id == acct.id }),
+            if let matchingAccount = syncedAccounts.first(where: { $0.id == acct.id }),
                let lmId = Int(matchingAccount.lm_id) { // Safely unwrap lm_id
                 //print("Found synced account: \(matchingAccount.name) (ID: \(matchingAccount.id))")
                 let today = dateFormatter.string(from: acct.lastUpdated)
@@ -1661,23 +1508,12 @@ class SyncBroker {
             return []
         }
         
-        // When a mirror server is configured (either mode), old rows the
-        // server has never acknowledged are off limits: deleting them would
-        // permanently destroy exactly the history the mirror exists to
-        // preserve. They become deletable once mirrored. Without a mirror
-        // configured, behavior is unchanged.
-        let predicate: Predicate<Transaction>
-        if MirrorAPI.configuredBaseURL() != nil {
-            predicate = #Predicate<Transaction> { transaction in
-                transaction.date < cutoffDate && transaction.mirroredAt != nil
-            }
-        } else {
-            predicate = #Predicate<Transaction> { transaction in
+        let fetchDescriptor = FetchDescriptor<Transaction>(
+            predicate: #Predicate<Transaction> { transaction in
                 transaction.date < cutoffDate
             }
-        }
-        let fetchDescriptor = FetchDescriptor<Transaction>(predicate: predicate)
-
+        )
+        
         do {
             let transactions = try modelContext.fetch(fetchDescriptor)
             if andDelete {

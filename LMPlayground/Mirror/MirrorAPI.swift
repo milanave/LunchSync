@@ -41,7 +41,9 @@ struct MirrorTransaction: Encodable {
     let status: String
     let notes: String
     let category: String
-    let metadata: AnyEncodable
+    /// The full FinanceKit capture, encoded as a nested JSON object using the
+    /// same shape Lunch Money receives in `custom_metadata`.
+    let metadata: WalletMetadata
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -62,10 +64,10 @@ struct MirrorTransaction: Encodable {
 struct MirrorAPI {
     /// Key in the shared app-group UserDefaults holding the mirror base URL.
     static let defaultsKey = "mirror_base_url"
-    /// Key in the shared app-group UserDefaults holding the mirror-only flag.
-    /// When true (and a valid mirror URL is configured) syncs skip Lunch
-    /// Money entirely and only POST to the mirror server.
-    static let mirrorOnlyDefaultsKey = "mirror_only"
+
+    private static var sharedDefaults: UserDefaults {
+        UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? .standard
+    }
 
     enum MirrorError: LocalizedError {
         case badResponse
@@ -98,19 +100,32 @@ struct MirrorAPI {
 
     /// The configured mirror base URL, or nil when unset or invalid.
     static func configuredBaseURL() -> URL? {
-        let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
         guard let stored = sharedDefaults.string(forKey: defaultsKey), !stored.isEmpty else {
             return nil
         }
         return validatedBaseURL(from: stored)
     }
 
-    /// True only when the mirror-only flag is set AND a valid mirror URL is
-    /// configured. A stale flag with no (or an invalid) URL degrades to
-    /// normal Lunch Money mode.
-    static func isMirrorOnlyEnabled() -> Bool {
-        let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
-        return sharedDefaults.bool(forKey: mirrorOnlyDefaultsKey) && configuredBaseURL() != nil
+    /// The raw stored URL string, for pre-filling the settings field.
+    static func storedBaseURLString() -> String {
+        sharedDefaults.string(forKey: defaultsKey) ?? ""
+    }
+
+    /// Persists a validated base URL; nil clears the setting entirely.
+    static func setConfiguredBaseURL(_ url: URL?) {
+        if let url {
+            sharedDefaults.set(url.absoluteString, forKey: defaultsKey)
+        } else {
+            sharedDefaults.removeObject(forKey: defaultsKey)
+        }
+    }
+
+    /// The single derived rule for "mirror-only" (token-less) operation:
+    /// a valid mirror URL is configured and there is no Lunch Money API
+    /// token. No stored flag — the old `mirror_only` defaults key is simply
+    /// no longer read.
+    static func isMirrorOnly(apiTokenEmpty: Bool) -> Bool {
+        apiTokenEmpty && configuredBaseURL() != nil
     }
 
     let baseURL: URL

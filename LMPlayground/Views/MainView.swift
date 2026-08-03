@@ -14,8 +14,9 @@ struct MainView: View {
     @StateObject private var wallet: Wallet
     
     @State private var apiConnected = false
-    // Mirror-only mode: sync goes to the mirror server, no LM token needed.
-    @State private var mirrorOnlyActive = MirrorAPI.isMirrorOnlyEnabled()
+    // Mirror-only mode (valid mirror URL, no LM token): the UI stays usable
+    // without a Lunch Money connection. Recomputed in refreshView().
+    @State private var mirrorOnlyActive = false
     @State private var showingTokenPrompt = false
     @State private var showingAccountView = false
     @State private var isShowingAccountSelectionDialog = false
@@ -517,7 +518,7 @@ struct MainView: View {
                                         Spacer()
                                     }
                                 }
-                                
+
                             } else if(mirrorOnlyActive) {
                                 Text("Mirror only — Lunch Money disabled")
                             } else {
@@ -593,26 +594,30 @@ struct MainView: View {
     // MARK: transactionSyncSection
     private func transactionSyncSection() -> some View {
         Section{
-            NavigationLink {
-                TransactionListView(wallet: wallet, syncStatus: .pending)
-                    .onDisappear {
-                        refreshTrigger = UUID()
-                    }
-            } label: {
-                HStack {
-                    Image(systemName: "questionmark.app.fill")
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(pendingCount>0 ? .green : .gray)
-                    VStack {
-                        HStack {
-                            Text("^[\(pendingCount) Transaction](inflect:true) Pending Sync")
-                            Spacer()
+            // "Pending Sync" means pending for Lunch Money; hidden in
+            // mirror-only mode where nothing is ever pushed there.
+            if !mirrorOnlyActive {
+                NavigationLink {
+                    TransactionListView(wallet: wallet, syncStatus: .pending)
+                        .onDisappear {
+                            refreshTrigger = UUID()
+                        }
+                } label: {
+                    HStack {
+                        Image(systemName: "questionmark.app.fill")
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(pendingCount>0 ? .green : .gray)
+                        VStack {
+                            HStack {
+                                Text("^[\(pendingCount) Transaction](inflect:true) Pending Sync")
+                                Spacer()
+                            }
                         }
                     }
                 }
+                .disabled(pendingCount == 0)
             }
-            .disabled(pendingCount == 0)
-            
+
             if(errorCount>0){
                 NavigationLink {
                     TransactionListView(wallet: wallet, syncStatus: .never)
@@ -691,8 +696,8 @@ struct MainView: View {
             }
             .disabled(walletsConnected < 1)
             
-            // Pushing to Lunch Money makes no sense in mirror-only mode; the
-            // mirror POST happens as part of "Get Latest Wallet Transactions".
+            // No Lunch Money pushes in mirror-only mode; the mirror POST
+            // happens as part of "Get Latest Wallet Transactions".
             if !mirrorOnlyActive {
                 Button {
                     Task {
@@ -709,7 +714,7 @@ struct MainView: View {
                 }
                 .disabled(pendingCount < 1)
             }
-            
+
             Button {
                 showingJobSheet = true
             } label: {
@@ -821,11 +826,9 @@ struct MainView: View {
     // MARK: refreshView
     private func refreshView(){
         //print("refreshView")
-        mirrorOnlyActive = MirrorAPI.isMirrorOnlyEnabled()
+        mirrorOnlyActive = MirrorAPI.isMirrorOnly(apiTokenEmpty: apiToken.isEmpty)
         completedCount = wallet.getTransactionsWithStatus([.complete]).count
-        // In mirror-only mode "pending" means "not yet acknowledged by the
-        // mirror server"; the LM .pending status is never consumed there.
-        pendingCount = mirrorOnlyActive ? unmirroredTransactionCount() : wallet.getTransactionsWithStatus(.pending).count
+        pendingCount = wallet.getTransactionsWithStatus(.pending).count
         errorCount = wallet.getTransactionsWithStatus(.never).count
         walletsConnected = wallet.getSyncedAccounts().count
         
@@ -921,15 +924,8 @@ struct MainView: View {
     }
 
     // MARK: utility functions
-    private func unmirroredTransactionCount() -> Int {
-        let fetchDescriptor = FetchDescriptor<Transaction>(
-            predicate: #Predicate<Transaction> { $0.mirroredAt == nil }
-        )
-        return (try? modelContext.fetchCount(fetchDescriptor)) ?? 0
-    }
-
     private func updateBadgeCount() {
-        let finalPendingCount = mirrorOnlyActive ? unmirroredTransactionCount() : wallet.getTransactionsWithStatus(.pending).count
+        let finalPendingCount = wallet.getTransactionsWithStatus(.pending).count
         let fetchDescriptor = FetchDescriptor<TrnCategory>(
             predicate: #Predicate<TrnCategory> { $0.lm_id == "" }
         )
@@ -954,9 +950,8 @@ struct MainView: View {
         if apiConnected {
             return
         }
-        // Mirror-only with no token: nothing to verify, and the mirror path
-        // doesn't need LM. The UI unlocks via mirrorOnlyActive instead.
-        if apiToken.isEmpty && mirrorOnlyActive {
+        // Mirror-only with no token: nothing to verify against Lunch Money.
+        if apiToken.isEmpty && MirrorAPI.isMirrorOnly(apiTokenEmpty: true) {
             return
         }
         Task {
@@ -990,7 +985,6 @@ struct MainView: View {
         wallet.updateAPIToken(initialToken)
         apiConnected = false
         user = nil
-        mirrorOnlyActive = MirrorAPI.isMirrorOnlyEnabled()
         checkApiToken()
         refreshView()
         // Nudge any dependent views to refresh
