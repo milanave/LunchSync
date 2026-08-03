@@ -184,7 +184,9 @@ class SyncBroker {
 
             // In mirror-only mode "to sync" means "not yet acknowledged by the
             // mirror server"; the LM .pending status is never consumed there.
-            let transactionsToSyncCount = mirrorOnly ? getUnmirroredTransactionCount() : getTransactionsWithStatus(.pending).count
+            // (var: the mirror-only path replaces this with the actually
+            // mirrored count once the mirror POSTs have run.)
+            var transactionsToSyncCount = mirrorOnly ? getUnmirroredTransactionCount() : getTransactionsWithStatus(.pending).count
             //addLog(prefix: prefix, message: "\(transactionsToSyncCount) transactions ready to sync", level: 2)
             
             if(autoImportTransactions){
@@ -224,14 +226,23 @@ class SyncBroker {
                 // Mirror acks are the whole sync in this mode: pending means
                 // "not yet mirrored" for badges and alerts.
                 finalPendingCount = getUnmirroredTransactionCount()
-                if case .failure(let error) = mirrored {
+                switch mirrored {
+                case .success(let mirroredCount):
+                    // The success notification should report what actually
+                    // reached the mirror server, not the pre-mirror queue size.
+                    transactionsToSyncCount = mirroredCount
+                case .failure(let error):
                     // No other sync happened, so surface the failure the same
-                    // way LM sync errors are surfaced. Unacknowledged rows are
-                    // retried on the next run.
+                    // way LM sync errors are surfaced, and suppress the
+                    // "transactions synced" success notification below.
+                    // Unacknowledged rows are retried on the next run.
+                    transactionsToSyncCount = 0
                     addLog(prefix: prefix, message: "mirror-only sync failed: \(error.localizedDescription)", level: 1)
                     if showAlert {
                         await addNotification(time: 0.1, title: "Mirror Sync Error", subtitle: "", body: "Sending to the mirror server failed: \(error.localizedDescription)")
                     }
+                case .notConfigured:
+                    break // unreachable: mirrorOnly requires a configured URL
                 }
             }
             
@@ -376,6 +387,7 @@ class SyncBroker {
         let queued = getUnmirroredTransactions()
         let api = MirrorAPI(baseURL: baseURL)
         var mirroredCount = 0
+        var stampSaveFailures = 0
 
         // With nothing queued, still send one accounts-only packet so the
         // server's balances stay fresh.
@@ -429,11 +441,23 @@ class SyncBroker {
             for transaction in batch {
                 transaction.mirroredAt = now
             }
-            try? modelContext.save()
+            do {
+                try modelContext.save()
+            } catch {
+                // Keep going: the server already acked this batch and upserts,
+                // so a lost stamp only means a harmless resend next run — but
+                // the log must not pretend the ack was persisted.
+                stampSaveFailures += 1
+                addLog(prefix: prefix, message: "failed to persist mirroredAt for a batch of \(batch.count) (ack received, stamp may be lost and the batch resent next run): \(error.localizedDescription)", level: 1)
+            }
             mirroredCount += batch.count
         }
 
-        addLog(prefix: prefix, message: "mirrored \(mirroredCount) transactions (\(batches.count) request\(batches.count == 1 ? "" : "s"), \(mirrorAccounts.count) accounts) to \(baseURL.host ?? baseURL.absoluteString)", level: 2)
+        if stampSaveFailures > 0 {
+            addLog(prefix: prefix, message: "mirrored \(mirroredCount) transactions (\(batches.count) request\(batches.count == 1 ? "" : "s"), \(mirrorAccounts.count) accounts) to \(baseURL.host ?? baseURL.absoluteString), but \(stampSaveFailures) batch stamp save\(stampSaveFailures == 1 ? "" : "s") failed and may not have persisted", level: 1)
+        } else {
+            addLog(prefix: prefix, message: "mirrored \(mirroredCount) transactions (\(batches.count) request\(batches.count == 1 ? "" : "s"), \(mirrorAccounts.count) accounts) to \(baseURL.host ?? baseURL.absoluteString)", level: 2)
+        }
         return .success(mirrored: mirroredCount)
     }
 
@@ -1637,12 +1661,23 @@ class SyncBroker {
             return []
         }
         
-        let fetchDescriptor = FetchDescriptor<Transaction>(
-            predicate: #Predicate<Transaction> { transaction in
+        // When a mirror server is configured (either mode), old rows the
+        // server has never acknowledged are off limits: deleting them would
+        // permanently destroy exactly the history the mirror exists to
+        // preserve. They become deletable once mirrored. Without a mirror
+        // configured, behavior is unchanged.
+        let predicate: Predicate<Transaction>
+        if MirrorAPI.configuredBaseURL() != nil {
+            predicate = #Predicate<Transaction> { transaction in
+                transaction.date < cutoffDate && transaction.mirroredAt != nil
+            }
+        } else {
+            predicate = #Predicate<Transaction> { transaction in
                 transaction.date < cutoffDate
             }
-        )
-        
+        }
+        let fetchDescriptor = FetchDescriptor<Transaction>(predicate: predicate)
+
         do {
             let transactions = try modelContext.fetch(fetchDescriptor)
             if andDelete {
