@@ -242,7 +242,8 @@ class SyncBroker {
             // FinanceKit itself and keeps its own ledger; nothing here touches
             // the app's store or the Lunch Money path.
             var mirroredCount = 0
-            switch await MirrorSyncEngine.runIfConfigured(log: { self.addLog(prefix: prefix, message: $0, level: 2) }) {
+            let mirrorOutcome = await MirrorSyncEngine.runIfConfigured(log: { self.addLog(prefix: prefix, message: $0, level: 2) })
+            switch mirrorOutcome {
             case .notConfigured:
                 break
             case .skipped(let reason):
@@ -259,9 +260,16 @@ class SyncBroker {
             }
 
             // The wallet/LM section failed: now that the mirror has run,
-            // rethrow so the outer catch reports it exactly as before.
+            // rethrow so the outer catch reports it exactly as before — with
+            // one exception: in mirror-only mode a successful mirror IS the
+            // sync, so a wallet-section error is logged rather than surfaced
+            // as a sync error.
             if let lmError {
-                throw lmError
+                if mirrorOnly, case .success = mirrorOutcome {
+                    addLog(prefix: prefix, message: "wallet refresh error (mirror succeeded, not fatal): \(lmError.localizedDescription)", level: 1)
+                } else {
+                    throw lmError
+                }
             }
 
             // get number of unmapped categories

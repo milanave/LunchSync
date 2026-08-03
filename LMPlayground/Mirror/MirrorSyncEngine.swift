@@ -264,8 +264,10 @@ struct MirrorSyncEngine {
             SortDescriptor(\FinanceKit.Transaction.transactionDate, order: .forward),
             SortDescriptor(\FinanceKit.Transaction.id, order: .forward)
         ]
+        var seen = Set<UUID>()
         var fetched: [FinanceKit.Transaction] = []
         var offset = 0
+        var duplicates = 0
         while true {
             let query = TransactionQuery(
                 sortDescriptors: sortDescriptors,
@@ -274,26 +276,26 @@ struct MirrorSyncEngine {
                 offset: offset
             )
             let page = try await FinanceStore.shared.transactions(query: query)
-            // Loop until an EMPTY page: FinanceKit doesn't guarantee full
-            // pages, so a short page isn't proof the history is exhausted.
-            if page.isEmpty { break }
-            fetched.append(contentsOf: page)
+            var newRows = 0
+            for txn in page where seen.insert(txn.id).inserted {
+                fetched.append(txn)
+                newRows += 1
+            }
+            duplicates += page.count - newRows
+            // Progress guarantee: stop as soon as a page contributes zero NEW
+            // ids. That covers the normal empty last page, a short page that
+            // wasn't actually the end (the next request re-asks), and the
+            // pathological cases — offset ignored/clamped or a repeating
+            // page — which would otherwise loop forever and grow `fetched`
+            // without bound.
+            if newRows == 0 { break }
             offset += page.count
             log("mirror: fetched \(fetched.count) transactions so far…")
         }
-        // Belt and braces: each page is a separate query execution, so ties
-        // straddling a boundary could still repeat; keep the first occurrence
-        // of each id.
-        var seen = Set<UUID>()
-        var deduped: [FinanceKit.Transaction] = []
-        deduped.reserveCapacity(fetched.count)
-        for txn in fetched where seen.insert(txn.id).inserted {
-            deduped.append(txn)
+        if duplicates > 0 {
+            log("mirror: dropped \(duplicates) duplicate rows across pages")
         }
-        if deduped.count != fetched.count {
-            log("mirror: dropped \(fetched.count - deduped.count) duplicate rows across pages")
-        }
-        return deduped
+        return fetched
     }
 
     // MARK: - Mapping & hashing
@@ -388,6 +390,20 @@ struct MirrorSyncEngine {
                 return .unavailable
             }
             let lockURL = groupURL.appendingPathComponent("mirror.lock")
+            // Create the lock file with completeUntilFirstUserAuthentication:
+            // the default (complete) protection would make open() fail in the
+            // background extension while the device is locked — exactly the
+            // overlap window this lock exists for.
+            let protection: [FileAttributeKey: Any] = [
+                .protectionKey: FileProtectionType.completeUntilFirstUserAuthentication
+            ]
+            if !FileManager.default.fileExists(atPath: lockURL.path) {
+                FileManager.default.createFile(atPath: lockURL.path, contents: nil, attributes: protection)
+            } else {
+                // Best effort for files created by older builds with default
+                // protection.
+                try? FileManager.default.setAttributes(protection, ofItemAtPath: lockURL.path)
+            }
             let fd = open(lockURL.path, O_CREAT | O_WRONLY, 0o644)
             guard fd >= 0 else {
                 return .unavailable
