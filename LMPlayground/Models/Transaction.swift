@@ -32,6 +32,11 @@ class Transaction: Identifiable {
     /// JSON-encoded `WalletMetadata` captured at fetch time. Sent to LM as
     /// `custom_metadata` when the user has the corresponding setting on.
     var walletMetadataJSON: String?
+    /// When this transaction was last acknowledged (2xx) by the mirror
+    /// server; nil means "not yet mirrored" and queues it for the next
+    /// mirror POST. Entirely independent of the Lunch Money `sync` state.
+    /// Optional with a nil default so existing stores migrate lightweight.
+    var mirroredAt: Date?
     @Relationship(deleteRule: .cascade, inverse: \TransactionHistory.transaction) var histories: [TransactionHistory]?
 
     var sync: SyncStatus {

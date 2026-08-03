@@ -171,9 +171,9 @@ struct TokenPromptView: View {
                     Text("Mirror Server (Optional)")
                 } footer: {
                     if mirrorOnly {
-                        Text("Mirror only: each sync sends a JSON snapshot of your accounts and transactions to <base URL>/finance-kit-sync and skips Lunch Money entirely. No Lunch Money API token is required. The URL must use https.")
+                        Text("Mirror only: each sync sends your accounts and full transaction history as JSON to <base URL>/finance-kit-sync and skips Lunch Money entirely. If the server is unreachable, unsent transactions stay queued and catch up on the next sync. No Lunch Money API token is required. The URL must use https.")
                     } else {
-                        Text("When set, each sync also sends a JSON snapshot of your accounts and transactions to <base URL>/finance-kit-sync. The URL must use https. Leave blank to disable.")
+                        Text("When set, each sync also sends your accounts and full transaction history as JSON to <base URL>/finance-kit-sync. If the server is unreachable, unsent transactions stay queued and catch up on the next sync. The URL must use https. Leave blank to disable.")
                     }
                 }
                 /*

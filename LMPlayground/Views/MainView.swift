@@ -823,7 +823,9 @@ struct MainView: View {
         //print("refreshView")
         mirrorOnlyActive = MirrorAPI.isMirrorOnlyEnabled()
         completedCount = wallet.getTransactionsWithStatus([.complete]).count
-        pendingCount = wallet.getTransactionsWithStatus(.pending).count
+        // In mirror-only mode "pending" means "not yet acknowledged by the
+        // mirror server"; the LM .pending status is never consumed there.
+        pendingCount = mirrorOnlyActive ? unmirroredTransactionCount() : wallet.getTransactionsWithStatus(.pending).count
         errorCount = wallet.getTransactionsWithStatus(.never).count
         walletsConnected = wallet.getSyncedAccounts().count
         
@@ -919,8 +921,15 @@ struct MainView: View {
     }
 
     // MARK: utility functions
+    private func unmirroredTransactionCount() -> Int {
+        let fetchDescriptor = FetchDescriptor<Transaction>(
+            predicate: #Predicate<Transaction> { $0.mirroredAt == nil }
+        )
+        return (try? modelContext.fetchCount(fetchDescriptor)) ?? 0
+    }
+
     private func updateBadgeCount() {
-        let finalPendingCount = wallet.getTransactionsWithStatus(.pending).count
+        let finalPendingCount = mirrorOnlyActive ? unmirroredTransactionCount() : wallet.getTransactionsWithStatus(.pending).count
         let fetchDescriptor = FetchDescriptor<TrnCategory>(
             predicate: #Predicate<TrnCategory> { $0.lm_id == "" }
         )
