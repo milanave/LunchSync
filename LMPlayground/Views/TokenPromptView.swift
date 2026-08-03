@@ -21,8 +21,10 @@ struct TokenPromptView: View {
     @State private var statusText: String = ""
     @State private var verifiedUsername: String?
     @State private var verifiedBudgetname: String?
-    
-    
+    @State private var mirrorURLString: String = ""
+    @State private var mirrorURLError: String?
+
+
     private let keychain = Keychain()
     
     var body: some View {
@@ -125,17 +127,38 @@ struct TokenPromptView: View {
                         }
                     }
                     Button("Save") {
+                        guard saveMirrorURL() else { return }
                         keychain.storeTokenInKeychain(token: apiToken)
                         onSave()
                         dismiss()
                     }
                     .disabled(!isTokenValid)
-                    
+
                     if let error = verificationError {
                         Text(error)
                             .foregroundColor(.red)
                             .font(.footnote)
                     }
+                }
+
+                Section {
+                    TextField("https://example.com", text: $mirrorURLString)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.URL)
+                        .onChange(of: mirrorURLString) { _, _ in
+                            mirrorURLError = nil
+                        }
+
+                    if let error = mirrorURLError {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .font(.footnote)
+                    }
+                } header: {
+                    Text("Mirror Server (Optional)")
+                } footer: {
+                    Text("When set, each sync also sends a JSON snapshot of your accounts and transactions to <base URL>/finance-kit-sync. The URL must use https. Leave blank to disable.")
                 }
                 /*
                 #if DEBUG
@@ -152,8 +175,36 @@ struct TokenPromptView: View {
 
         }
         .interactiveDismissDisabled(!allowDismissal)
+        .onAppear {
+            let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
+            mirrorURLString = sharedDefaults.string(forKey: MirrorAPI.defaultsKey) ?? ""
+        }
     }
-    
+
+    /// Persists the mirror URL alongside the token save. Returns false (and
+    /// shows an inline error) when the entered URL is invalid, so bad values
+    /// are never stored. A blank field clears the setting.
+    private func saveMirrorURL() -> Bool {
+        let sharedDefaults = UserDefaults(suiteName: "group.com.littlebluebug.AppleCardSync") ?? UserDefaults.standard
+        let trimmed = mirrorURLString.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if trimmed.isEmpty {
+            sharedDefaults.removeObject(forKey: MirrorAPI.defaultsKey)
+            mirrorURLError = nil
+            return true
+        }
+
+        guard let url = MirrorAPI.validatedBaseURL(from: trimmed) else {
+            mirrorURLError = "Enter a valid https:// URL (e.g. https://example.com)"
+            return false
+        }
+
+        sharedDefaults.set(url.absoluteString, forKey: MirrorAPI.defaultsKey)
+        mirrorURLString = url.absoluteString
+        mirrorURLError = nil
+        return true
+    }
+
     private func verifyToken() {
         isVerifying = true
         verificationError = nil

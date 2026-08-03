@@ -84,6 +84,7 @@
 				Api/LunchMoneyAPI.swift,
 				Api/LunchMoneyAPIV2.swift,
 				Api/LunchMoneyService.swift,
+				Api/MirrorAPI.swift,
 				Api/PushAPI.swift,
 				Api/SyncBroker.swift,
 				"BGD Test/FinanceUtilities.swift",

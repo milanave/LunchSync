@@ -203,6 +203,10 @@ class SyncBroker {
             for acct in accountsToUpdate {
                 addLog(prefix: prefix, message: "sync account: \(acct.name) \(CurrencyFormatter.shared.format(acct.balance))", level: 2)
             }
+
+            // Optionally mirror this run's snapshot to a user-configured
+            // server. Failures are logged but never break the LM sync.
+            await mirrorSnapshot(accounts: accountsToUpdate, transactions: newTransactions, prefix: prefix)
             
             // get number of unmapped categories
             //addLog(prefix: prefix, message: "Updating badge counts", level: 2)
@@ -274,6 +278,63 @@ class SyncBroker {
         }
     }
     
+    // MARK: mirror server
+
+    private static let mirrorDateFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    /// If a mirror base URL is configured, POST a JSON snapshot of this run's
+    /// accounts and transactions to <base URL>/finance-kit-sync. Any failure
+    /// is logged and swallowed so it can never affect the Lunch Money sync.
+    private func mirrorSnapshot(accounts: [Account], transactions: [Transaction], prefix: String) async {
+        guard let baseURL = MirrorAPI.configuredBaseURL() else { return }
+
+        let accountsById = Dictionary(accounts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let mirrorAccounts = accounts.map { account in
+            MirrorAccount(
+                id: account.id,
+                name: account.name,
+                institution: account.institution_name,
+                balance: account.balance,
+                currency: account.currency.lowercased()
+            )
+        }
+        let mirrorTransactions = transactions.map { transaction -> MirrorTransaction in
+            let metadata = WalletMetadata.from(jsonString: transaction.walletMetadataJSON)
+            let currency = metadata?.wallet.amount.currency
+                ?? accountsById[transaction.accountID]?.currency
+                ?? "usd"
+            return MirrorTransaction(
+                id: transaction.id,
+                accountId: transaction.accountID,
+                date: Self.mirrorDateFormatter.string(from: transaction.date),
+                amount: transaction.amount,
+                currency: currency.lowercased(),
+                payee: transaction.payee,
+                status: transaction.isPending ? "pending" : "posted",
+                notes: transaction.notes,
+                category: transaction.category,
+                metadata: metadata.map { AnyEncodable($0) } ?? AnyEncodable([String: String]())
+            )
+        }
+
+        let packet = MirrorPacket(
+            schemaVersion: 1,
+            accounts: mirrorAccounts,
+            transactions: mirrorTransactions
+        )
+
+        do {
+            try await MirrorAPI(baseURL: baseURL).sync(packet: packet)
+            addLog(prefix: prefix, message: "mirrored \(mirrorAccounts.count) accounts and \(mirrorTransactions.count) transactions to \(baseURL.host ?? baseURL.absoluteString)", level: 2)
+        } catch {
+            addLog(prefix: prefix, message: "mirror sync failed (non-fatal): \(error.localizedDescription)", level: 1)
+        }
+    }
+
     // go through the transactions and update the account and category
     func prepPrefetchedTransactions(transactions: [Transaction], accounts:[Account]) -> [Transaction] {
         var returnedTransactions: [Transaction] = []
